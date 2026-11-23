@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="T" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T02 원가율·마진율·마크업 변환 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.compare div{background:#fff;border-radius:var(--radius-sm);padding:10px 6px;text-align:center;font-size:12px;color:var(--ink-2)}
+.compare div b{display:block;font-size:20px;color:var(--ink);margin-top:2px}
+.compare div.on{outline:1.5px solid var(--brand)}
+.compare div.on b{color:var(--brand-dark)}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>원가율·마진율·마크업 변환</h1>
+      <p>헷갈리는 세 가지 비율을 한 번에 바꿔 보여줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="알고 있는 비율" id="modeSeg">
+      <button type="button" data-mode="cost" aria-pressed="true">원가율</button>
+      <button type="button" data-mode="margin" aria-pressed="false">마진율</button>
+      <button type="button" data-mode="markup" aria-pressed="false">마크업</button>
+    </div>
+    <div class="field">
+      <label for="pct" id="pctLabel">원가율 <small>판매가 중 원가 비율</small></label>
+      <div class="input-wrap"><input id="pct" type="text" inputmode="decimal" autocomplete="off" value="30"><span class="unit">%</span></div>
+    </div>
+    <div class="field">
+      <label for="cost">원가 <small>선택 · 넣으면 판매가도 알려줘요</small></label>
+      <div class="input-wrap"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="costHint"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== T02 원가율·마진율·마크업 변환 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let mode = "cost";
+const LABELS = {
+  cost:   ["원가율", "판매가 중 원가 비율"],
+  margin: ["마진율", "판매가 중 남는 돈 비율"],
+  markup: ["마크업", "원가에 얹는 비율"]
+};
+const pct = numInput($("#pct"), render);
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+
+/* 원가율 c = 원가 ÷ 판매가, 마진율 = 1 − c, 마크업 = (판매가 − 원가) ÷ 원가 = (1 − c) ÷ c
+   (판매가는 모두 부가세 뺀 금액 기준) */
+function toCostRate(v){
+  if(mode === "cost") return v;
+  if(mode === "margin") return 1 - v;
+  return 1 / (1 + v);
+}
+
+function render(){
+  const v = pct.value / 100;
+  if(!pct.value && $("#pct").value === ""){ $("#result").innerHTML = '<p class="empty">비율을 넣으면 바로 바꿔드려요</p>'; postHeight(); return; }
+  if((mode !== "markup" && v >= 1) || (mode === "cost" && v <= 0)){
+    $("#result").innerHTML = `<p class="empty">${LABELS[mode][0]}은 ${mode === "cost" ? "0%보다 크고 " : ""}100% 미만으로 넣어주세요</p>`; postHeight(); return; }
+  const c = toCostRate(v), m = 1 - c, mk = (1 - c) / c;
+  const vals = { cost: c, margin: m, markup: mk };
+  const k = cost.value, supply = k ? k / c : 0, withVat = supply * (1 + CONFIG.vatRate);
+
+  $("#result").innerHTML = `
+    <p class="lead">${LABELS[mode][0]} ${num(pct.value, 1)}%를 바꾸면</p>
+    <div class="compare">${Object.keys(LABELS).map(key => `<div class="${key === mode ? "on" : ""}">${LABELS[key][0]}<b>${num(vals[key] * 100, 1)}%</b></div>`).join("")}</div>
+    <div class="rows">
+      <div class="row"><span>판매가 = 원가 ×</span><b>${num(1 / c, 2)}배</b></div>
+      ${k ? `<div class="row"><span>원가</span><b>${won(k)}원</b></div>
+      <div class="row"><span>판매가 (부가세 별도)</span><b>${won(supply)}원</b></div>
+      <div class="row"><span>남는 돈</span><b>${won(supply - k)}원</b></div>
+      <div class="row total"><span>판매가 (부가세 포함)</span><b>${won(withVat)}원</b></div>` : ""}
+    </div>
+    <p class="tip">원가 1,000원짜리를 마크업 ${num(mk * 100, 0)}%로 팔면 판매가는 ${won(1000 / c)}원이고, 이때 마진율은 ${num(m * 100, 1)}%예요. 마크업과 마진율은 같은 숫자가 아니에요.</p>
+    ${ACTIONS}`;
+  bindActions(`[비율 변환] 원가율 ${num(c * 100, 1)}% = 마진율 ${num(m * 100, 1)}% = 마크업 ${num(mk * 100, 1)}% (판매가 = 원가 × ${num(1 / c, 2)})${k ? `, 원가 ${won(k)}원 → 판매가 ${won(supply)}원(부가세 포함 ${won(withVat)}원)` : ""}`,
+    () => { pct.set(mode === "markup" ? 200 : 30); cost.set(0); });
+  postHeight();
+}
+
+pick($$("#modeSeg button"), b => {
+  mode = b.dataset.mode;
+  $("#pctLabel").innerHTML = `${LABELS[mode][0]} <small>${LABELS[mode][1]}</small>`;
+  pct.set(mode === "markup" ? 200 : mode === "margin" ? 70 : 30);
+});
+
+$("#note").innerHTML = `<b>계산 기준</b> · 원가율 = 원가 ÷ 판매가, 마진율 = 1 − 원가율, 마크업 = (판매가 − 원가) ÷ 원가<br>
+  세 비율 모두 부가세를 뺀 판매가 기준이에요. 부가세 포함 판매가는 ${CONFIG.baseYear}년 부가세율 ${CONFIG.vatRate * 100}%로 계산해요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
