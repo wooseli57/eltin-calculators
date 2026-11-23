@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="C" data-no="04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C04 손실비용 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>손실비용 계산기</h1>
+      <p>버리거나 반품되는 양을 반영해서 실제 원가와 한 달 손실액을 보여줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="cost">메뉴 1개 원가 <small>재료비 + 포장비</small></label>
+      <div class="input-wrap"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="costHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="made">하루에 만드는 개수</label>
+        <div class="input-wrap sm"><input id="made" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">개</span></div>
+      </div>
+      <div class="field">
+        <label for="lost">버리거나 반품되는 개수</label>
+        <div class="input-wrap sm"><input id="lost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">개</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="days">한 달 영업일</label>
+      <div class="input-wrap"><input id="days" type="text" inputmode="numeric" autocomplete="off" value="26"><span class="unit">일</span></div>
+      <div class="chips" id="dayChips">
+        <button class="chip" type="button" data-v="22">22일</button>
+        <button class="chip" type="button" data-v="26">26일</button>
+        <button class="chip" type="button" data-v="30">30일</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== C04 손실비용 계산기 ===== */
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+const made = numInput($("#made"), render), lost = numInput($("#lost"), render), days = numInput($("#days"), render);
+
+/* 실제 원가 = 하루 원가 총액 ÷ 팔린 개수 = 원가 × 만든 개수 ÷ (만든 개수 − 버린 개수) */
+function render(){
+  $$("#dayChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === days.value));
+  const c = cost.value, m = made.value, l = lost.value;
+  if(!c || !m){ $("#result").innerHTML = '<p class="empty">원가와 만드는 개수를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(l >= m){ $("#result").innerHTML = '<p class="empty">버리는 개수는 만드는 개수보다 적어야 해요</p>'; postHeight(); return; }
+
+  const sold = m - l, rate = l / m * 100;
+  const real = c * m / sold;
+  const dayLoss = c * l, monthLoss = dayLoss * days.value;
+
+  $("#result").innerHTML = `
+    <p class="lead">버리는 양까지 반영한 1개 실제 원가는</p>
+    <p class="big">${won(real)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>장부상 원가</span><b>${won(c)}원</b></div>
+      <div class="row"><span>손실률 (${num(l, 0)}개 ÷ ${num(m, 0)}개)</span><b>${num(rate, 1)}%</b></div>
+      <div class="row"><span>1개당 늘어난 원가</span><b>+ ${won(real - c)}원</b></div>
+      <div class="row"><span>하루 손실액</span><b>${won(dayLoss)}원</b></div>
+      ${days.value ? `<div class="row total"><span>한 달 손실액 (${num(days.value, 0)}일)</span><b>${won(monthLoss)}원</b></div>` : ""}
+    </div>
+    ${days.value ? `<p class="tip">하루 1개만 덜 버려도 한 달에 <b>${won(c * days.value)}원</b>이 남아요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[손실비용 계산] 원가 ${won(c)}원, 하루 ${num(m, 0)}개 중 ${num(l, 0)}개 손실(${num(rate, 1)}%) → 실제 원가 ${won(real)}원, 한 달 손실 ${won(monthLoss)}원`,
+    () => { cost.set(0); made.set(""); lost.set(""); days.set(26); $("#cost").focus(); });
+  postHeight();
+}
+
+$$("#dayChips .chip").forEach(b => b.addEventListener("click", () => days.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 실제 원가 = 원가 × 만든 개수 ÷ 팔린 개수, 손실액 = 원가 × 버린 개수. 금액은 원 단위 반올림이에요.<br>
+  손실률은 며칠 동안의 평균으로 넣으면 더 정확해요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
