@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="T" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T05 할인율 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>할인율 계산기</h1>
+      <p>정가와 판매가로 몇 % 할인인지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="list">정가 <small>할인 전 가격</small></label>
+      <div class="input-wrap"><input id="list" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="listHint"></div>
+    </div>
+    <div class="field">
+      <label for="sale">판매가 <small>할인 후 가격</small></label>
+      <div class="input-wrap"><input id="sale" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="saleHint"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== T05 할인율 계산기 ===== */
+const { $, won, num, moneyInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const list = moneyInput($("#list"), $("#listHint"), render);
+const sale = moneyInput($("#sale"), $("#saleHint"), render);
+
+/* 할인율 = (정가 − 판매가) ÷ 정가 × 100 */
+function render(){
+  const l = list.value, s = sale.value;
+  if(!l || !s){ $("#result").innerHTML = '<p class="empty">정가와 판매가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const off = l - s, pct = off / l * 100;
+  if(off < 0){ $("#result").innerHTML = `<p class="empty">판매가가 정가보다 ${won(-off)}원(${num(-pct, 1)}%) 비싸요</p>`; postHeight(); return; }
+
+  $("#result").innerHTML = `
+    <p class="lead">${won(l)}원을 ${won(s)}원에 팔면</p>
+    <p class="big">${num(pct, 1)}%<small> 할인</small></p>
+    <div class="rows">
+      <div class="row"><span>정가</span><b>${won(l)}원</b></div>
+      <div class="row"><span>할인 금액</span><b>${won(off)}원</b></div>
+      <div class="row total"><span>판매가</span><b>${won(s)}원</b></div>
+      <div class="row"><span>정가 대비 판매가</span><b>${num(s / l * 100, 1)}%</b></div>
+    </div>
+    ${ACTIONS}`;
+  bindActions(`[할인율 계산] 정가 ${won(l)}원 → 판매가 ${won(s)}원, ${won(off)}원 할인 (${num(pct, 1)}%)`,
+    () => { list.set(0); sale.set(0); $("#list").focus(); });
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 할인율 = (정가 − 판매가) ÷ 정가 × 100, 소수 첫째 자리까지 표시해요.<br>
+  할인했을 때 실제로 얼마 남는지는 할인이익 계산기(S03)에서 확인할 수 있어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
