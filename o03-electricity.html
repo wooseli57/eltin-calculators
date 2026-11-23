@@ -7,6 +7,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.bill{margin-top:12px;border:1px dashed color-mix(in srgb,var(--brand) 45%,#fff);border-radius:var(--radius-sm);padding:10px 12px;background:var(--brand-faint)}
+.bill summary{font-size:13px;font-weight:700;color:var(--brand-dark);cursor:pointer;list-style:none}
+.bill summary::before{content:"▸ "}
+.bill[open] summary::before{content:"▾ "}
+.bill .field-row{margin-top:10px}
+.bill-out{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:14px}
+.bill-out b{color:var(--brand-dark);font-size:16px}
+.bill-out .btn{flex:none;padding:9px 14px}
+.bill-out .btn:disabled{opacity:.4;cursor:default}
+.bill p{font-size:12px;color:var(--ink-3);margin-top:8px}
+</style>
 </head>
 <body>
 <main class="calc">
@@ -34,6 +46,21 @@
         <div class="input-wrap sm"><input id="price" type="text" inputmode="decimal" autocomplete="off" placeholder="직접 입력"><span class="unit">원</span></div>
       </div>
     </div>
+    <details class="bill" id="bill">
+      <summary>고지서로 단가 구하기</summary>
+      <div class="field-row">
+        <div class="field">
+          <label for="billAmt">고지서 청구금액</label>
+          <div class="input-wrap sm"><input id="billAmt" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        </div>
+        <div class="field">
+          <label for="billKwh">고지서 사용량</label>
+          <div class="input-wrap sm"><input id="billKwh" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">kWh</span></div>
+        </div>
+      </div>
+      <div class="bill-out"><span id="billResult">청구금액과 사용량을 넣어주세요</span><button type="button" class="btn btn-primary" id="useBill" disabled>이 단가 쓰기</button></div>
+      <p>고지서의 청구금액을 사용량으로 나누면 기본요금·각종 요금·부가세가 모두 반영된 실제 단가가 나와요.</p>
+    </details>
   </section>
 
   <section class="result" aria-live="polite" id="result"></section>
@@ -47,14 +74,27 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== O03 장비 전기요금 계산기 ===== */
-/* kWh 단가 기본값은 공식 출처로 확정 전까지 비워 둠 (docs/questions.md O03 참고).
-   한전 요금은 계절별 전력량요금 + 기본요금 + 기후환경·연료비조정요금 + 부가세·기금이라 단가 하나로 고정하기 어려움 */
-const CONFIG = { kwhPrice: null, baseYear: 2026, everyDay: 30 };
-const { $, won, num, ro, numInput, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+/* kWh 단가 기본값은 넣지 않음 (docs/specs/O03.md 보완 사양).
+   가게 전기(일반용)는 계절·계약전력·누진 여부에 따라 단가가 다르고 기후환경·연료비조정요금·부가세·기금이 붙어
+   예시값 하나로는 오차가 큼 → "고지서로 단가 구하기" 도우미로 사장님 가게의 실제 단가를 구하게 함 */
+const CONFIG = { kwhPrice: null, everyDay: 30 };
+const { $, won, num, toNum, ro, moneyInput, numInput, rowList, ACTIONS, bindActions, postHeight } = Eltin;
 
 const days = numInput($("#days"), render);
 const price = numInput($("#price"), render);
 if(CONFIG.kwhPrice) $("#price").value = CONFIG.kwhPrice;   // 첫 render 전이므로 값만 넣음
+
+/* 고지서 단가 = 청구금액 ÷ 사용량 (원/kWh, 소수 1자리) */
+let billPrice = 0;
+function syncBill(){
+  const a = billAmt.value, k = billKwh.value;
+  billPrice = a && k ? Math.round(a / k * 10) / 10 : 0;
+  $("#billResult").innerHTML = billPrice ? `1kWh당 <b>${num(billPrice, 1)}원</b>` : "청구금액과 사용량을 넣어주세요";
+  $("#useBill").disabled = !billPrice;
+}
+const billAmt = moneyInput($("#billAmt"), null, syncBill), billKwh = numInput($("#billKwh"), syncBill);
+$("#useBill").addEventListener("click", () => { if(billPrice) price.set(billPrice); });
+$("#bill").addEventListener("toggle", postHeight);
 
 const DEFAULT_ROWS = [{ name: "오븐", n: 1 }, { name: "냉장고", n: 1, on: "all" }, { name: "커피머신", n: 1 }];
 /* 장비 1대 하루 사용량(kWh) = 소비전력(W) × 사용시간 ÷ 1000 */
@@ -96,7 +136,7 @@ function render(){
       ${rows.map((r, i) => `<div class="row"><span>${label(r, i)} (${r.on === "all" ? "매일" : `${num(days.value, 0)}일`})</span><b>${num(monthKwh(r), 0)}kWh${p ? ` · ${won(monthKwh(r) * p)}원` : ""}</b></div>`).join("")}
       <div class="row total"><span>한 달 합계</span><b>${num(kwh, 0)}kWh${p ? ` · ${won(cost)}원` : ""}</b></div>
     </div>
-    ${p ? "" : `<p class="tip">1kWh 단가를 넣으면 요금이 나와요. 전기요금 고지서의 <b>청구금액 ÷ 사용량(kWh)</b>으로 우리 가게 평균 단가를 구할 수 있어요.</p>`}
+    ${p ? "" : `<p class="tip">1kWh 단가를 넣으면 요금이 나와요. 위의 <b>고지서로 단가 구하기</b>에서 우리 가게 실제 단가를 구할 수 있어요.</p>`}
     ${rows.length > 1 ? `<p class="tip">전기를 가장 많이 쓰는 장비는 <b>${ro(label(top, rows.indexOf(top)))}</b> 전체의 <b>${num(monthKwh(top) / kwh * 100, 0)}%</b>예요.</p>` : ""}
     ${ACTIONS}`;
   bindActions(`[장비 전기요금 계산] ${rows.map((r, i) => `${label(r, i)} ${num(monthKwh(r), 0)}kWh`).join(", ")} → 한 달 ${num(kwh, 0)}kWh${p ? `, 약 ${won(cost)}원 (1kWh ${num(p, 1)}원 기준)` : ""}`,
@@ -106,9 +146,8 @@ function render(){
 
 $("#note").innerHTML = `<b>계산 기준</b> · 사용량(kWh) = 소비전력(W) × 하루 사용 시간 × 대수 ÷ 1000 × 켜는 날 수. "매일"은 한 달 ${CONFIG.everyDay}일로 계산해요.<br>
   냉장고·제빙기처럼 계속 켜두는 장비는 실제로는 쉬었다 돌았다 해서 표시 전력보다 적게 써요. 실제로 돌아가는 시간만큼만 넣어주세요.<br>
-  실제 요금은 계절·사용량 구간·기본요금에 따라 달라서 이 계산은 어림값이에요.`;
-
-Eltin.yearNotice(null, "power");
+  실제 요금은 계절·사용량 구간·기본요금에 따라 달라서 이 계산은 어림값이에요.<br>
+  전기요금은 계약 종류, 계절, 사용량, 정부·한전의 요금 조정에 따라 달라져요. 장비 소비전력도 실제 사용 방식에 따라 차이가 있어요. 참고용으로 사용하시고, 정확한 요금은 한전 고지서나 한전ON에서 확인하세요.`;
 
 Eltin.init();
 render();
