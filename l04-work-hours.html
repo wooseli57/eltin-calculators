@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="L" data-no="04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L04 근무시간 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.input-wrap input[type="time"]{text-align:left}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>근무시간 계산기</h1>
+      <p>출퇴근 시각과 쉬는 시간을 넣으면 실제 일한 시간이 나와요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field-row">
+      <div class="field">
+        <label for="start">출근 시각</label>
+        <div class="input-wrap sm"><input id="start" type="time" value="09:00"></div>
+      </div>
+      <div class="field">
+        <label for="end">퇴근 시각</label>
+        <div class="input-wrap sm"><input id="end" type="time" value="18:00"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="rest">쉬는 시간 <small>식사·휴게 시간 합계</small></label>
+      <div class="input-wrap"><input id="rest" type="text" inputmode="numeric" autocomplete="off" value="60"><span class="unit">분</span></div>
+      <div class="chips" id="restChips">
+        <button class="chip" type="button" data-v="0">없음</button>
+        <button class="chip" type="button" data-v="30">30분</button>
+        <button class="chip" type="button" data-v="60">1시간</button>
+        <button class="chip" type="button" data-v="90">1시간 30분</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="days">일주일에 일하는 날</label>
+      <div class="input-wrap"><input id="days" type="text" inputmode="numeric" autocomplete="off" value="5"><span class="unit">일</span></div>
+      <div class="chips" id="dayChips">
+        <button class="chip" type="button" data-v="2">2일</button>
+        <button class="chip" type="button" data-v="3">3일</button>
+        <button class="chip" type="button" data-v="5">5일</button>
+        <button class="chip" type="button" data-v="6">6일</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== L04 근무시간 계산기 ===== */
+const CONFIG = { weeksPerMonth: 365 / 7 / 12 };   // 월 환산 주 수 (1년 365일 ÷ 7일 ÷ 12개월 ≈ 4.345주)
+const { $, $$, num, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const rest = numInput($("#rest"), render);
+const days = numInput($("#days"), render);
+["#start", "#end"].forEach(s => $(s).addEventListener("input", render));
+
+const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const hm = m => { m = Math.round(m); const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}시간 ${r}분` : h ? `${h}시간` : `${r}분`; };
+
+function render(){
+  $$("#restChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === rest.value && $("#rest").value !== ""));
+  $$("#dayChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === days.value));
+  const s = $("#start").value, e = $("#end").value;
+  if(!s || !e){ $("#result").innerHTML = '<p class="empty">출근·퇴근 시각을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+
+  let stay = toMin(e) - toMin(s);
+  const overnight = stay <= 0;
+  if(overnight) stay += 24 * 60;                       // 자정을 넘기면 다음 날 퇴근으로 봄
+  const work = stay - rest.value;
+  if(work <= 0){ $("#result").innerHTML = '<p class="empty">쉬는 시간이 머문 시간보다 길어요</p>'; postHeight(); return; }
+
+  const d = Math.min(days.value, 7);
+  const week = work * d, month = week * CONFIG.weeksPerMonth;
+
+  $("#result").innerHTML = `
+    <p class="lead">하루에 실제로 일한 시간은</p>
+    <p class="big">${hm(work)}</p>
+    <div class="rows">
+      <div class="row"><span>매장에 있던 시간${overnight ? " (다음 날 퇴근)" : ""}</span><b>${hm(stay)}</b></div>
+      <div class="row"><span>쉬는 시간</span><b>− ${hm(rest.value)}</b></div>
+      <div class="row"><span>하루 근무 (소수)</span><b>${num(work / 60, 2)}시간</b></div>
+      ${d ? `<div class="row"><span>일주일 근무 (${d}일)</span><b>${num(week / 60, 2)}시간</b></div>
+      <div class="row total"><span>한 달 근무 (평균)</span><b>${num(month / 60, 1)}시간</b></div>` : ""}
+    </div>
+    ${ACTIONS}`;
+  bindActions(`[근무시간 계산] ${s}~${e}, 쉬는 시간 ${hm(rest.value)} → 하루 ${hm(work)}${d ? `, 주 ${num(week / 60, 2)}시간(${d}일), 월 평균 ${num(month / 60, 1)}시간` : ""}`,
+    () => { $("#start").value = "09:00"; $("#end").value = "18:00"; rest.set(60); days.set(5); });
+  postHeight();
+}
+
+$$("#restChips .chip").forEach(b => b.addEventListener("click", () => rest.set(b.dataset.v)));
+$$("#dayChips .chip").forEach(b => b.addEventListener("click", () => days.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 실제 근무시간 = 퇴근 − 출근 − 쉬는 시간. 퇴근 시각이 출근보다 이르면 다음 날 퇴근으로 계산해요.<br>
+  한 달 근무는 1년을 평균 낸 값(한 달 ≈ ${num(CONFIG.weeksPerMonth, 3)}주)이라 실제 달력과 조금 다를 수 있어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
