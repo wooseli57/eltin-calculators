@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="S" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S02 배달 판매가 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-top:16px}
+.check input{width:20px;height:20px;accent-color:var(--brand-dark)}
+.sample{font-size:12px;color:var(--ink-3);margin-top:12px}
+.compare{background:#fff;border-radius:var(--radius-sm);padding:10px 14px;margin-top:8px;font-size:13px;color:var(--ink-2);display:flex;justify-content:space-between;gap:8px}
+.compare b{color:var(--ink);white-space:nowrap}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>배달 판매가 계산기</h1>
+      <p>매장에서 파는 만큼 남기려면 배달앱에서 얼마에 팔아야 하는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field-row">
+      <div class="field">
+        <label for="price">매장 판매가 <small>부가세 포함</small></label>
+        <div class="input-wrap sm"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+      <div class="field">
+        <label for="cost">메뉴 1개 원가 <small>재료+포장</small></label>
+        <div class="input-wrap sm"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="costHint"></div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="broker">중개수수료율</label>
+        <div class="input-wrap sm"><input id="broker" type="text" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+      </div>
+      <div class="field">
+        <label for="pay">결제수수료율</label>
+        <div class="input-wrap sm"><input id="pay" type="text" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+      </div>
+    </div>
+    <div class="chips" id="brokerChips" aria-label="중개수수료율 예시"></div>
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="deliv">사장님 부담 배달비 <small>1건</small></label>
+        <div class="input-wrap sm"><input id="deliv" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="delivHint"></div>
+      </div>
+      <div class="field">
+        <label for="items">주문당 메뉴 개수 <small>평균</small></label>
+        <div class="input-wrap sm"><input id="items" type="text" inputmode="decimal" autocomplete="off"><span class="unit">개</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>가격 끝자리</label>
+      <div class="seg" role="group" aria-label="가격 끝자리" id="unitSeg" style="margin-bottom:0">
+        <button type="button" data-unit="100" aria-pressed="true">100원 단위</button>
+        <button type="button" data-unit="500" aria-pressed="false">500원 단위</button>
+        <button type="button" data-unit="1" aria-pressed="false">그대로</button>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="vat" checked> 수수료에 부가세(10%) 포함</label>
+    <p class="sample">수수료율·배달비는 예시값이에요. 내 가게 정산서의 실제 값으로 바꿔주세요.</p>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== S02 배달 판매가 계산기 (사양: docs/specs/S02.md) ===== */
+const CONFIG = {
+  rates: { 2026: { vatRate: 0.10 } },   // 판매가 부가세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+  feeVat: 1.1,                          // 수수료에 붙는 부가세
+  defaults: { brokerRate: 7.8, payRate: 3.0, itemsPerOrder: 1, brokerChips: [2.0, 6.8, 7.8] }   // 예시값 (C03과 같은 근거, 확인 2026-11-23)
+};
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let unit = 100;
+$("#broker").value = CONFIG.defaults.brokerRate; $("#pay").value = CONFIG.defaults.payRate; $("#items").value = CONFIG.defaults.itemsPerOrder;
+$("#brokerChips").innerHTML = CONFIG.defaults.brokerChips.map(v => `<button class="chip" type="button" data-v="${v}">중개 ${num(v, 1)}%</button>`).join("");
+const price = moneyInput($("#price"), $("#priceHint"), render);
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+const deliv = moneyInput($("#deliv"), $("#delivHint"), render);
+const broker = numInput($("#broker"), render), pay = numInput($("#pay"), render), items = numInput($("#items"), render);
+$("#vat").addEventListener("change", render);
+
+const up = x => Math.ceil(x / unit - 1e-9) * unit;   // 끝자리 올림 (부동소수 오차 보정)
+
+/* f = (중개 + 결제 수수료율) × 수수료 부가세, d = 배달비 ÷ 주문당 메뉴 개수
+   매장에서 남는 돈 P = 매장가 ÷ 1.1 − 원가
+   배달에서 남는 돈 = x ÷ 1.1 − 원가 − x·f − d = P 가 되는 x = (P + 원가 + d) ÷ (1/1.1 − f) */
+function render(){
+  $$("#brokerChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === broker.value));
+  const p = price.value, c = cost.value;
+  if(!p || !c){ $("#result").innerHTML = '<p class="empty">매장 판매가와 원가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const f = (broker.value + pay.value) / 100 * ($("#vat").checked ? CONFIG.feeVat : 1);
+  const d = deliv.value / (items.value || 1);
+  const ex = 1 / (1 + VAT);
+  const P = p * ex - c;
+  if(P <= 0){ $("#result").innerHTML = '<p class="empty">매장 판매가에서 남는 돈이 없어요. 원가를 확인해 주세요</p>'; postHeight(); return; }
+  const denom = ex - f;
+  if(denom <= 0){ $("#result").innerHTML = '<p class="empty">수수료율이 너무 높아 계산할 수 없어요</p>'; postHeight(); return; }
+
+  const x = (P + c + d) / denom;
+  const dp = up(x);
+  const fee = dp * f;
+  const dProfit = dp * ex - c - fee - d;          // 검산: P 이상
+  const diff = dp - p, diffPct = diff / p * 100;
+
+  /* 참고: 원가율까지 같게 — 배달의 1개당 비용(원가 + 배달비 + 수수료)이 판매가(부가세 뺌)에서 차지하는 비율을
+     매장 원가율(원가 ÷ 매장가(부가세 뺌))과 같게: (c + d + x·f) ÷ (x/1.1) = r → x = (c + d) ÷ (r/1.1 − f) */
+  const r = c / (p * ex), denomR = r * ex - f;
+  const samePrice = denomR > 0 ? up((c + d) / denomR) : null;
+
+  $("#result").innerHTML = `
+    <p class="lead">배달앱에서는 이 가격에 팔아야 매장만큼 남아요</p>
+    <p class="big">${won(dp)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>매장 판매가</span><b>${won(p)}원</b></div>
+      <div class="row"><span>매장에서 1개 남는 돈</span><b>${won(P)}원</b></div>
+      <div class="row"><span>배달 수수료 (1개, ${num(f * 100, 2)}%)</span><b>${won(fee)}원</b></div>
+      <div class="row"><span>메뉴 1개당 배달비</span><b>${won(d)}원</b></div>
+      <div class="row"><span>배달에서 1개 남는 돈</span><b>${won(dProfit)}원</b></div>
+      <div class="row total"><span>매장가보다</span><b>${won(diff)}원 (${num(diffPct, 1)}%) 높게</b></div>
+    </div>
+    <p class="tip">배달팁(손님이 내는 배달비)을 받으면 그만큼 사장님 부담이 줄어요.</p>
+    <div class="compare"><span>참고 · 원가율(원가+배달비+수수료)까지 매장(${num(r * 100, 1)}%)과 같게 하려면</span><b>${samePrice ? `${won(samePrice)}원` : "맞출 수 없어요"}</b></div>
+    ${ACTIONS}`;
+  bindActions(`[배달 판매가 계산] 매장가 ${won(p)}원, 원가 ${won(c)}원, 수수료 ${num(f * 100, 2)}%, 1개당 배달비 ${won(d)}원 → 배달 판매가 ${won(dp)}원 (매장가보다 ${won(diff)}원, ${num(diffPct, 1)}% 높게, 1개 남는 돈 ${won(dProfit)}원)`,
+    () => { price.set(0); cost.set(0); deliv.set(0); broker.set(CONFIG.defaults.brokerRate); pay.set(CONFIG.defaults.payRate); items.set(CONFIG.defaults.itemsPerOrder); $("#vat").checked = true; render(); $("#price").focus(); });
+  postHeight();
+}
+
+$$("#brokerChips .chip").forEach(b => b.addEventListener("click", () => broker.set(b.dataset.v)));
+pick($$("#unitSeg button"), b => { unit = Number(b.dataset.unit); render(); });
+
+$("#note").innerHTML = `<b>계산 기준</b> · 매장과 배달에서 메뉴 1개당 남는 금액을 같게 맞춘 가격이에요. 판매가는 부가세 포함(${R.useYear}년 부가세율 ${VAT * 100}%), 끝자리는 올림.<br>
+  배달팁, 광고비, 쿠폰·할인 부담분은 반영하지 않았어요.<br>
+  기본값은 예시예요. 배달앱 수수료와 배달비는 앱마다 다르고, 가게의 매출 구간, 가게와 손님 사이의 거리, 앱의 정책에 따라 수시로 바뀌어요. 참고용으로 사용하시고, 정확한 금액은 각 앱의 정산서와 공지를 확인하세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
