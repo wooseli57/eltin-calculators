@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="L" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L02 주휴수당 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-top:16px}
+.check input{width:20px;height:20px;accent-color:var(--brand-dark)}
+.reason{font-size:18px;font-weight:700;color:var(--brand-dark);margin:4px 0 12px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>주휴수당 계산기</h1>
+      <p>우리 알바생이 주휴수당 대상인지, 얼마를 줘야 하는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="wage">시급</label>
+      <div class="input-wrap"><input id="wage" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="wageHint"></div>
+    </div>
+    <div class="field">
+      <label>일주일 근무시간 <small>계약서에 정한 시간</small></label>
+      <div class="seg" role="group" aria-label="입력 방식" id="modeSeg" style="margin-bottom:10px">
+        <button type="button" data-mode="day" aria-pressed="true">하루 시간 × 일수</button>
+        <button type="button" data-mode="week" aria-pressed="false">주 근무시간 직접</button>
+      </div>
+      <div class="field-row" id="dayBox">
+        <div><div class="input-wrap sm"><input id="hours" type="text" inputmode="decimal" autocomplete="off" value="4" aria-label="하루 근무시간"><span class="unit">시간</span></div></div>
+        <div><div class="input-wrap sm"><input id="days" type="text" inputmode="numeric" autocomplete="off" value="5" aria-label="주 근무일수"><span class="unit">일</span></div></div>
+      </div>
+      <div id="weekBox" hidden>
+        <div class="input-wrap"><input id="week" type="text" inputmode="decimal" autocomplete="off" value="20" aria-label="주 근무시간"><span class="unit">시간</span></div>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="full" checked> 이번 주 정해진 날 모두 출근했어요</label>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== L02 주휴수당 계산기 (사양: docs/specs/L02.md) ===== */
+const CONFIG = {
+  weeksPerMonth: 365 / 7 / 12,
+  rates: {
+    2026: { minWage: 10320 },  // 고용노동부 고시 (확인 2026-11-23)
+    2027: { minWage: 10700 }   // 2027년 적용 최저임금 고시 2026-08-05 (확인 2026-11-23)
+  }
+};
+const R = Eltin.yearRates(CONFIG.rates), V = R.values;
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let mode = "day";
+$("#wage").value = won(V.minWage);
+const wage = moneyInput($("#wage"), $("#wageHint"), render);
+const hours = numInput($("#hours"), render), days = numInput($("#days"), render), week = numInput($("#week"), render);
+$("#full").addEventListener("change", render);
+
+/* 주휴시간 = min(주 근무시간, 40) ÷ 40 × 8, 1주 주휴수당 = 시급 × 주휴시간 (원 미만 버림) */
+function render(){
+  const w = wage.value, h = mode === "day" ? hours.value * Math.min(days.value, 7) : week.value;
+  if(!w || !h){ $("#result").innerHTML = '<p class="empty">시급과 근무시간을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const full = $("#full").checked;
+  const tipAll = `<p class="tip">주휴수당은 직원 수와 관계없이 모든 사업장에 적용돼요.</p>`;
+
+  if(h < 15 || !full){
+    $("#result").innerHTML = `
+      <p class="lead">주휴수당 대상이 아니에요</p>
+      <p class="reason">${h < 15 ? `주 15시간 미만이에요 (지금 주 ${num(h, 1)}시간)` : "정해진 날 중 결근한 날이 있으면 그 주는 주휴수당이 없어요"}</p>
+      ${tipAll}`;
+    postHeight(); return;
+  }
+
+  const hh = Math.min(h, 40) / 40 * 8;
+  const weekPay = Math.floor(w * hh);
+  const monthPay = Math.round(weekPay * CONFIG.weeksPerMonth);
+  const real = w * (h + hh) / h;
+
+  $("#result").innerHTML = `
+    <p class="lead">주휴수당 대상이에요. 1주에 받는 주휴수당은</p>
+    <p class="big">${won(weekPay)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>주 근무시간</span><b>${num(h, 1)}시간</b></div>
+      <div class="row"><span>주휴시간</span><b>${num(hh, 2)}시간</b></div>
+      <div class="row"><span>1주 주휴수당</span><b>${won(weekPay)}원</b></div>
+      <div class="row"><span>한 달 주휴수당 (약)</span><b>${won(monthPay)}원</b></div>
+      <div class="row total"><span>주휴 포함 실질 시급</span><b>${won(real)}원</b></div>
+    </div>
+    ${w < V.minWage ? `<p class="tip warn">입력한 시급이 ${R.useYear}년 최저임금(${won(V.minWage)}원)보다 낮아요.</p>` : ""}
+    ${tipAll}
+    ${ACTIONS}`;
+  bindActions(`[주휴수당 계산] 시급 ${won(w)}원, 주 ${num(h, 1)}시간 → 주휴 ${num(hh, 2)}시간, 1주 ${won(weekPay)}원, 한 달 약 ${won(monthPay)}원 (실질 시급 ${won(real)}원)`,
+    () => { wage.set(V.minWage); hours.set(4); days.set(5); week.set(20); $("#full").checked = true; render(); });
+  postHeight();
+}
+
+pick($$("#modeSeg button"), b => {
+  mode = b.dataset.mode;
+  $("#dayBox").hidden = mode !== "day"; $("#weekBox").hidden = mode === "day";
+  render();
+});
+
+$("#note").innerHTML = `<b>계산 기준</b> · 시급 기본값은 ${R.useYear}년 최저임금이에요. 주휴시간 = 주 근무시간 ÷ 40 × 8시간 (주 40시간 이상이면 8시간), 원 미만 버림.<br>
+  한 달은 평균 ${num(CONFIG.weeksPerMonth, 3)}주로 계산해요. 주 근무시간이 주마다 다르면 4주 평균으로 판단해요.`;
+Eltin.yearNotice(R, "labor", { minWage: "최저임금" });
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
