@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="01">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M01 메뉴 마진 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.rank{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;
+  background:var(--line);color:var(--ink-2);margin-right:6px}
+.rank.first{background:var(--brand-dark);color:#fff}
+.row small{display:block;font-size:12px;color:var(--ink-3);font-weight:400;text-align:right}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>메뉴 마진 계산기</h1>
+      <p>메뉴별로 1개 팔면 얼마 남는지, 어떤 메뉴가 효자인지 비교해줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>메뉴 <small>판매가는 부가세 포함, 하루 판매량은 선택</small></label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== M01 메뉴 마진 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026, highCostRate: 40 };   // 원가율 경고 기준(%)은 안내용
+const { $, won, num, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+/* 1개 남는 돈 = 판매가 ÷ (1 + 부가세율) − 원가, 원가율 = 원가 ÷ 부가세 뺀 판매가 */
+const ex = p => p / (1 + CONFIG.vatRate);
+const margin = r => ex(r.price) - r.cost;
+const costRate = r => r.cost / ex(r.price) * 100;
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name",  type: "text",  label: "메뉴 이름", ph: "메뉴 이름 (예: 아메리카노)" },
+    { key: "price", type: "money", label: "판매가", unit: "원", ph: "4,500" },
+    { key: "cost",  type: "money", label: "1개 원가", unit: "원", ph: "1,200" },
+    { key: "qty",   type: "num",   label: "하루 판매량", unit: "개", ph: "-" }
+  ],
+  cols: "minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,.9fr)",
+  rows: [{}, {}, {}],
+  addLabel: "메뉴 추가",
+  note: r => r.price && r.cost ? `1개에 <b>${won(margin(r))}원</b> 남음 · 원가율 <b>${num(costRate(r), 1)}%</b>` : "",
+  onChange: render
+});
+
+function render(){
+  const rows = items.rows().filter(r => r.price && r.cost);
+  if(!rows.length){ $("#result").innerHTML = '<p class="empty">메뉴별 판매가와 원가를 넣으면 바로 비교해요</p>'; postHeight(); return; }
+  rows.forEach((r, i) => r._label = r.name || `메뉴 ${i + 1}`);
+  const byQty = rows.some(r => r.qty);
+  const score = r => byQty ? margin(r) * (r.qty || 0) : margin(r);
+  const sorted = [...rows].sort((a, b) => score(b) - score(a));
+  const best = sorted[0];
+  const dayTotal = rows.reduce((s, r) => s + margin(r) * (r.qty || 0), 0);
+  const high = rows.filter(r => costRate(r) > CONFIG.highCostRate);
+
+  $("#result").innerHTML = `
+    <p class="lead">${byQty ? `하루에 가장 많이 남겨주는 효자 메뉴는 <b>${best._label}</b>` : `1개 팔면 가장 많이 남는 메뉴는 <b>${best._label}</b>`}</p>
+    <p class="big">${won(score(best))}<small>원${byQty ? " / 하루" : ""}</small></p>
+    <div class="rows">
+      ${sorted.map((r, i) => `<div class="row"><span><i class="rank ${i ? "" : "first"}">${i + 1}</i>${r._label}</span>
+        <b>${won(margin(r))}원${byQty && r.qty ? ` × ${num(r.qty, 0)}개` : ""}<small>원가율 ${num(costRate(r), 1)}%${byQty && r.qty ? ` · 하루 ${won(score(r))}원` : ""}</small></b></div>`).join("")}
+      ${byQty ? `<div class="row total"><span>하루 남는 돈 합계</span><b>${won(dayTotal)}원</b></div>` : ""}
+    </div>
+    ${high.length ? `<p class="tip warn">원가율이 ${CONFIG.highCostRate}%를 넘는 메뉴: <b>${high.map(r => r._label).join(", ")}</b>. 가격이나 레시피를 다시 보세요.</p>` : ""}
+    ${!byQty ? `<p class="tip">하루 판매량을 넣으면 실제로 돈을 가장 많이 벌어주는 메뉴 순서로 바꿔 보여드려요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[메뉴 마진 비교] ${sorted.map((r, i) => `${i + 1}위 ${r._label} 1개 ${won(margin(r))}원(원가율 ${num(costRate(r), 1)}%)${byQty && r.qty ? ` 하루 ${won(score(r))}원` : ""}`).join(" / ")}`,
+    () => items.set([{}, {}, {}]));
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 남는 돈 = 판매가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) − 원가, 원가율 = 원가 ÷ 부가세 뺀 판매가, ${CONFIG.baseYear}년 기준<br>
+  하루 판매량을 넣으면 "1개 남는 돈 × 하루 판매량" 순서로 순위를 매겨요. 원가율 ${CONFIG.highCostRate}%는 참고용 기준이에요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
