@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="O" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O02 카드수수료 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.pct-wrap{width:140px}
+.tier{font-size:13px;font-weight:700;color:var(--brand-dark);margin-top:2px}
+.help{font-size:12px;color:var(--ink-3);margin-top:6px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>카드수수료 계산기</h1>
+      <p>내 매출 규모의 카드수수료율과 한 달 수수료를 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="annual">연매출 <small>1년 전체 매출</small></label>
+      <div class="input-wrap"><input id="annual" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="annualHint"></div>
+      <p class="tier" id="tier"></p>
+    </div>
+    <div class="field" id="generalBox" hidden>
+      <label for="general">일반가맹점 수수료율 <small>카드사 안내 요율로 바꿔주세요</small></label>
+      <div class="input-wrap pct-wrap"><input id="general" type="text" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+      <p class="help">예시값이에요.</p>
+    </div>
+    <div class="field">
+      <label for="card">한 달 카드매출</label>
+      <div class="input-wrap"><input id="card" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="cardHint"></div>
+    </div>
+    <div class="field">
+      <label for="check">체크카드 비중</label>
+      <div class="input-wrap pct-wrap"><input id="check" type="text" inputmode="decimal" autocomplete="off" value="0"><span class="unit">%</span></div>
+      <div class="chips" id="checkChips"></div>
+      <p class="help">모르면 0%로 두세요. 수수료가 가장 많이 나오는 쪽으로 계산돼요</p>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== O02 카드수수료 계산기 (사양: docs/specs/O02.md) ===== */
+/* 우대수수료 구간표는 assets/eltin-calc.js의 Eltin.cardTiers에서만 관리 (M04와 공통) */
+const CONFIG = { checkChips: [0, 30, 50] };
+const CT = Eltin.cardTiers, R = Eltin.yearRates(CT.rates), V = R.values;
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+$("#general").value = CT.generalRateExample;
+$("#checkChips").innerHTML = CONFIG.checkChips.map(v => `<button class="chip" type="button" data-v="${v}">${v}%</button>`).join("");
+const annual = moneyInput($("#annual"), $("#annualHint"), render);
+const card = moneyInput($("#card"), $("#cardHint"), render);
+const check = numInput($("#check"), render), general = numInput($("#general"), render);
+
+function render(){
+  $$("#checkChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === check.value && $("#check").value !== ""));
+  const S = annual.value, a = card.value;
+  const tier = S ? CT.tierFor(V.tiers, S) : null;
+  $("#tier").textContent = tier ? tier.name : "";
+  const isGeneral = tier && tier.credit == null;
+  $("#generalBox").hidden = !isGeneral;
+  if(!tier || !a){ $("#result").innerHTML = '<p class="empty">연매출과 한 달 카드매출을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(isGeneral && !general.value){ $("#result").innerHTML = '<p class="empty">일반가맹점 수수료율을 넣어주세요</p>'; postHeight(); return; }
+  if(check.value > 100){ $("#result").innerHTML = '<p class="empty">체크카드 비중은 100% 이하로 넣어주세요</p>'; postHeight(); return; }
+
+  const g = general.value, c = check.value / 100;
+  const f = CT.fee(a, c, tier, g);
+  const allCredit = CT.fee(a, 0, tier, g).total, allCheck = CT.fee(a, 1, tier, g).total;
+  const real = f.total / a * 100;
+
+  $("#result").innerHTML = `
+    <p class="lead">한 달 카드수수료는</p>
+    <p class="big">${won(f.total)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>적용 구간</span><b>${tier.name.replace(/ \(.*/, "")}</b></div>
+      <div class="row"><span>신용카드 수수료 (${num(f.creditRate, 2)}%)</span><b>${won(f.creditFee)}원</b></div>
+      ${c ? `<div class="row"><span>체크카드 수수료 (${num(f.checkRate, 2)}%)</span><b>${won(f.checkFee)}원</b></div>` : ""}
+      <div class="row"><span>실제 수수료율</span><b>${num(real, 3)}%</b></div>
+      <div class="row total"><span>1년이면</span><b>${won(f.total * 12)}원</b></div>
+    </div>
+    <p class="tip">모두 신용카드면 <b>${won(allCredit)}원</b>, 모두 체크카드면 <b>${won(allCheck)}원</b>이에요.</p>
+    <p class="tip">간편결제(페이)나 PG사를 거치는 결제는 수수료가 다를 수 있어요.</p>
+    ${ACTIONS}`;
+  bindActions(`[카드수수료 계산] ${tier.name}, 월 카드매출 ${won(a)}원(체크 ${num(c * 100, 0)}%) → 월 ${won(f.total)}원, 연 ${won(f.total * 12)}원 (실제 ${num(real, 3)}%, ${V.period} 기준)`,
+    () => { annual.set(0); card.set(0); check.set(0); general.set(CT.generalRateExample); $("#annual").focus(); });
+  postHeight();
+}
+
+$$("#checkChips .chip").forEach(b => b.addEventListener("click", () => check.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${V.period} 우대수수료율 기준이에요. 월 카드수수료 = 신용 매출 × 신용 요율 + 체크 매출 × 체크 요율, 원 미만 버림.<br>
+  신용카드 매출세액공제는 세금 계산기(M03)에서 다뤄요.`;
+Eltin.yearNotice(R, "", {}, `${R.useYear}년 기준이에요. 우대수수료율은 매년 2월·8월에 매출 구간이 다시 정해지고, 요율 자체도 주기적으로 다시 정해져요. 새로 개업한 가게는 처음에 일반 수수료가 적용된 뒤 나중에 차액을 돌려받아요. 참고용으로 사용하시고, 정확한 요율은 여신금융협회 '카드매출조회'(cardsales.or.kr)나 카드사에서 확인하세요.`);
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
