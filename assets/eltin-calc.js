@@ -58,6 +58,47 @@
     const jong = c % 28;
     return word + (jong === 0 || jong === 8 ? "로" : "으로");
   }
+  const eun = w => { const c = String(w).slice(-1).charCodeAt(0) - 0xAC00; return w + (c >= 0 && c <= 11171 && c % 28 ? "은" : "는"); };
+
+  /* ---------- 연도별 값 (CLAUDE.md 6항) ----------
+     rates: { 2026:{...}, 2027:{...} } → 올해 연도 값을 고르고, 올해에 없는 항목은 가장 최근 연도 값을 씀
+     디자인 확인 모드에서는 주소 뒤 ?year=2028 로 연도를 바꿔 볼 수 있음 */
+  function yearRates(rates){
+    const qYear = SITE.devPreview && Number(new URLSearchParams(location.search).get("year"));
+    const year = qYear || new Date().getFullYear();
+    const years = Object.keys(rates).map(Number).sort((a, b) => a - b);
+    const past = years.filter(y => y <= year);
+    const useYear = past.length ? past[past.length - 1] : years[0];
+    const values = {}, from = {};
+    years.filter(y => y <= useYear).forEach(y => Object.entries(rates[y]).forEach(([k, v]) => { values[k] = v; from[k] = y; }));
+    return { year, useYear, values, from, missing: !rates[year] };
+  }
+  const WHO = {
+    labor: "고용노동부·4대보험 공단이나 노무사",
+    tax: "국세청이나 세무사",
+    fee: "카드사·배달앱",
+    power: "한국전력"
+  };
+  /* 계산 기준 끝에 공통 주의 문구, 이전 연도 값을 쓰는 항목 표시, 올해 값이 없으면 결과 위에 경고
+     labels: { 키: "화면 이름" } — 이름을 준 항목만 "이전 연도 값" 안내에 나옴 */
+  function yearNotice(R, field, labels = {}){
+    const year = R ? R.useYear : new Date().getFullYear();
+    const parts = [];
+    if(R){
+      const byYear = {};
+      Object.entries(R.from).forEach(([k, y]) => { if(y !== R.useYear && labels[k]) (byYear[y] = byYear[y] || []).push(labels[k]); });
+      Object.entries(byYear).forEach(([y, ks]) => parts.push(`${eun(ks.join("·"))} ${y}년 값이에요 (${R.useYear}년 고시 확인 전)`));
+      if(R.missing && R.year > R.useYear){
+        const res = $("#result");
+        if(res && !$("#yearWarn")) res.insertAdjacentHTML("beforebegin",
+          `<p class="tip warn" id="yearWarn">아직 ${R.year}년 요율이 반영되지 않았어요. ${R.useYear}년 값으로 계산해요.</p>`);
+      }
+    }
+    parts.push(`${year}년 기준이에요. 최저임금·세율·보험요율 등은 매년 바뀌고 법령 개정으로 달라질 수 있어요. 참고용으로 사용하시고, 정확한 금액은 ${WHO[field] || field}에게 확인하세요.`);
+    const note = $("#note");
+    if(note) note.innerHTML += `<br>${parts.join("<br>")}`;
+  }
+
   /* 소수 표시: num(12.345, 1) → "12.3" */
   const num = (n, d = 1) => (Number.isFinite(n) ? n : 0).toLocaleString("ko-KR", { maximumFractionDigits: d });
   const cleanNum = s => String(s).replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
@@ -160,5 +201,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, num, ro, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
