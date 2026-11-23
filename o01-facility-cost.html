@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="O" data-no="01">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O01 시설비용 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>시설비용 계산기</h1>
+      <p>인테리어·장비 구입비를 매달 비용으로 나눠 보고, 월세·관리비와 합쳐요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="interior">인테리어 공사비</label>
+      <div class="input-wrap"><input id="interior" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="interiorHint"></div>
+    </div>
+    <div class="field">
+      <label for="equip">장비·집기 구입비 <small>오븐, 커피머신, 냉장고 등</small></label>
+      <div class="input-wrap"><input id="equip" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="equipHint"></div>
+    </div>
+    <div class="field">
+      <label for="years">몇 년 쓸 계획인가요? <small>보통 임대 계약 기간</small></label>
+      <div class="input-wrap"><input id="years" type="text" inputmode="decimal" autocomplete="off" value="5"><span class="unit">년</span></div>
+      <div class="chips" id="yearChips">
+        <button class="chip" type="button" data-v="2">2년</button>
+        <button class="chip" type="button" data-v="3">3년</button>
+        <button class="chip" type="button" data-v="5">5년</button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="rent">월세</label>
+        <div class="input-wrap sm"><input id="rent" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="rentHint"></div>
+      </div>
+      <div class="field">
+        <label for="mgmt">관리비</label>
+        <div class="input-wrap sm"><input id="mgmt" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="mgmtHint"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== O01 시설비용 계산기 ===== */
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const interior = moneyInput($("#interior"), $("#interiorHint"), render);
+const equip = moneyInput($("#equip"), $("#equipHint"), render);
+const rent = moneyInput($("#rent"), $("#rentHint"), render);
+const mgmt = moneyInput($("#mgmt"), $("#mgmtHint"), render);
+const years = numInput($("#years"), render);
+
+/* 월 감가 비용 = (인테리어 + 장비) ÷ (사용 연수 × 12), 정액법·잔존가치 0 */
+function render(){
+  $$("#yearChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === years.value));
+  const inv = interior.value + equip.value, y = years.value, r = rent.value, m = mgmt.value;
+  if(!inv && !r && !m){ $("#result").innerHTML = '<p class="empty">금액을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(inv && !y){ $("#result").innerHTML = '<p class="empty">몇 년 쓸지 넣어주세요</p>'; postHeight(); return; }
+
+  const dep = inv ? inv / (y * 12) : 0;
+  const total = dep + r + m;
+
+  $("#result").innerHTML = `
+    <p class="lead">매달 나가는 시설비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      ${inv ? `<div class="row"><span>인테리어·장비 (${num(y, 1)}년 나눔)</span><b>${won(dep)}원</b></div>` : ""}
+      <div class="row"><span>월세</span><b>${won(r)}원</b></div>
+      <div class="row"><span>관리비</span><b>${won(m)}원</b></div>
+      <div class="row total"><span>월 시설비 합계</span><b>${won(total)}원</b></div>
+    </div>
+    ${inv ? `<p class="tip">처음에 들인 ${won(inv)}원은 한 번에 나간 돈이지만, ${num(y, 1)}년 동안 매달 <b>${won(dep)}원</b>씩 쓰는 비용으로 보고 가격에 반영해야 해요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[시설비용 계산] 인테리어·장비 월 ${won(dep)}원 + 월세 ${won(r)}원 + 관리비 ${won(m)}원 = 월 시설비 ${won(total)}원`,
+    () => { interior.set(0); equip.set(0); rent.set(0); mgmt.set(0); years.set(5); $("#interior").focus(); });
+  postHeight();
+}
+
+$$("#yearChips .chip").forEach(b => b.addEventListener("click", () => years.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 인테리어·장비비 ÷ (사용 연수 × 12개월)로 매달 똑같이 나눴어요 (다 쓴 뒤 남는 가치는 0으로 봄). 금액은 원 단위 반올림이에요.<br>
+  세무 신고용 감가상각(내용연수·상각 방법)과는 다를 수 있어요. 보증금은 돌려받는 돈이라 빼고 계산해요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
