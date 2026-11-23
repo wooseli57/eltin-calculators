@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M03 세금 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+#tabSeg button{font-weight:700}
+#typeSeg button{font-size:13px;padding:9px 2px}
+.check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-top:16px}
+.check input{width:20px;height:20px;accent-color:var(--brand-dark);flex:none}
+.sel-wrap select{flex:1;border:0;outline:0;font:inherit;font-size:16px;font-weight:700;padding:12px 0;background:transparent;color:var(--ink);min-width:0}
+.help{font-size:12px;color:var(--ink-3);margin-top:6px}
+.reason{font-size:18px;font-weight:700;color:var(--brand-dark);margin:4px 0 12px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>세금 계산기</h1>
+      <p>부가세(간이·일반과세자)와 종합소득세를 대략 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="세금 종류" id="tabSeg">
+      <button type="button" data-tab="vat" aria-pressed="true">부가세</button>
+      <button type="button" data-tab="inc" aria-pressed="false">종합소득세</button>
+      <button type="button" data-tab="corp" aria-pressed="false">법인세</button>
+    </div>
+
+    <!-- 1. 부가세 -->
+    <div data-tab-box="vat">
+      <div class="field">
+        <label>과세 유형</label>
+        <div class="seg" role="group" aria-label="과세 유형" id="typeSeg" style="margin-bottom:0">
+          <button type="button" data-type="simple" aria-pressed="true">간이과세자</button>
+          <button type="button" data-type="general" aria-pressed="false">일반과세자(개인)</button>
+          <button type="button" data-type="corp" aria-pressed="false">법인</button>
+        </div>
+      </div>
+      <div class="field" id="industryBox">
+        <label for="industry">업종</label>
+        <div class="input-wrap sel-wrap"><select id="industry"></select></div>
+        <p class="help" id="industryEx"></p>
+        <p class="help">정확한 업종은 사업자등록증의 업종 코드로 확인하세요. 여러 업종을 함께 하면 업종별로 나눠 계산하므로 세무서나 세무사와 상의하세요.</p>
+      </div>
+      <div class="field">
+        <label for="sales"><span id="salesLabel">1년 매출</span> <small>부가세 포함</small></label>
+        <div class="input-wrap"><input id="sales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="salesHint"></div>
+      </div>
+      <div class="field" id="cardBox">
+        <label for="cardSales">그중 카드·현금영수증 매출 <small>간편결제 포함</small></label>
+        <div class="input-wrap"><input id="cardSales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="cardSalesHint"></div>
+      </div>
+      <div class="field">
+        <label for="buy">매입 <small>부가세 포함</small></label>
+        <div class="input-wrap"><input id="buy" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="buyHint"></div>
+        <p class="help" style="margin-top:0">세금계산서·카드 등 증빙을 받은 재료비·비품 등</p>
+      </div>
+      <label class="check" id="over10Box" hidden><input type="checkbox" id="over10"> 직전 연도 매출 10억 원 초과</label>
+    </div>
+
+    <!-- 2. 종합소득세 -->
+    <div data-tab-box="inc" hidden>
+      <div class="field">
+        <label for="incYear">귀속 연도</label>
+        <div class="input-wrap sel-wrap"><select id="incYear"></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="incSales">1년 매출 <small>부가세 제외</small></label>
+          <div class="input-wrap sm"><input id="incSales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+          <div class="hint" id="incSalesHint"></div>
+        </div>
+        <div class="field">
+          <label for="incCost">1년 경비</label>
+          <div class="input-wrap sm"><input id="incCost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+          <div class="hint" id="incCostHint"></div>
+        </div>
+      </div>
+      <p class="help" style="margin-top:-8px">경비: 재료비, 인건비, 월세 등</p>
+      <div class="field">
+        <label for="deduct">소득공제</label>
+        <div class="input-wrap"><input id="deduct" type="text" inputmode="numeric" autocomplete="off"><span class="unit">원</span></div>
+        <div class="hint" id="deductHint"></div>
+        <p class="help" style="margin-top:0">본인 기본공제 150만 원. 부양가족 1명당 150만 원 추가</p>
+      </div>
+      <div class="field">
+        <label for="prepaid">이미 낸 세금 <small>선택 · 중간예납, 3.3% 원천징수 등</small></label>
+        <div class="input-wrap"><input id="prepaid" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="prepaidHint"></div>
+      </div>
+    </div>
+
+    <!-- 3. 법인세 -->
+    <div data-tab-box="corp" hidden>
+      <div class="field">
+        <label for="corpYear">사업연도 <small>사업연도 시작일 기준</small></label>
+        <div class="input-wrap sel-wrap"><select id="corpYear"></select></div>
+      </div>
+      <div class="field">
+        <label for="corpBase">1년 이익 <small>과세표준</small></label>
+        <div class="input-wrap"><input id="corpBase" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="corpBaseHint"></div>
+        <p class="help" style="margin-top:0">세무조정을 마친 과세표준 기준이에요. 모르면 대략 이익을 넣어보세요</p>
+      </div>
+      <label class="check"><input type="checkbox" id="smallCorp"> 성실신고확인 대상 소규모 법인</label>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== M03 세금 계산기 (사양: docs/specs/M03.md) ===== */
+const CONFIG = {
+  vat: {
+    rate: 0.10,
+    simplifiedRates: [                 // 간이과세자 업종별 부가가치율 (부가세법 시행령, 2021.7.1 이후)
+      { name: "카페·음식점·제과점·소매", rate: 0.15, ex: "카페, 베이커리, 소품 판매" },
+      { name: "직접 만들어 판매 (제조)", rate: 0.20, ex: "공예품 제작·판매" },
+      { name: "숙박",                     rate: 0.25, ex: "게스트하우스" },
+      { name: "그 밖의 서비스",           rate: 0.30, ex: "공방 원데이 클래스, 미용" },
+      { name: "전문·임대 서비스",         rate: 0.40, ex: "컨설팅, 임대" }
+    ],
+    simplifiedPurchaseCredit: 0.005,
+    years: {
+      2026: {
+        simplifiedLimit: 104000000,    // 간이과세 기준 (직전 연도 공급대가, 확인 2026-11-23)
+        exemptLimit: 48000000,         // 간이과세자 납부면제 (확인 2026-11-23)
+        cardCreditRate: 0.013,         // 신용카드 매출전표 등 발행세액공제, 2026.12.31까지 (확인 2026-11-23)
+        cardCreditCap: 10000000,       // 연간 한도
+        cardCreditSalesLimit: 1000000000 // 직전 연도 공급가액 10억 초과 개인사업자 제외
+      }
+      // 2027: 카드매출 공제 1.3%·한도 연장 여부 확인 후 추가 (docs/questions.md)
+    }
+  },
+  incomeTax: {
+    years: {
+      2026: {                          // 소득세법 제55조, 2023년 개정 세율표 유지 (확인 2026-11-23)
+        brackets: [                    // [상한, 세율, 누진공제] — 구간 경계에서 누진 계산값과 일치 확인 (2026-11-23)
+          [14000000, 0.06, 0],
+          [50000000, 0.15, 1260000],
+          [88000000, 0.24, 5760000],
+          [150000000, 0.35, 15440000],
+          [300000000, 0.38, 19940000],
+          [500000000, 0.40, 25940000],
+          [1000000000, 0.42, 35940000],
+          [Infinity, 0.45, 65940000]
+        ],
+        localRate: 0.10
+      }
+    },
+    defaultDeduction: 1500000
+  },
+  corpTax: {
+    years: {
+      2025: { brackets: [[200000000,0.09],[20000000000,0.19],[300000000000,0.21],[Infinity,0.24]] }, // 2023~2025 개시 사업연도
+      2026: { brackets: [[200000000,0.10],[20000000000,0.20],[300000000000,0.22],[Infinity,0.25]] }  // 법인세법 제55조, 2026.1.1 이후 개시 사업연도 (확인 2026-11-23)
+    },
+    localRate: 0.10
+  }
+};
+const { $, $$, won, num, koreanUnit, moneyInput, pick, yearRates, ACTIONS, bindActions, postHeight } = Eltin;
+const RV = yearRates(CONFIG.vat.years), VV = RV.values;
+const RI = yearRates(CONFIG.incomeTax.years), RC = yearRates(CONFIG.corpTax.years);
+const floor = x => Math.floor(x + 1e-6);   // 원 미만 버림 (부동소수 오차 보정)
+const pct = r => `${num(r * 100, 1)}%`;
+const empty = msg => { $("#result").innerHTML = `<p class="empty">${msg}</p>`; postHeight(); };
+
+let tab = "vat", type = "simple";
+
+/* 선택칸 채우기: 업종, 귀속 연도(올해 또는 가장 최근 연도가 기본) */
+$("#industry").innerHTML = CONFIG.vat.simplifiedRates.map((r, i) => `<option value="${i}">${r.name} (${pct(r.rate)})</option>`).join("");
+const fillYears = (sel, years, def) => { sel.innerHTML = Object.keys(years).sort().reverse().map(y => `<option value="${y}">${y}년</option>`).join(""); sel.value = def; };
+fillYears($("#incYear"), CONFIG.incomeTax.years, RI.useYear);
+fillYears($("#corpYear"), CONFIG.corpTax.years, RC.useYear);
+$("#deduct").value = won(CONFIG.incomeTax.defaultDeduction);
+
+const sales = moneyInput($("#sales"), $("#salesHint"), render);
+const cardSales = moneyInput($("#cardSales"), $("#cardSalesHint"), render);
+const buy = moneyInput($("#buy"), $("#buyHint"), render);
+const incSales = moneyInput($("#incSales"), $("#incSalesHint"), render);
+const incCost = moneyInput($("#incCost"), $("#incCostHint"), render);
+const deduct = moneyInput($("#deduct"), $("#deductHint"), render);
+const prepaid = moneyInput($("#prepaid"), $("#prepaidHint"), render);
+const corpBase = moneyInput($("#corpBase"), $("#corpBaseHint"), render);
+["#industry", "#over10", "#incYear", "#corpYear", "#smallCorp"].forEach(s => $(s).addEventListener("change", render));
+
+/* ---------- 1. 부가세 ---------- */
+function renderVat(){
+  const ind = CONFIG.vat.simplifiedRates[$("#industry").value];
+  $("#industryEx").textContent = `예: ${ind.ex}`;
+  const S = sales.value, C = type === "corp" ? 0 : cardSales.value, P = buy.value;
+  if(!S) return empty("매출을 넣으면 바로 계산돼요");
+  if(C > S) return empty("카드·현금영수증 매출은 전체 매출보다 클 수 없어요");
+  let lead, big, rows, tips = [], copyText, refund = false;
+
+  if(type === "simple"){
+    /* 간이: 납부세액 = 매출 × 부가가치율 × 10%, 매입 공제 0.5%, 카드매출 공제 1.3%(연 1,000만 원 한도), 환급 없음 */
+    const tax = floor(S * ind.rate * CONFIG.vat.rate);
+    const pc = floor(P * CONFIG.vat.simplifiedPurchaseCredit);
+    const cc = Math.min(floor(C * VV.cardCreditRate), VV.cardCreditCap);
+    const due = Math.max(0, tax - pc - cc);
+    const exempt = S < VV.exemptLimit;
+    lead = exempt ? "부가세 납부가 면제돼요" : "이번에 낼 부가세는";
+    big = exempt ? `0<small>원 (납부 면제)</small>` : `${won(due)}<small>원</small>`;
+    rows = [["매출 (1년)", `${won(S)}원`], ["업종 부가가치율", `${pct(ind.rate)} (${ind.name})`], ["납부세액", `${won(tax)}원`],
+      ["매입 공제 (0.5%)", `− ${won(pc)}원`], ["카드매출 공제", `− ${won(cc)}원`], ["낼 세금", exempt ? "0원 (면제)" : `${won(due)}원`, true]];
+    if(exempt) tips.push(`1년 매출이 ${koreanUnit(VV.exemptLimit)} 미만이라 납부는 면제지만, 신고는 다음 해 1월 25일까지 해야 해요.`);
+    else tips.push("1년 치를 다음 해 1월 25일까지 신고·납부해요.");
+    if(S >= VV.simplifiedLimit) tips.push(`<span class="warn-text">이 매출이면 다음 해 7월부터 일반과세자로 바뀌어요.</span>`);
+    copyText = `[부가세·간이] 1년 매출 ${won(S)}원, ${ind.name} ${pct(ind.rate)} → 납부세액 ${won(tax)}원 − 매입 공제 ${won(pc)}원 − 카드 공제 ${won(cc)}원 = ${exempt ? "납부 면제" : `${won(due)}원`}`;
+  } else {
+    /* 일반·법인 (반기): 매출세액 − 매입세액 − 카드매출 공제(개인만, 납부세액 한도) */
+    const out = floor(S * 10 / 110), inn = floor(P * 10 / 110), diff = out - inn;
+    const cc = type === "general" && !$("#over10").checked ? Math.min(floor(C * VV.cardCreditRate), VV.cardCreditCap, Math.max(0, diff)) : 0;
+    const due = diff - cc;
+    refund = due < 0;
+    lead = refund ? "돌려받을 부가세는" : "이번에 낼 부가세는";
+    big = `${won(Math.abs(due))}<small>원${refund ? " (환급)" : ""}</small>`;
+    rows = [["매출 (6개월)", `${won(S)}원`], ["매출세액", `${won(out)}원`], ["매입세액", `− ${won(inn)}원`]];
+    if(type === "general") rows.push(["카드매출 공제", `− ${won(cc)}원`]);
+    rows.push([refund ? "돌려받을 세금" : "낼 세금", `${won(Math.abs(due))}원`, true]);
+    tips.push("1~6월분은 7월 25일, 7~12월분은 다음 해 1월 25일까지 신고·납부해요.");
+    if(type === "corp") tips.push("법인은 3개월마다 예정신고·납부가 있어요.");
+    if(type === "general" && $("#over10").checked) tips.push("직전 연도 매출이 10억 원을 넘으면 카드매출 공제를 받을 수 없어요.");
+    copyText = `[부가세·${type === "corp" ? "법인" : "일반"}] 반기 매출 ${won(S)}원, 매입 ${won(P)}원 → 매출세액 ${won(out)}원 − 매입세액 ${won(inn)}원${type === "general" ? ` − 카드 공제 ${won(cc)}원` : ""} = ${refund ? `환급 ${won(-due)}원` : `${won(due)}원`}`;
+  }
+
+  $("#result").innerHTML = `
+    <p class="lead">${lead}</p>
+    <p class="big">${big}</p>
+    <div class="rows">${rows.map(([k, v, t]) => `<div class="row ${t ? "total" : ""}"><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+    ${tips.map(t => `<p class="tip ${t.includes("warn-text") ? "warn" : ""}">${t.replace(/<\/?span[^>]*>/g, "")}</p>`).join("")}
+    ${ACTIONS}`;
+  bindActions(copyText, () => { sales.set(0); cardSales.set(0); buy.set(0); $("#sales").focus(); });
+}
+
+/* ---------- 2. 종합소득세 ---------- */
+function renderInc(){
+  const T = CONFIG.incomeTax.years[$("#incYear").value];
+  const s = incSales.value, c = incCost.value;
+  if(!s) return empty("1년 매출과 경비를 넣으면 바로 계산돼요");
+  const income = Math.max(0, s - c);
+  const base = Math.max(0, income - deduct.value);
+  /* 종합소득세 = 과세표준 × 구간 세율 − 누진공제, 지방소득세 = 10% */
+  const [, rate, minus] = T.brackets.find(([max]) => base <= max);
+  const tax = Math.max(0, floor(base * rate - minus));
+  const local = floor(tax * T.localRate);
+  const total = tax + local, more = total - prepaid.value;
+
+  $("#result").innerHTML = `
+    <p class="lead">1년 종합소득세는 약</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>소득금액 (매출 − 경비)</span><b>${won(income)}원</b></div>
+      <div class="row"><span>과세표준 (소득공제 뺌)</span><b>${won(base)}원</b></div>
+      <div class="row"><span>적용 세율</span><b>${pct(rate)} 구간</b></div>
+      <div class="row"><span>종합소득세</span><b>${won(tax)}원</b></div>
+      <div class="row"><span>지방소득세 (10%)</span><b>${won(local)}원</b></div>
+      ${prepaid.value ? `<div class="row"><span>이미 낸 세금</span><b>− ${won(prepaid.value)}원</b></div>` : ""}
+      <div class="row total"><span>${more < 0 ? "돌려받을 세금" : "더 낼 세금"}</span><b>${won(Math.abs(more))}원</b></div>
+    </div>
+    <p class="tip">자녀·노란우산공제 같은 세액공제와 감면은 빠져 있어서 실제로는 더 줄어들 수 있어요. 근로·금융소득 등 다른 소득이 있으면 합쳐서 계산해야 해요.</p>
+    ${ACTIONS}`;
+  bindActions(`[종합소득세 ${$("#incYear").value}년] 매출 ${won(s)}원 − 경비 ${won(c)}원, 과세표준 ${won(base)}원(${pct(rate)} 구간) → 소득세 ${won(tax)}원 + 지방소득세 ${won(local)}원 = ${won(total)}원${prepaid.value ? `, ${more < 0 ? "환급" : "더 낼 세금"} ${won(Math.abs(more))}원` : ""}`,
+    () => { incSales.set(0); incCost.set(0); deduct.set(CONFIG.incomeTax.defaultDeduction); prepaid.set(0); $("#incSales").focus(); });
+}
+
+/* ---------- 3. 법인세 ---------- */
+function renderCorp(){
+  const y = $("#corpYear").value, B = corpBase.value;
+  if(!B) return empty("1년 이익(과세표준)을 넣으면 바로 계산돼요");
+  /* 구간별 누진 계산. 성실신고확인 소규모 법인은 2억 이하 구간도 다음 구간 세율 */
+  const br = CONFIG.corpTax.years[y].brackets.map(([max, r], i, a) => [max, i === 0 && $("#smallCorp").checked ? a[1][1] : r]);
+  let prev = 0; const parts = [];
+  for(const [max, r] of br){
+    if(B <= prev) break;
+    const amt = Math.min(B, max) - prev;
+    parts.push({ from: prev, to: Math.min(B, max), r, tax: amt * r });
+    prev = max;
+  }
+  const tax = floor(parts.reduce((a, p) => a + p.tax, 0));
+  const local = floor(tax * CONFIG.corpTax.localRate);
+  const total = tax + local;
+  const label = p => p.from === 0 ? `${koreanUnit(p.to)}까지` : `${koreanUnit(p.from)} 넘는 부분`;
+
+  $("#result").innerHTML = `
+    <p class="lead">1년 법인세는 약</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>과세표준</span><b>${won(B)}원</b></div>
+      ${parts.map(p => `<div class="row"><span>${label(p)} × ${pct(p.r)}</span><b>${won(floor(p.tax))}원</b></div>`).join("")}
+      <div class="row"><span>법인세</span><b>${won(tax)}원</b></div>
+      <div class="row"><span>법인지방소득세 (10%)</span><b>${won(local)}원</b></div>
+      <div class="row"><span>실효세율</span><b>${num(total / B * 100, 2)}%</b></div>
+      <div class="row total"><span>총 세금</span><b>${won(total)}원</b></div>
+    </div>
+    <p class="tip">대표 급여·배당에 대한 소득세는 따로예요. 세액공제·감면은 반영하지 않았어요.</p>
+    ${ACTIONS}`;
+  bindActions(`[법인세 ${y}년 개시 사업연도] 과세표준 ${won(B)}원 → 법인세 ${won(tax)}원 + 지방소득세 ${won(local)}원 = ${won(total)}원 (실효 ${num(total / B * 100, 2)}%)`,
+    () => { corpBase.set(0); $("#smallCorp").checked = false; render(); $("#corpBase").focus(); });
+}
+
+function render(){
+  if(tab === "vat") renderVat(); else if(tab === "inc") renderInc(); else renderCorp();
+  postHeight();
+}
+
+function syncType(){
+  $("#industryBox").hidden = type !== "simple";
+  $("#cardBox").hidden = type === "corp";
+  $("#over10Box").hidden = type !== "general";
+  $("#salesLabel").textContent = type === "simple" ? "1년 매출" : "6개월(반기) 매출";
+}
+pick($$("#tabSeg button"), b => { tab = b.dataset.tab; $$("[data-tab-box]").forEach(x => x.hidden = x.dataset.tabBox !== tab); render(); });
+pick($$("#typeSeg button"), b => { type = b.dataset.type; syncType(); render(); });
+syncType();
+
+/* 계산 기준 + 이전 연도 값 안내 + 공통 주의 문구 */
+const stale = [];
+if(RI.year > RI.useYear) stale.push(`종합소득세 세율표는 ${RI.useYear}년 값이에요 (${RI.year}년 확인 전)`);
+if(RC.year > RC.useYear) stale.push(`법인세율은 ${RC.useYear}년 값이에요 (${RC.year}년 확인 전)`);
+$("#note").innerHTML = `<b>계산 기준</b> · ${RV.useYear}년 기준 — 부가세: 간이과세 기준 ${koreanUnit(VV.simplifiedLimit)}·납부면제 ${koreanUnit(VV.exemptLimit)}, 카드매출 공제 ${pct(VV.cardCreditRate)}·연 ${koreanUnit(VV.cardCreditCap)} / 종합소득세 세율표(선택한 귀속 연도) / 법인세율(선택한 사업연도). 금액은 원 미만 버림.<br>
+  세액공제·감면, 단순·기준경비율(추계), 여러 업종 겸업 계산은 반영하지 않았어요.${stale.length ? `<br>${stale.join("<br>")}` : ""}`;
+Eltin.yearNotice(RV, "", { cardCreditRate: "카드매출 공제" },
+  `${RV.useYear}년 기준이에요. 세율, 간이과세 기준, 카드매출 공제율은 세법 개정으로 자주 바뀌어요. 이 계산은 대략적인 예상치이고, 실제 세액은 공제·감면에 따라 달라져요. 정확한 금액은 홈택스나 세무사에게 확인하세요.`);
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
