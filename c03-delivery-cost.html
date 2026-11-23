@@ -98,6 +98,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">배달 1건에 사장님이 내는 돈은</p>
     <p class="big">${won(total)}<small>원</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>중개수수료 (${num(broker.value, 1)}%${v > 1 ? ", 부가세 포함" : ""})</span><b>${won(bFee)}원</b></div>
       <div class="row"><span>결제수수료 (${num(pay.value, 1)}%${v > 1 ? ", 부가세 포함" : ""})</span><b>${won(pFee)}원</b></div>
@@ -107,6 +108,7 @@ function render(){
     </div>
     <p class="tip">광고비, 쿠폰·할인 부담분은 빠진 금액이에요. 매장 판매가와 비교하려면 배달 판매가 계산기(S02)를 써보세요.</p>
     ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "중개수수료", value: bFee }, { label: "결제수수료", value: pFee }, { label: "배달비", value: d }, { label: "정산받는 돈", value: settle }], { big: `${num(ratio, 1)}%`, small: "주문 금액 중 비용" }, { loss: settle < 0 ? `비용이 주문 금액보다 ${won(-settle)}원 많아요` : "" });
   bindActions(`[배달비용 계산] 주문 ${won(o)}원 → 중개수수료 ${won(bFee)}원 + 결제수수료 ${won(pFee)}원 + 배달비 ${won(d)}원 = ${won(total)}원 (${num(ratio, 1)}%), 정산 ${won(settle)}원`,
     () => { order.set(0); deliv.set(0); broker.set(CONFIG.defaults.brokerRate); pay.set(CONFIG.defaults.payRate); $("#vat").checked = true; render(); $("#order").focus(); });
   postHeight();

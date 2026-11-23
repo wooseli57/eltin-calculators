@@ -132,6 +132,7 @@ function render(){
     <p class="lead">장비들이 한 달에 쓰는 전기는 약</p>
     <p class="big">${num(kwh, 0)}<small>kWh</small></p>`;
   $("#result").innerHTML += `
+    <div id="chart"></div>
     <div class="rows">
       ${rows.map((r, i) => `<div class="row"><span>${label(r, i)} (${r.on === "all" ? "매일" : `${num(days.value, 0)}일`})</span><b>${num(monthKwh(r), 0)}kWh${p ? ` · ${won(monthKwh(r) * p)}원` : ""}</b></div>`).join("")}
       <div class="row total"><span>한 달 합계</span><b>${num(kwh, 0)}kWh${p ? ` · ${won(cost)}원` : ""}</b></div>
@@ -139,6 +140,7 @@ function render(){
     ${p ? "" : `<p class="tip">1kWh 단가를 넣으면 요금이 나와요. 위의 <b>고지서로 단가 구하기</b>에서 우리 가게 실제 단가를 구할 수 있어요.</p>`}
     ${rows.length > 1 ? `<p class="tip">전기를 가장 많이 쓰는 장비는 <b>${ro(label(top, rows.indexOf(top)))}</b> 전체의 <b>${num(monthKwh(top) / kwh * 100, 0)}%</b>예요.</p>` : ""}
     ${ACTIONS}`;
+  Eltin.donut($("#chart"), rows.length > 1 ? rows.map((r, i) => ({ label: label(r, i), value: p ? monthKwh(r) * p : monthKwh(r) })) : [], { big: `${num(monthKwh(top) / kwh * 100, 1)}%`, small: `${label(top, rows.indexOf(top))} 비중` }, { profitLast: false, unit: p ? "원" : "kWh" });
   bindActions(`[장비 전기요금 계산] ${rows.map((r, i) => `${label(r, i)} ${num(monthKwh(r), 0)}kWh`).join(", ")} → 한 달 ${num(kwh, 0)}kWh${p ? `, 약 ${won(cost)}원 (1kWh ${num(p, 1)}원 기준)` : ""}`,
     () => items.set(DEFAULT_ROWS));
   postHeight();

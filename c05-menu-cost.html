@@ -80,6 +80,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">메뉴 1개의 진짜 원가는${d ? " (매장 판매)" : ""}</p>
     <p class="big">${won(store)}<small>원</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>재료비</span><b>${won(i)}원</b></div>
       ${l ? `<div class="row"><span>손실 반영 (${num(l, 1)}%)</span><b>+ ${won(ingReal - i)}원</b></div>` : ""}
@@ -90,6 +91,7 @@ function render(){
     </div>
     <p class="tip">이 금액을 판매가 계산기(S01)·메뉴 마진 계산기(M01)·손익분기점 계산기(M02)에 넣어 보세요.</p>
     ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "원료 (재료비)", value: i }, { label: "자재 (포장비)", value: p }, { label: "배달", value: d }, { label: "손실", value: ingReal - i }], { big: `${Eltin.shortWon(d ? delivery : store)}원`, small: d ? "배달 판매 원가" : "메뉴 원가" }, { profitLast: false });
   bindActions(`[메뉴 원가 합계] 재료비 ${won(i)}원(손실 ${num(l, 1)}% 반영 ${won(ingReal)}원) + 포장비 ${won(p)}원 = 매장 원가 ${won(store)}원${d ? `, 배달 원가 ${won(delivery)}원` : ""}`,
     () => { ing.set(0); pack.set(0); deliv.set(0); loss.set(0); $("#ing").focus(); });
   postHeight();

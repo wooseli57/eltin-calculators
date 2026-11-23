@@ -144,6 +144,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">한 달에 통장에 들어오는 돈은</p>
     <p class="big">${won(net)}<small>원</small></p>
+    <div id="chart"></div>
     <div class="rows">
       ${rows.filter(([, v]) => v).map(([k, v]) => `<div class="row"><span>${k}</span><b>${v < 0 ? "− " : ""}${won(Math.abs(v))}원</b></div>`).join("")}
       <div class="row"><span>매출 대비 수수료 비율</span><b>${num(ratio, 1)}%</b></div>
@@ -152,6 +153,7 @@ function render(){
     ${d && !perFee.value ? `<p class="tip">배달비가 있으면 수수료 설정에서 건당 배달비를 넣어주세요.</p>` : ""}
     <p class="tip">부가세·소득세, 광고비, 쿠폰 부담분은 빠진 금액이에요. 세금은 세금 계산기(M03)에서 확인하세요.</p>
     ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "카드수수료", value: cardFee }, { label: "배달 수수료", value: delivFee }, { label: "배달비", value: delivCost }, { label: "실수령액", value: net }], { big: `${num(ratio, 1)}%`, small: "매출 중 수수료" }, { loss: net < 0 ? `수수료가 매출보다 ${won(-net)}원 많아요` : "" });
   bindActions(`[실수령 정산] 총매출 ${won(total)}원 − 카드수수료 ${won(cardFee)}원 − 배달 수수료 ${won(delivFee)}원 − 배달비 ${won(delivCost)}원 = 실수령 ${won(net)}원 (수수료 ${num(ratio, 1)}%)`,
     () => { card.set(0); cash.set(0); deliv.set(0); count.set(""); perFee.set(0); check.set(0); $("#card").focus(); });
   postHeight();

@@ -132,6 +132,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">배달앱에서는 이 가격에 팔아야 매장만큼 남아요</p>
     <p class="big">${won(dp)}<small>원</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>매장 판매가</span><b>${won(p)}원</b></div>
       <div class="row"><span>매장에서 1개 남는 돈</span><b>${won(P)}원</b></div>
@@ -143,6 +144,7 @@ function render(){
     <p class="tip">배달팁(손님이 내는 배달비)을 받으면 그만큼 사장님 부담이 줄어요.</p>
     <div class="compare"><span>참고 · 원가율(원가+배달비+수수료)까지 매장(${num(r * 100, 1)}%)과 같게 하려면</span><b>${samePrice ? `${won(samePrice)}원` : "맞출 수 없어요"}</b></div>
     ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "원가", value: c }, { label: "배달 수수료", value: fee }, { label: "배달비", value: d }, { label: "부가세", value: dp - dp * ex }, { label: "남는 돈", value: dProfit }], { big: `${num(dProfit / dp * 100, 1)}%`, small: "판매가 중 남는 돈" }, { loss: dProfit < 0 ? `비용이 판매가보다 ${won(-dProfit)}원 많아요` : "" });
   bindActions(`[배달 판매가 계산] 매장가 ${won(p)}원, 원가 ${won(c)}원, 수수료 ${num(f * 100, 2)}%, 1개당 배달비 ${won(d)}원 → 배달 판매가 ${won(dp)}원 (매장가보다 ${won(diff)}원, ${num(diffPct, 1)}% 높게, 1개 남는 돈 ${won(dProfit)}원)`,
     () => { price.set(0); cost.set(0); deliv.set(0); broker.set(CONFIG.defaults.brokerRate); pay.set(CONFIG.defaults.payRate); items.set(CONFIG.defaults.itemsPerOrder); $("#vat").checked = true; render(); $("#price").focus(); });
   postHeight();

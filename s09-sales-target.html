@@ -91,6 +91,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">목표를 이루려면 하루 매출은</p>
     <p class="big">${won(daySales)}<small>원</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>하루 판매 개수</span><b>${won(dayQty)}개</b></div>
       <div class="row"><span>한 달 판매 개수</span><b>${won(monthQty)}개</b></div>
@@ -99,6 +100,7 @@ function render(){
     </div>
     <p class="tip">하루 ${won(dayQty)}개, 한 달 ${koreanUnit(monthSales)} 매출이면 고정비 ${koreanUnit(f) || "0원"}을 내고 ${koreanUnit(g) || "0원"}이 남아요. 영업시간이 10시간이면 시간당 <b>${num(dayQty / 10, 1)}개</b>예요.</p>
     ${ACTIONS}`;
+  const mVat = monthSales - monthSales / (1 + VAT), mProfit = monthQty * unit - f; Eltin.donut($("#chart"), [{ label: "고정비", value: f }, { label: "원가", value: monthQty * c }, { label: "부가세", value: mVat }, { label: "목표 이익", value: mProfit }], { big: `${num(mProfit / monthSales * 100, 1)}%`, small: "매출 중 남는 돈" });
   bindActions(`[목표매출 계산] 목표 ${won(g)}원 + 고정비 ${won(f)}원, 판매가 ${won(p)}원·원가 ${won(c)}원 → 하루 ${won(dayQty)}개·${won(daySales)}원, 월 매출 ${won(monthSales)}원 (${num(d, 0)}일 영업)`,
     () => { goal.set(0); fixed.set(0); price.set(0); cost.set(0); days.set(26); $("#goal").focus(); });
   postHeight();

@@ -61,12 +61,14 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">매달 나가는 기타 운영비는</p>
     <p class="big">${won(total)}<small>원</small></p>
+    <div id="chart"></div>
     <div class="rows">
       ${sorted.map(r => `<div class="row"><span>${label(r, rows.indexOf(r))}</span><b>${won(r.amount)}원 <small style="color:var(--ink-3);font-weight:400">${num(r.amount / total * 100, 0)}%</small></b></div>`).join("")}
       <div class="row total"><span>한 달 합계</span><b>${won(total)}원</b></div>
       <div class="row"><span>1년이면</span><b>${won(total * 12)}원</b></div>
     </div>
     ${ACTIONS}`;
+  Eltin.donut($("#chart"), rows.map((r, i) => ({ label: label(r, i), value: r.amount })), { big: `${Eltin.shortWon(total)}원`, small: "한 달 합계" }, { profitLast: false });
   bindActions(`[기타 운영비 계산] ${rows.map((r, i) => `${label(r, i)} ${won(r.amount)}원`).join(" + ")} = 월 ${won(total)}원 (연 ${won(total * 12)}원)`,
     () => items.set(DEFAULT_ROWS));
   postHeight();
