@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="A" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A02 셀러관점 광고수익률 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>셀러관점 광고수익률 계산기</h1>
+      <p>쿠팡 광고 화면에 나오는 광고수익률을 내 실제 매출 기준으로 바꿔 보여줘요. 예: 수수료가 40%면 1,000%는 실제로 600%</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="roas">광고 화면의 광고수익률 <small>ROAS</small></label>
+      <div class="input-wrap"><input id="roas" type="text" inputmode="decimal" autocomplete="off" value="1000"><span class="unit">%</span></div>
+      <div class="chips" id="roasChips">
+        <button class="chip" type="button" data-v="300">300%</button>
+        <button class="chip" type="button" data-v="500">500%</button>
+        <button class="chip" type="button" data-v="1000">1,000%</button>
+        <button class="chip" type="button" data-v="1500">1,500%</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fee">마켓수수료율 <small>판매가에서 마켓이 가져가는 비율</small></label>
+      <div class="input-wrap"><input id="fee" type="text" inputmode="decimal" autocomplete="off" value="40"><span class="unit">%</span></div>
+    </div>
+    <div class="field">
+      <label for="spend">광고비 <small>선택 · 금액으로 보고 싶을 때</small></label>
+      <div class="input-wrap"><input id="spend" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="spendHint"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== A02 셀러관점 광고수익률 계산기 ===== */
+/* 기존 "최대비용 마진계산기" 공식: 셀러관점 광고수익률 = 마켓 광고수익률 × (1 − 마켓수수료율) */
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const roas = numInput($("#roas"), render), fee = numInput($("#fee"), render);
+const spend = moneyInput($("#spend"), $("#spendHint"), render);
+
+function render(){
+  $$("#roasChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === roas.value));
+  const r = roas.value, f = fee.value;
+  if(!r){ $("#result").innerHTML = '<p class="empty">광고수익률을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(f >= 100){ $("#result").innerHTML = '<p class="empty">마켓수수료율은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
+
+  const seller = r * (1 - f / 100);
+  const s = spend.value;
+
+  $("#result").innerHTML = `
+    <p class="lead">광고 화면의 ${num(r, 0)}%는 내 매출 기준으로</p>
+    <p class="big">${num(seller, 1)}<small>%</small></p>
+    <div class="rows">
+      <div class="row"><span>광고 화면 광고수익률</span><b>${num(r, 1)}%</b></div>
+      <div class="row"><span>마켓수수료 (${num(f, 1)}%) 빼면</span><b>× ${num(1 - f / 100, 3)}</b></div>
+      <div class="row total"><span>셀러관점 광고수익률</span><b>${num(seller, 1)}%</b></div>
+      ${s ? `<div class="row"><span>광고비 ${won(s)}원일 때 판매액</span><b>${won(s * r / 100)}원</b></div>
+      <div class="row"><span>수수료 빼고 내 매출</span><b>${won(s * seller / 100)}원</b></div>` : ""}
+    </div>
+    <p class="tip">광고비 1원으로 내 통장에 들어오는 매출은 <b>${num(seller / 100, 2)}원</b>이에요. 이 매출에서 원가·배송비 등을 빼야 실제 이익이에요.</p>
+    ${ACTIONS}`;
+  bindActions(`[셀러관점 광고수익률] 광고 화면 ${num(r, 1)}%, 마켓수수료 ${num(f, 1)}% → 내 매출 기준 ${num(seller, 1)}%`,
+    () => { roas.set(1000); fee.set(40); spend.set(0); });
+  postHeight();
+}
+
+$$("#roasChips .chip").forEach(b => b.addEventListener("click", () => roas.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 셀러관점 광고수익률 = 광고 화면 광고수익률 × (1 − 마켓수수료율)<br>
+  광고 화면의 광고수익률은 손님이 낸 판매가 기준이라, 마켓수수료를 빼고 받는 셀러 입장에서는 그만큼 낮아져요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
