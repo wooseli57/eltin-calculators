@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="08">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R08 음료 레시피 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.row small{font-size:12px;color:var(--ink-3);font-weight:400;margin-left:4px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>음료 레시피 계산기</h1>
+      <p>시럽 펌프·샷을 ml로 바꾸고, 대용량으로 미리 만들 때 양을 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field-row">
+      <div class="field">
+        <label for="pump">펌프 1번 <small>우리 매장 펌프</small></label>
+        <div class="input-wrap sm"><input id="pump" type="text" inputmode="decimal" autocomplete="off"><span class="unit">ml</span></div>
+      </div>
+      <div class="field">
+        <label for="shot">샷 1잔</label>
+        <div class="input-wrap sm"><input id="shot" type="text" inputmode="decimal" autocomplete="off"><span class="unit">ml</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>음료 1잔 레시피</label>
+      <div id="items"></div>
+    </div>
+    <div class="field">
+      <label for="cups">몇 잔 분량을 만들까요?</label>
+      <div class="input-wrap"><input id="cups" type="text" inputmode="numeric" autocomplete="off" value="10"><span class="unit">잔</span></div>
+      <div class="chips" id="cupChips">
+        <button class="chip" type="button" data-v="1">1잔</button>
+        <button class="chip" type="button" data-v="10">10잔</button>
+        <button class="chip" type="button" data-v="20">20잔</button>
+        <button class="chip" type="button" data-v="50">50잔</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R08 음료 레시피 계산기 ===== */
+/* 펌프·샷 용량 기본값: 매장 장비마다 달라 화면에서 바꿀 수 있게 함 (calculators.md 메모) */
+const CONFIG = { pumpMl: 10, shotMl: 30 };
+const { $, $$, num, numInput, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+$("#pump").value = CONFIG.pumpMl; $("#shot").value = CONFIG.shotMl;     // 첫 render 전이므로 값만 넣음
+const pump = numInput($("#pump"), render), shot = numInput($("#shot"), render), cups = numInput($("#cups"), render);
+
+const DEFAULT_ROWS = [{ name: "바닐라 시럽", amt: 2, u: "pump" }, { name: "에스프레소", amt: 2, u: "shot" }, { name: "우유", amt: 200, u: "ml" }];
+const UNIT_NAME = { pump: "펌프", shot: "샷", ml: "ml", g: "g" };
+/* 1잔 ml = 펌프 수 × 펌프 용량, 샷 수 × 샷 용량, ml·g는 그대로 */
+const toMl = r => r.u === "pump" ? r.amt * pump.value : r.u === "shot" ? r.amt * shot.value : r.amt;
+const vol = v => v >= 1000 ? `${num(v / 1000, 2)}L` : `${num(v, v < 10 ? 1 : 0)}ml`;
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name", type: "text",   label: "재료 이름", ph: "재료 이름 (예: 연유)" },
+    { key: "amt",  type: "num",    label: "1잔에", ph: "0" },
+    { key: "u",    type: "select", label: "단위", options: [["pump", "펌프"], ["shot", "샷"], ["ml", "ml"], ["g", "g"]] }
+  ],
+  cols: "minmax(0,1.2fr) minmax(0,1fr)",
+  rows: DEFAULT_ROWS,
+  addLabel: "재료 추가",
+  onChange: render
+});
+
+function render(){
+  $$("#cupChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === cups.value));
+  const n = Math.floor(cups.value);
+  const rows = items.rows().filter(r => r.amt).map((r, i) => ({ ...r, _label: r.name || `재료 ${i + 1}` }));
+  if(!rows.length || !n){ $("#result").innerHTML = '<p class="empty">레시피와 잔 수를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(rows.some(r => (r.u === "pump" && !pump.value) || (r.u === "shot" && !shot.value))){
+    $("#result").innerHTML = '<p class="empty">펌프·샷 1번 용량을 넣어주세요</p>'; postHeight(); return; }
+
+  const liquid = rows.filter(r => r.u !== "g");
+  const cupMl = liquid.reduce((s, r) => s + toMl(r), 0);
+  const unitText = r => r.u === "g" ? `${num(r.amt * n, 1)}g` : vol(toMl(r) * n);
+
+  $("#result").innerHTML = `
+    <p class="lead">${n}잔 분량을 만들면 전체 양은${rows.some(r => r.u === "g") ? " (g 재료 제외)" : ""}</p>
+    <p class="big">${vol(cupMl * n)}</p>
+    <div class="rows">
+      ${rows.map(r => `<div class="row"><span>${r._label} <small>1잔 ${num(r.amt, 1)}${UNIT_NAME[r.u]}${r.u === "pump" || r.u === "shot" ? ` = ${num(toMl(r), 1)}ml` : ""}</small></span><b>${unitText(r)}</b></div>`).join("")}
+      <div class="row total"><span>1잔 양 (얼음 제외)</span><b>${vol(cupMl)}</b></div>
+    </div>
+    ${n > 1 ? `<p class="tip">미리 만든 음료 베이스는 1잔에 <b>${vol(cupMl)}</b>씩 나눠 담으면 돼요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[음료 레시피 ${n}잔] ${rows.map(r => `${r._label} ${unitText(r)}`).join(", ")} (펌프 ${num(pump.value, 1)}ml, 샷 ${num(shot.value, 1)}ml 기준)`,
+    () => { items.set(DEFAULT_ROWS); cups.set(10); pump.set(CONFIG.pumpMl); shot.set(CONFIG.shotMl); });
+  postHeight();
+}
+
+$$("#cupChips .chip").forEach(b => b.addEventListener("click", () => cups.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1잔 ml = 펌프 수 × 펌프 1번 용량, 샷 수 × 샷 1잔 용량. 대용량 = 1잔 양 × 잔 수<br>
+  펌프 1번 용량은 제품·펌프마다 달라요. 계량컵에 10번 눌러 담아 ÷ 10 하면 정확해요. 기본값은 펌프 ${CONFIG.pumpMl}ml, 샷 ${CONFIG.shotMl}ml예요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
