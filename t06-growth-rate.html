@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="T" data-no="06">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T06 증감률 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>증감률 계산기</h1>
+      <p>지난달·작년보다 매출이 몇 % 늘었는지 줄었는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="비교 기준" id="modeSeg">
+      <button type="button" data-mode="지난달" aria-pressed="true">지난달과</button>
+      <button type="button" data-mode="작년 같은 달" aria-pressed="false">작년 같은 달과</button>
+      <button type="button" data-mode="이전" aria-pressed="false">직접</button>
+    </div>
+    <div class="field">
+      <label for="before" id="beforeLabel">지난달 매출</label>
+      <div class="input-wrap"><input id="before" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="beforeHint"></div>
+    </div>
+    <div class="field">
+      <label for="after" id="afterLabel">이번 달 매출</label>
+      <div class="input-wrap"><input id="after" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="afterHint"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== T06 증감률 계산기 ===== */
+const { $, $$, won, num, moneyInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let base = "지난달";
+const before = moneyInput($("#before"), $("#beforeHint"), render);
+const after = moneyInput($("#after"), $("#afterHint"), render);
+
+/* 증감률 = (이번 값 − 이전 값) ÷ 이전 값 × 100 */
+function render(){
+  const b = before.value, a = after.value;
+  if(!b || (!a && $("#after").value === "")){ $("#result").innerHTML = '<p class="empty">두 금액을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const diff = a - b, pct = diff / b * 100;
+  const up = diff > 0, same = diff === 0;
+  const word = same ? "같아요" : up ? "늘었어요" : "줄었어요";
+
+  $("#result").innerHTML = `
+    <p class="lead">${base === "이전" ? "이전보다" : `${base}보다`} ${word}</p>
+    <p class="big ${up || same ? "" : "neg"}">${same ? "0" : `${up ? "+" : "−"}${num(Math.abs(pct), 1)}`}<small>%</small></p>
+    <div class="rows">
+      <div class="row"><span>${base === "이전" ? "이전" : base}</span><b>${won(b)}원</b></div>
+      <div class="row"><span>${base === "이전" ? "이번" : base === "지난달" ? "이번 달" : "올해 같은 달"}</span><b>${won(a)}원</b></div>
+      <div class="row total"><span>차이</span><b class="${up || same ? "" : "neg"}">${up ? "+" : diff < 0 ? "−" : ""}${won(Math.abs(diff))}원</b></div>
+    </div>
+    ${!up && !same ? `<p class="tip">다시 ${won(b)}원이 되려면 지금보다 <b>${num(a ? (b / a - 1) * 100 : 0, 1)}%</b> 늘어야 해요. 줄어든 비율보다 되돌리는 비율이 더 커요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[증감률 계산] ${won(b)}원 → ${won(a)}원, ${up ? "+" : diff < 0 ? "−" : ""}${num(Math.abs(pct), 1)}% (${up ? "+" : diff < 0 ? "−" : ""}${won(Math.abs(diff))}원)`,
+    () => { before.set(0); after.set(0); $("#before").focus(); });
+  postHeight();
+}
+
+pick($$("#modeSeg button"), btn => {
+  base = btn.dataset.mode;
+  $("#beforeLabel").textContent = base === "이전" ? "이전 값" : `${base} 매출`;
+  $("#afterLabel").textContent = base === "이전" ? "이번 값" : base === "지난달" ? "이번 달 매출" : "올해 같은 달 매출";
+  render();
+});
+
+$("#note").innerHTML = `<b>계산 기준</b> · 증감률 = (이번 − 이전) ÷ 이전 × 100, 소수 첫째 자리까지 표시해요.<br>
+  계절을 타는 가게는 지난달보다 작년 같은 달과 비교하는 게 더 정확해요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
