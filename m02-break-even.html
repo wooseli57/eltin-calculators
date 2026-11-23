@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M02 손익분기점 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>손익분기점 계산기</h1>
+      <p>"하루 ○잔, ○개를 팔아야 본전"을 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="fixed">월 고정비 <small>O05 결과 · 인건비·월세·관리비 등</small></label>
+      <div class="input-wrap"><input id="fixed" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="fixedHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="price">객단가 <small>1개 평균 판매가</small></label>
+        <div class="input-wrap sm"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+      <div class="field">
+        <label for="cost">1개당 변동비 <small>C05</small></label>
+        <div class="input-wrap sm"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="costHint"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="days">한 달 영업일</label>
+      <div class="input-wrap"><input id="days" type="text" inputmode="numeric" autocomplete="off" value="26"><span class="unit">일</span></div>
+      <div class="chips" id="dayChips">
+        <button class="chip" type="button" data-v="22">22일</button>
+        <button class="chip" type="button" data-v="26">26일</button>
+        <button class="chip" type="button" data-v="30">30일</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== M02 손익분기점 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const fixed = moneyInput($("#fixed"), $("#fixedHint"), render);
+const price = moneyInput($("#price"), $("#priceHint"), render);
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+const days = numInput($("#days"), render);
+
+/* 손익분기 개수 = 월 고정비 ÷ (객단가(부가세 뺌) − 1개당 변동비), 올림 */
+function render(){
+  $$("#dayChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === days.value));
+  const f = fixed.value, p = price.value, c = cost.value, d = days.value;
+  if(!f || !p){ $("#result").innerHTML = '<p class="empty">월 고정비와 객단가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const unit = p / (1 + CONFIG.vatRate) - c;
+  if(unit <= 0){ $("#result").innerHTML = '<p class="empty">객단가가 변동비보다 낮아서 팔수록 손해예요</p>'; postHeight(); return; }
+  if(!d){ $("#result").innerHTML = '<p class="empty">영업일을 넣어주세요</p>'; postHeight(); return; }
+
+  const monthQty = Math.ceil(f / unit);
+  const dayQty = Math.ceil(monthQty / d);
+
+  $("#result").innerHTML = `
+    <p class="lead">본전이 되려면 하루에</p>
+    <p class="big">${won(dayQty)}<small>개 팔아야 해요</small></p>
+    <div class="rows">
+      <div class="row"><span>1개 팔면 남는 돈 (공헌이익)</span><b>${won(unit)}원</b></div>
+      <div class="row"><span>한 달 본전 개수</span><b>${won(monthQty)}개</b></div>
+      <div class="row"><span>하루 본전 매출</span><b>${won(dayQty * p)}원</b></div>
+      <div class="row total"><span>한 달 본전 매출 (부가세 포함)</span><b>${won(monthQty * p)}원</b></div>
+    </div>
+    <p class="tip">하루 ${won(dayQty)}개를 넘게 판 만큼부터 사장님 몫이에요. 1개 더 팔 때마다 <b>${won(unit)}원</b>씩 남아요.</p>
+    ${ACTIONS}`;
+  bindActions(`[손익분기점 계산] 월 고정비 ${won(f)}원, 객단가 ${won(p)}원, 변동비 ${won(c)}원 → 하루 ${won(dayQty)}개 팔아야 본전 (월 ${won(monthQty)}개, ${num(d, 0)}일 영업)`,
+    () => { fixed.set(0); price.set(0); cost.set(0); days.set(26); $("#fixed").focus(); });
+  postHeight();
+}
+
+$$("#dayChips .chip").forEach(b => b.addEventListener("click", () => days.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 본전 개수 = 월 고정비 ÷ (객단가 ÷ ${1 + CONFIG.vatRate} − 1개당 변동비), 올림. 객단가는 부가세 포함 가격으로 넣어요 (${CONFIG.baseYear}년 부가세율 ${CONFIG.vatRate * 100}%).<br>
+  카드수수료·배달수수료도 1개당 변동비에 넣으면 더 정확해요. 사장님 인건비를 고정비에 넣었다면 본전에 사장님 월급도 포함돼요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
