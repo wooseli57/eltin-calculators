@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="C" data-no="01">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C01 원료비용 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>원료비용 계산기</h1>
+      <p>재료 구입가격과 용량으로 g·ml당 가격을 구하고, 메뉴 1개에 들어가는 재료비를 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>메뉴 1개에 들어가는 재료 <small>재료마다 한 줄씩</small></label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== C01 원료비용 계산기 ===== */
+const { $, won, num, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+/* 단가 = 구입 가격 ÷ 구입 용량, 재료비 = 단가 × 1개 사용량 */
+const unitPrice = r => r.qty ? r.price / r.qty : 0;
+const lineCost  = r => unitPrice(r) * r.use;
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name",  type: "text",   label: "재료 이름", ph: "재료 이름 (예: 원두)" },
+    { key: "price", type: "money",  label: "구입 가격", unit: "원", ph: "25,000" },
+    { key: "qty",   type: "num",    label: "구입 용량", ph: "1000" },
+    { key: "u",     type: "select", label: "단위", options: [["g", "g"], ["ml", "ml"], ["개", "개"]] },
+    { key: "use",   type: "num",    label: "1개 사용량", ph: "18" }
+  ],
+  cols: "minmax(0,1.25fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr)",
+  rows: [{}, {}],
+  addLabel: "재료 추가",
+  note: r => r.price && r.qty ? `${r.u}당 <b>${num(unitPrice(r), 2)}원</b>${r.use ? ` · 1개에 <b>${won(lineCost(r))}원</b>` : ""}` : "",
+  onChange: render
+});
+
+function render(){
+  const rows = items.rows().filter(r => r.price && r.qty && r.use);
+  if(!rows.length){ $("#result").innerHTML = '<p class="empty">구입 가격·용량·사용량을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const total = rows.reduce((s, r) => s + lineCost(r), 0);
+  const top = rows.reduce((a, b) => lineCost(b) > lineCost(a) ? b : a);
+  const label = (r, i) => r.name || `재료 ${i + 1}`;
+
+  $("#result").innerHTML = `
+    <p class="lead">메뉴 1개에 들어가는 재료비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      ${rows.map((r, i) => `<div class="row"><span>${label(r, i)} ${num(r.use, 1)}${r.u}</span><b>${won(lineCost(r))}원</b></div>`).join("")}
+      <div class="row total"><span>재료비 합계</span><b>${won(total)}원</b></div>
+    </div>
+    ${rows.length > 1 ? `<p class="tip">가장 비싼 재료는 <b>${label(top, rows.indexOf(top))}</b>로 재료비의 <b>${num(lineCost(top) / total * 100, 0)}%</b>를 차지해요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[원료비용 계산] ${rows.map((r, i) => `${label(r, i)} ${won(lineCost(r))}원`).join(" + ")} = 메뉴 1개 재료비 ${won(total)}원`,
+    () => items.set([{}, {}]));
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 단가 = 구입 가격 ÷ 구입 용량, 재료비 = 단가 × 1개 사용량. 화면의 금액은 원 단위 반올림이에요.<br>
+  구입 가격은 실제로 낸 돈(부가세·배송비 포함)으로 넣으면 더 정확해요. 1kg은 1000g, 1L는 1000ml로 넣어주세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
