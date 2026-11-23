@@ -83,6 +83,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">본전이 되려면 하루에</p>
     <p class="big">${won(dayQty)}<small>개 팔아야 해요</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>1개 팔면 남는 돈 (공헌이익)</span><b>${won(unit)}원</b></div>
       <div class="row"><span>한 달 본전 개수</span><b>${won(monthQty)}개</b></div>
@@ -91,6 +92,7 @@ function render(){
     </div>
     <p class="tip">하루 ${won(dayQty)}개를 넘게 판 만큼부터 사장님 몫이에요. 1개 더 팔 때마다 <b>${won(unit)}원</b>씩 남아요.</p>
     ${ACTIONS}`;
+  const dayFixed = f / d, beX = dayFixed / unit, xMax = Math.max(10, Math.ceil(beX * 2)); Eltin.line($("#chart"), [{ label: "매출", points: [[0, 0], [xMax, xMax * p / (1 + VAT)]] }, { label: "비용", points: [[0, dayFixed], [xMax, dayFixed + xMax * c]] }], { xLabel: "하루 판매량(개)", yLabel: "하루 금액(원)", marks: [{ x: beX, y: beX * p / (1 + VAT), label: `본전 ${won(dayQty)}개` }] });
   bindActions(`[손익분기점 계산] 월 고정비 ${won(f)}원, 객단가 ${won(p)}원, 변동비 ${won(c)}원 → 하루 ${won(dayQty)}개 팔아야 본전 (월 ${won(monthQty)}개, ${num(d, 0)}일 영업)`,
     () => { fixed.set(0); price.set(0); cost.set(0); days.set(26); $("#fixed").focus(); });
   postHeight();

@@ -80,6 +80,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">${byQty ? `하루에 가장 많이 남겨주는 효자 메뉴는 <b>${best._label}</b>` : `1개 팔면 가장 많이 남는 메뉴는 <b>${best._label}</b>`}</p>
     <p class="big">${won(score(best))}<small>원${byQty ? " / 하루" : ""}</small></p>
+    <div id="chart"></div>
     <div class="rows">
       ${sorted.map((r, i) => `<div class="row"><span><i class="rank ${i ? "" : "first"}">${i + 1}</i>${r._label}</span>
         <b>${won(margin(r))}원${byQty && r.qty ? ` × ${num(r.qty, 0)}개` : ""}<small>원가율 ${num(costRate(r), 1)}%${byQty && r.qty ? ` · 하루 ${won(score(r))}원` : ""}</small></b></div>`).join("")}
@@ -88,6 +89,7 @@ function render(){
     ${high.length ? `<p class="tip warn">원가율이 ${CONFIG.highCostRate}%를 넘는 메뉴: <b>${high.map(r => r._label).join(", ")}</b>. 가격이나 레시피를 다시 보세요.</p>` : ""}
     ${!byQty ? `<p class="tip">하루 판매량을 넣으면 실제로 돈을 가장 많이 벌어주는 메뉴 순서로 바꿔 보여드려요.</p>` : ""}
     ${ACTIONS}`;
+  Eltin.bars($("#chart"), rows.map(r => ({ label: r._label, value: margin(r) })), { sort: true, highlight: 0, fmt: v => `${v < 0 ? "−" : ""}${won(Math.abs(v))}원` });
   bindActions(`[메뉴 마진 비교] ${sorted.map((r, i) => `${i + 1}위 ${r._label} 1개 ${won(margin(r))}원(원가율 ${num(costRate(r), 1)}%)${byQty && r.qty ? ` 하루 ${won(score(r))}원` : ""}`).join(" / ")}`,
     () => items.set([{}, {}, {}]));
   postHeight();

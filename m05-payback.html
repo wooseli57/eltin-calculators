@@ -75,6 +75,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">들인 돈을 다 되찾는 데 걸리는 기간은</p>
     <p class="big">${months}<small>개월</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>되찾아야 할 돈 (보증금 제외)</span><b>${won(sunk)}원</b></div>
       <div class="row"><span>한 달 순이익</span><b>${won(p)}원</b></div>
@@ -86,6 +87,7 @@ function render(){
       : ok ? `<p class="tip">계약 기간 안에 회수하고, 남은 <b>${ym(Math.round(leaseM) - months)}</b> 동안 약 <b>${won(p * (Math.round(leaseM) - months))}원</b>을 더 벌 수 있어요.</p>`
       : `<p class="tip warn">계약 기간(${ym(Math.round(leaseM))})이 끝날 때까지 다 못 되찾아요. 재계약이 안 되면 약 <b>${won(sunk - p * Math.round(leaseM))}원</b>을 못 되찾아요.</p>`}
     ${ACTIONS}`;
+  const xMax = Math.max(Math.ceil(months * 1.5), leaseM ? Math.round(leaseM) : 0, 6); Eltin.line($("#chart"), [{ label: "누적 순이익", points: [[0, 0], [xMax, p * xMax]] }], { xLabel: "개월", yLabel: "누적(원)", hlines: [{ y: sunk, label: `되찾을 돈 ${Eltin.shortWon(sunk)}원` }], marks: [{ x: months, y: p * months, label: `${months}개월` }] });
   bindActions(`[투자회수 계산] 창업비 ${won(inv)}원(보증금 ${won(dep)}원 제외 ${won(sunk)}원), 월 순이익 ${won(p)}원 → ${months}개월(${ym(months)}) 만에 회수`,
     () => { invest.set(0); deposit.set(0); profit.set(0); lease.set(""); $("#invest").focus(); });
   postHeight();

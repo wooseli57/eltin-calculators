@@ -86,6 +86,7 @@ function render(){
   $("#result").innerHTML = `
     <p class="lead">${won(np - p)}원 올리면 손님이 이만큼 줄어도 이익이 그대로예요</p>
     <p class="big">${num(drop, 1)}%<small> 감소까지</small></p>
+    <div id="chart"></div>
     <div class="rows">
       <div class="row"><span>가격 인상률</span><b>${num(upPct, 1)}%</b></div>
       <div class="row"><span>1개 남는 돈 (지금)</span><b>${won(mo)}원</b></div>
@@ -94,6 +95,7 @@ function render(){
     </div>
     ${q ? `<p class="tip">판매량이 그대로라면 하루 <b>${won((mn - mo) * q)}원</b>, 한 달(26일) <b>${won((mn - mo) * q * 26)}원</b>이 더 남아요.</p>` : ""}
     ${ACTIONS}`;
+  Eltin.bars($("#chart"), q ? [{ label: "인상 전", value: mo * q * 26 }, { label: "인상 후", value: mn * q * 26, highlight: true }] : [], { fmt: v => `${Eltin.shortWon(v)}원` }); if(q) $("#chart").insertAdjacentHTML("afterend", `<p class="chart-note">한 달 이익 비교 (하루 ${num(q, 0)}개, 26일, 판매량 그대로)</p>`);
   bindActions(`[가격 인상 계산] ${won(p)}원 → ${won(np)}원(+${num(upPct, 1)}%), 1개 남는 돈 ${won(mo)}원 → ${won(mn)}원, 손님이 ${num(drop, 1)}% 줄어도 이익 동일${q ? ` (하루 ${num(q, 0)}개 → ${won(needQty)}개)` : ""}`,
     () => { price.set(0); cost.set(0); newPrice.set(0); qty.set(100); $("#price").focus(); });
   postHeight();
