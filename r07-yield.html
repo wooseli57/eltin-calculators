@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="07">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R07 수율 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.pct-wrap{width:140px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>수율 계산기</h1>
+      <p>굽는 동안 빠지는 수분을 반영해서 반죽 양으로 몇 개가 나오는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="dough">반죽 전체 양</label>
+      <div class="input-wrap"><input id="dough" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">g</span></div>
+    </div>
+    <div class="field">
+      <label for="target">완성품 1개 목표 무게 <small>구운 뒤</small></label>
+      <div class="input-wrap"><input id="target" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">g</span></div>
+    </div>
+    <div class="field">
+      <label for="loss">굽기 손실률 <small>구우면서 줄어드는 비율</small></label>
+      <div class="input-wrap pct-wrap"><input id="loss" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">%</span></div>
+      <div class="hint" style="text-align:left">모르면 한 번 구워서 재 보세요: (굽기 전 무게 − 구운 뒤 무게) ÷ 굽기 전 무게 × 100</div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R07 수율 계산기 ===== */
+/* 굽기 손실률은 제품마다 달라 기본값 없이 사용자 입력 (calculators.md 메모) */
+const { $, num, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const dough = numInput($("#dough"), render), target = numInput($("#target"), render), loss = numInput($("#loss"), render);
+
+/* 1개 분할 무게 = 목표 무게 ÷ (1 − 손실률), 개수 = 반죽 ÷ 분할 무게 (내림) */
+function render(){
+  const d = dough.value, t = target.value, l = loss.value;
+  if(!d || !t){ $("#result").innerHTML = '<p class="empty">반죽 양과 완성품 목표 무게를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(l >= 100){ $("#result").innerHTML = '<p class="empty">손실률은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
+
+  const piece = t / (1 - l / 100);
+  const count = Math.floor(d / piece + 1e-9);          // 부동소수 오차 보정
+  const left = d - count * piece;
+  const baked = d * (1 - l / 100);
+  const more = piece - left;
+
+  $("#result").innerHTML = count ? `
+    <p class="lead">이 반죽으로 나오는 완성품은</p>
+    <p class="big">${count}<small>개</small></p>` : `
+    <p class="lead">반죽이 1개 분량보다 적어요</p>
+    <p class="big">0<small>개</small></p>`;
+  $("#result").innerHTML += `
+    <div class="rows">
+      <div class="row total"><span>1개 반죽 분할 무게</span><b>${num(piece, 1)}g</b></div>
+      <div class="row"><span>구운 뒤 전체 무게</span><b>${num(baked, 0)}g</b></div>
+      <div class="row"><span>나누고 남는 반죽</span><b>${num(left, 1)}g</b></div>
+      ${l ? `<div class="row"><span>굽기 손실 (${num(l, 1)}%)</span><b>${num(d - baked, 0)}g</b></div>` : ""}
+    </div>
+    ${count && left > 0.05 ? `<p class="tip">반죽을 <b>${num(more, 0)}g</b> 더 만들면 ${count + 1}개가 나와요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[수율 계산] 반죽 ${num(d, 0)}g, 목표 ${num(t, 1)}g, 손실 ${num(l, 1)}% → 1개 ${num(piece, 1)}g씩 분할, ${count}개 (남는 반죽 ${num(left, 1)}g)`,
+    () => { dough.set(""); target.set(""); loss.set(""); $("#dough").focus(); });
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 분할 무게 = 완성품 목표 무게 ÷ (1 − 굽기 손실률), 개수는 내림<br>
+  그릇·주걱에 남는 반죽은 빠지지 않았어요. 실제로는 조금 여유 있게 만들어 보세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
