@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="A" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A05 리뷰·쿠폰 이벤트 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>리뷰·쿠폰 이벤트 계산기</h1>
+      <p>리뷰 이벤트 서비스 메뉴나 전단 쿠폰이 비용 대비 효과가 있는지 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="이벤트 종류" id="modeSeg">
+      <button type="button" data-mode="review" aria-pressed="true">리뷰 이벤트</button>
+      <button type="button" data-mode="flyer" aria-pressed="false">전단 쿠폰</button>
+    </div>
+
+    <div id="reviewBox">
+      <div class="field-row">
+        <div class="field">
+          <label for="gift">서비스 메뉴 원가</label>
+          <div class="input-wrap sm"><input id="gift" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+          <div class="hint" id="giftHint"></div>
+        </div>
+        <div class="field">
+          <label for="joins">한 달 참여 건수</label>
+          <div class="input-wrap sm"><input id="joins" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">건</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="flyerBox" hidden>
+      <div class="field">
+        <label for="print">전단 인쇄·배포비</label>
+        <div class="input-wrap"><input id="print" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="printHint"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="coupon">쿠폰 1장 할인액</label>
+          <div class="input-wrap sm"><input id="coupon" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+          <div class="hint" id="couponHint"></div>
+        </div>
+        <div class="field">
+          <label for="uses">예상 사용 건수 <small>선택</small></label>
+          <div class="input-wrap sm"><input id="uses" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">건</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="ticket">주문 1건 평균 금액</label>
+        <div class="input-wrap sm"><input id="ticket" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="ticketHint"></div>
+      </div>
+      <div class="field">
+        <label for="rate">원가율</label>
+        <div class="input-wrap sm"><input id="rate" type="text" inputmode="decimal" autocomplete="off" value="30"><span class="unit">%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== A05 리뷰·쿠폰 이벤트 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let mode = "review";
+const gift = moneyInput($("#gift"), $("#giftHint"), render);
+const print = moneyInput($("#print"), $("#printHint"), render);
+const coupon = moneyInput($("#coupon"), $("#couponHint"), render);
+const ticket = moneyInput($("#ticket"), $("#ticketHint"), render);
+const joins = numInput($("#joins"), render), uses = numInput($("#uses"), render), rate = numInput($("#rate"), render);
+
+const ex = p => p / (1 + CONFIG.vatRate);
+const empty = msg => { $("#result").innerHTML = `<p class="empty">${msg}</p>`; postHeight(); };
+
+/* 주문 1건 남는 돈 = 주문 금액 ÷ (1 + 부가세율) × (1 − 원가율)
+   리뷰: 이벤트 비용 = 서비스 원가 × 참여 건수, 본전 추가 주문 = 비용 ÷ 1건 남는 돈 */
+function renderReview(unit){
+  const g = gift.value, j = joins.value;
+  if(!g || !j) return empty("서비스 메뉴 원가와 참여 건수를 넣으면 바로 계산돼요");
+  const spend = g * j, need = Math.ceil(spend / unit);
+  $("#result").innerHTML = `
+    <p class="lead">이벤트 비용을 되찾으려면 한 달에 주문이</p>
+    <p class="big">${won(need)}<small>건 더 늘어야 해요</small></p>
+    <div class="rows">
+      <div class="row"><span>한 달 이벤트 비용 (${won(j)}건)</span><b>${won(spend)}원</b></div>
+      <div class="row"><span>주문 1건 남는 돈</span><b>${won(unit)}원</b></div>
+      <div class="row total"><span>본전 추가 주문</span><b>${won(need)}건</b></div>
+      <div class="row"><span>참여 1건당 비용</span><b>${won(g)}원</b></div>
+    </div>
+    <p class="tip">리뷰가 늘어 새 주문이 한 달 ${won(need)}건보다 많이 늘면 이득이에요. 이벤트 전후 같은 기간의 주문 수를 비교해 보세요.</p>
+    ${ACTIONS}`;
+  bindActions(`[리뷰 이벤트 계산] 서비스 원가 ${won(g)}원 × ${won(j)}건 = 월 ${won(spend)}원 → 주문 ${won(need)}건 더 늘면 본전`,
+    () => { gift.set(0); joins.set(""); $("#gift").focus(); });
+}
+
+/* 전단: 쿠폰 주문 1건 남는 돈 = (주문 금액 − 할인액) ÷ (1 + 부가세율) − 원가, 원가 = 주문 금액(부가세 뺌) × 원가율
+   본전 사용 건수 = 인쇄·배포비 ÷ 쿠폰 주문 1건 남는 돈 */
+function renderFlyer(t, r){
+  const p = print.value, d = coupon.value, u = uses.value;
+  if(!p) return empty("전단 인쇄·배포비를 넣으면 바로 계산돼요");
+  const per = ex(t - d) - ex(t) * r;
+  if(per <= 0) return empty("쿠폰 할인액이 너무 커서 쿠폰 주문마다 손해예요");
+  const need = Math.ceil(p / per);
+  const net = u ? u * per - p : null;
+  $("#result").innerHTML = `
+    <p class="lead">전단비를 되찾으려면 쿠폰을</p>
+    <p class="big">${won(need)}<small>장 써야 해요</small></p>
+    <div class="rows">
+      <div class="row"><span>쿠폰 주문 1건 남는 돈</span><b>${won(per)}원</b></div>
+      <div class="row total"><span>본전 사용 건수</span><b>${won(need)}건</b></div>
+      ${net != null ? `<div class="row"><span>예상 ${won(u)}건 쓰면</span><b class="${net >= 0 ? "" : "neg"}">${net >= 0 ? "+" : ""}${won(net)}원</b></div>` : ""}
+    </div>
+    <p class="tip ${net != null && net < 0 ? "warn" : ""}">${net == null ? "예상 사용 건수를 넣으면 이 이벤트로 얼마 남는지 알려드려요." : net >= 0 ? `쿠폰 ${won(u)}건이면 전단비를 빼고 <b>${won(net)}원</b>이 남아요.` : `쿠폰 ${won(u)}건으로는 <b>${won(-net)}원</b> 손해예요.`} 원래 오던 손님이 쿠폰만 쓰는 경우는 할인액만큼 손해라 실제 효과는 더 작을 수 있어요.</p>
+    ${ACTIONS}`;
+  bindActions(`[전단 쿠폰 계산] 전단비 ${won(p)}원, 쿠폰 ${won(d)}원 할인 → 쿠폰 ${won(need)}장 써야 본전${net != null ? `, 예상 ${won(u)}건이면 ${won(net)}원` : ""}`,
+    () => { print.set(0); coupon.set(0); uses.set(""); $("#print").focus(); });
+}
+
+function render(){
+  const t = ticket.value, r = rate.value / 100;
+  if(!t) return empty("주문 1건 평균 금액을 넣어주세요");
+  if(r >= 1) return empty("원가율은 100% 미만으로 넣어주세요");
+  mode === "review" ? renderReview(ex(t) * (1 - r)) : renderFlyer(t, r);
+  postHeight();
+}
+
+pick($$("#modeSeg button"), b => {
+  mode = b.dataset.mode;
+  $("#reviewBox").hidden = mode !== "review"; $("#flyerBox").hidden = mode === "review";
+  render();
+});
+
+$("#note").innerHTML = `<b>계산 기준</b> · 주문 1건 남는 돈 = 주문 금액 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) × (1 − 원가율), ${CONFIG.baseYear}년 기준<br>
+  본전 건수는 올림이에요. 배달앱 수수료가 있으면 원가율에 더해서 넣어주세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
