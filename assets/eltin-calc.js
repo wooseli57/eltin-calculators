@@ -80,8 +80,9 @@
     power: "한국전력에"
   };
   /* 계산 기준 끝에 공통 주의 문구, 이전 연도 값을 쓰는 항목 표시, 올해 값이 없으면 결과 위에 경고
-     labels: { 키: "화면 이름" } — 이름을 준 항목만 "이전 연도 값" 안내에 나옴 */
-  function yearNotice(R, field, labels = {}){
+     labels: { 키: "화면 이름" } — 이름을 준 항목만 "이전 연도 값" 안내에 나옴
+     custom: 사양에 따로 정한 주의 문구가 있으면 기본 문구 대신 사용 */
+  function yearNotice(R, field, labels = {}, custom){
     const year = R ? R.useYear : new Date().getFullYear();
     const parts = [];
     if(R){
@@ -94,10 +95,38 @@
           `<p class="tip warn" id="yearWarn">아직 ${R.year}년 요율이 반영되지 않았어요. ${R.useYear}년 값으로 계산해요.</p>`);
       }
     }
-    parts.push(`${year}년 기준이에요. 최저임금·세율·보험요율 등은 매년 바뀌고 법령 개정으로 달라질 수 있어요. 참고용으로 사용하시고, 정확한 금액은 ${WHO[field] || field} 확인하세요.`);
+    parts.push(custom || `${year}년 기준이에요. 최저임금·세율·보험요율 등은 매년 바뀌고 법령 개정으로 달라질 수 있어요. 참고용으로 사용하시고, 정확한 금액은 ${WHO[field] || field} 확인하세요.`);
     const note = $("#note");
     if(note) note.innerHTML += `<br>${parts.join("<br>")}`;
   }
+
+  /* ---------- 카드 우대수수료 구간표 (O02·M04 공통, 여기서만 관리) ----------
+     요율은 % 숫자. credit·check가 null이면 일반가맹점 → 계산기에서 입력한 요율 사용 */
+  const cardTiers = {
+    generalRateExample: 2.2,   // 예시: 금융위원회 보도자료의 일반가맹점 수수료율 예시 (확인 2026-11-23)
+    rates: {
+      2026: {                  // 금융위원회 2026.2.12 보도자료 "2026년 상반기 영세·중소가맹점 선정결과", 2026.2.14부터 적용 (확인 2026-11-23)
+        period: "2026년 상반기",
+        tiers: [
+          { max: 300000000,  name: "영세 가맹점 (3억 원 이하)",  credit: 0.40, check: 0.15 },
+          { max: 500000000,  name: "중소 가맹점 (3억~5억 원)",   credit: 1.00, check: 0.75 },
+          { max: 1000000000, name: "중소 가맹점 (5억~10억 원)",  credit: 1.15, check: 0.90 },
+          { max: 3000000000, name: "중소 가맹점 (10억~30억 원)", credit: 1.45, check: 1.15 },
+          { max: Infinity,   name: "일반 가맹점 (30억 원 초과)", credit: null, check: null }
+        ]
+      }
+    },
+    /* 연매출 → 구간 */
+    tierFor(tiers, sales){ return tiers.find(t => sales <= t.max); },
+    /* 월 카드수수료 = 신용 매출 × 신용 요율 + 체크 매출 × 체크 요율, 원 미만 버림 */
+    fee(amount, checkShare, tier, generalRate){
+      const cr = tier.credit ?? generalRate, ch = tier.check ?? generalRate;
+      const credit = amount * (1 - checkShare), check = amount * checkShare;
+      return { credit, check, creditRate: cr, checkRate: ch,
+        creditFee: credit * cr / 100, checkFee: check * ch / 100,
+        total: Math.floor(credit * cr / 100 + check * ch / 100 + 1e-6) };
+    }
+  };
 
   /* 소수 표시: num(12.345, 1) → "12.3" */
   const num = (n, d = 1) => (Number.isFinite(n) ? n : 0).toLocaleString("ko-KR", { maximumFractionDigits: d });
@@ -201,5 +230,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
