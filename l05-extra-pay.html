@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="L" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L05 가산수당 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.help{font-size:12px;color:var(--ink-3);margin-top:6px}.help+.field{margin-top:16px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>가산수당 계산기</h1>
+      <p>야간·휴일·연장 근무를 했을 때 더 줘야 하는 수당을 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>상시 근로자 수</label>
+      <div class="seg" role="group" aria-label="상시 근로자 수" id="sizeSeg" style="margin-bottom:0">
+        <button type="button" data-size="5up" aria-pressed="true">5인 이상</button>
+        <button type="button" data-size="under5" aria-pressed="false">5인 미만</button>
+      </div>
+      <p class="help">알바를 포함해 한 달 평균 인원으로 판단해요</p>
+    </div>
+    <div class="field">
+      <label for="wage">시급 <small>통상시급</small></label>
+      <div class="input-wrap"><input id="wage" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="wageHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="over">연장근로</label>
+        <div class="input-wrap sm"><input id="over" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">시간</span></div>
+      </div>
+      <div class="field">
+        <label for="hol">휴일근로</label>
+        <div class="input-wrap sm"><input id="hol" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">시간</span></div>
+      </div>
+    </div>
+    <p class="help">연장: 하루 8시간 또는 주 40시간을 넘겨 일한 시간 · 휴일: 쉬는 날에 일한 시간</p>
+    <div class="field">
+      <label for="night">야간근로</label>
+      <div class="input-wrap"><input id="night" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">시간</span></div>
+      <p class="help">밤 10시~아침 6시에 일한 시간 (연장·휴일과 겹쳐도 그대로 넣어주세요)</p>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== L05 가산수당 계산기 (사양: docs/specs/L05.md) ===== */
+const CONFIG = {
+  premium: { overtime: 0.5, night: 0.5, holidayUpTo8: 0.5, holidayOver8: 1.0, holidayBaseHours: 8 }, // 근로기준법 제56조 (확인 2026-11-23)
+  rates: {
+    2026: { minWage: 10320 },  // 고용노동부 고시 (확인 2026-11-23)
+    2027: { minWage: 10700 }   // 2027년 적용 최저임금 고시 2026-08-05 (확인 2026-11-23)
+  }
+};
+const R = Eltin.yearRates(CONFIG.rates), V = R.values, P = CONFIG.premium;
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let size = "5up";
+$("#wage").value = won(V.minWage);
+const wage = moneyInput($("#wage"), $("#wageHint"), render);
+const over = numInput($("#over"), render), hol = numInput($("#hol"), render), night = numInput($("#night"), render);
+
+const floor = x => Math.floor(x + 1e-6);   // 원 미만 버림 (부동소수 오차 보정)
+
+/* 기본임금 = 시급 × (연장 + 휴일) — 야간 시간의 기본임금은 정규·연장·휴일 쪽에 이미 들어 있음
+   5인 이상 가산: 연장 50%, 휴일 8시간까지 50%·넘는 시간 100%, 야간 50% (겹치면 각각 더함)
+   휴일 8시간 초과분에 연장 가산을 또 얹지 않음. 5인 미만은 가산 0 */
+function calc(w, o, h, n, big){
+  const lines = [
+    ["연장 기본임금", floor(w * o)],
+    ["휴일 기본임금", floor(w * h)]
+  ];
+  if(big){
+    lines.splice(1, 0, ["연장 가산 (50%)", floor(w * o * P.overtime)]);
+    lines.push(["휴일 가산 (8시간까지 50%)", floor(w * Math.min(h, P.holidayBaseHours) * P.holidayUpTo8)]);
+    lines.push(["휴일 가산 (8시간 넘는 시간 100%)", floor(w * Math.max(h - P.holidayBaseHours, 0) * P.holidayOver8)]);
+    lines.push(["야간 가산 (50%)", floor(w * n * P.night)]);
+  }
+  return { lines, total: lines.reduce((s, [, v]) => s + v, 0) };
+}
+
+function render(){
+  const w = wage.value, o = over.value, h = hol.value, n = night.value;
+  if(!w || !(o || h || n)){ $("#result").innerHTML = '<p class="empty">시급과 일한 시간을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const big = size === "5up";
+  const cur = calc(w, o, h, n, big);
+  const a = calc(w, o, h, n, true).total, b = calc(w, o, h, n, false).total;
+
+  $("#result").innerHTML = `
+    <p class="lead">이번에 추가로 줘야 하는 돈은</p>
+    <p class="big">${won(cur.total)}<small>원</small></p>
+    <div class="rows">
+      ${cur.lines.filter(([, v]) => v).map(([k, v]) => `<div class="row"><span>${k}</span><b>${won(v)}원</b></div>`).join("")}
+      <div class="row total"><span>합계</span><b>${won(cur.total)}원</b></div>
+    </div>
+    ${w < V.minWage ? `<p class="tip warn">입력한 시급이 ${R.useYear}년 최저임금(${won(V.minWage)}원)보다 낮아요.</p>` : ""}
+    <p class="tip">5인 이상이면 <b>${won(a)}원</b>, 5인 미만이면 <b>${won(b)}원</b>이에요.</p>
+    ${big ? "" : `<p class="tip">가산수당 의무는 없지만, 일한 시간만큼의 임금은 꼭 지급해야 해요. 근로계약서에 가산수당을 주기로 했다면 그대로 지급해야 해요.</p>`}
+    ${ACTIONS}`;
+  bindActions(`[가산수당 계산] ${big ? "5인 이상" : "5인 미만"}, 시급 ${won(w)}원, 연장 ${num(o, 1)}시간·휴일 ${num(h, 1)}시간·야간 ${num(n, 1)}시간 → 추가 지급 ${won(cur.total)}원 (5인 이상 ${won(a)}원 / 5인 미만 ${won(b)}원)`,
+    () => { wage.set(V.minWage); over.set(""); hol.set(""); night.set(""); $("#over").focus(); });
+  postHeight();
+}
+
+pick($$("#sizeSeg button"), btn => { size = btn.dataset.size; render(); });
+
+$("#note").innerHTML = `<b>계산 기준</b> · 가산율: 연장 50%, 야간 50%, 휴일 8시간 이내 50%·8시간 초과 100% (근로기준법 제56조, 상시 5인 이상 사업장 적용). 항목마다 원 미만 버림.<br>
+  야간 가산은 연장·휴일과 겹치면 각각 더해요. 시급 기본값은 ${R.useYear}년 최저임금이에요.<br>
+  공휴일이 원래 일하기로 한 날이면 유급휴일수당이 따로 붙을 수 있어요.<br>
+  근로자대표와 서면으로 합의하면 수당 대신 휴가로 줄 수 있어요.`;
+Eltin.yearNotice(R, "고용노동부나 노무사에게", { minWage: "최저임금" });
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
