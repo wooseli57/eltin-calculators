@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M05 투자회수 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>투자회수 계산기</h1>
+      <p>창업에 들인 돈을 몇 개월 만에 되찾을 수 있는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="invest">창업에 들인 돈 <small>권리금·인테리어·장비·초기 재료 등 전부</small></label>
+      <div class="input-wrap"><input id="invest" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="investHint"></div>
+    </div>
+    <div class="field">
+      <label for="deposit">그중 돌려받는 보증금 <small>없으면 0</small></label>
+      <div class="input-wrap"><input id="deposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="depositHint"></div>
+    </div>
+    <div class="field">
+      <label for="profit">한 달 평균 순이익 <small>모든 비용을 내고 남는 돈</small></label>
+      <div class="input-wrap"><input id="profit" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="profitHint"></div>
+    </div>
+    <div class="field">
+      <label for="lease">임대 계약 기간 <small>선택</small></label>
+      <div class="input-wrap"><input id="lease" type="text" inputmode="decimal" autocomplete="off" placeholder="예: 5"><span class="unit">년</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== M05 투자회수 계산기 ===== */
+const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const invest = moneyInput($("#invest"), $("#investHint"), render);
+const deposit = moneyInput($("#deposit"), $("#depositHint"), render);
+const profit = moneyInput($("#profit"), $("#profitHint"), render);
+const lease = numInput($("#lease"), render);
+
+const ym = m => { const y = Math.floor(m / 12), r = m % 12; return y && r ? `${y}년 ${r}개월` : y ? `${y}년` : `${r}개월`; };
+
+/* 회수 기간(개월) = (창업비 − 돌려받는 보증금) ÷ 월 순이익, 올림 */
+function render(){
+  const inv = invest.value, dep = deposit.value, p = profit.value, l = lease.value;
+  if(!inv || !p){ $("#result").innerHTML = '<p class="empty">창업에 들인 돈과 월 순이익을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(dep >= inv){ $("#result").innerHTML = '<p class="empty">보증금은 창업에 들인 돈보다 적어야 해요</p>'; postHeight(); return; }
+
+  const sunk = inv - dep;
+  const months = Math.ceil(sunk / p);
+  const leaseM = l * 12;
+  const ok = leaseM ? months <= leaseM : null;
+
+  $("#result").innerHTML = `
+    <p class="lead">들인 돈을 다 되찾는 데 걸리는 기간은</p>
+    <p class="big">${months}<small>개월</small></p>
+    <div class="rows">
+      <div class="row"><span>되찾아야 할 돈 (보증금 제외)</span><b>${won(sunk)}원</b></div>
+      <div class="row"><span>한 달 순이익</span><b>${won(p)}원</b></div>
+      <div class="row total"><span>회수 기간</span><b>${ym(months)}</b></div>
+      ${leaseM ? `<div class="row"><span>임대 계약 기간</span><b>${ym(Math.round(leaseM))}</b></div>` : ""}
+      <div class="row"><span>1년에 되찾는 비율</span><b>${num(p * 12 / sunk * 100, 1)}%</b></div>
+    </div>
+    ${ok === null ? "" : ok && months === Math.round(leaseM) ? `<p class="tip">계약이 끝나는 달에 딱 회수해요. 순이익이 조금만 줄어도 계약 기간 안에 다 못 되찾을 수 있어요.</p>`
+      : ok ? `<p class="tip">계약 기간 안에 회수하고, 남은 <b>${ym(Math.round(leaseM) - months)}</b> 동안 약 <b>${won(p * (Math.round(leaseM) - months))}원</b>을 더 벌 수 있어요.</p>`
+      : `<p class="tip warn">계약 기간(${ym(Math.round(leaseM))})이 끝날 때까지 다 못 되찾아요. 재계약이 안 되면 약 <b>${won(sunk - p * Math.round(leaseM))}원</b>을 못 되찾아요.</p>`}
+    ${ACTIONS}`;
+  bindActions(`[투자회수 계산] 창업비 ${won(inv)}원(보증금 ${won(dep)}원 제외 ${won(sunk)}원), 월 순이익 ${won(p)}원 → ${months}개월(${ym(months)}) 만에 회수`,
+    () => { invest.set(0); deposit.set(0); profit.set(0); lease.set(""); $("#invest").focus(); });
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 회수 기간 = (창업에 들인 돈 − 돌려받는 보증금) ÷ 한 달 평균 순이익, 개월 단위 올림.<br>
+  순이익은 사장님 인건비를 뺀 금액으로 넣어야 실제와 맞아요. 대출 이자는 순이익을 계산할 때 비용으로 빼주세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
