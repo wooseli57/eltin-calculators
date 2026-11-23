@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="T" data-no="01">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T01 부가세 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>부가세 계산기</h1>
+      <p>부가세 포함 가격과 별도 가격을 서로 바꿔줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="입력 방식">
+      <button type="button" data-mode="incl" aria-pressed="true">부가세 포함 금액</button>
+      <button type="button" data-mode="excl" aria-pressed="false">부가세 별도 금액</button>
+    </div>
+    <div class="field">
+      <label for="amount" id="amountLabel">부가세가 포함된 금액을 넣어주세요</label>
+      <div class="input-wrap"><input id="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="hint"></div>
+      <div class="chips">
+        <button class="chip" type="button" data-add="1000">+1천</button>
+        <button class="chip" type="button" data-add="10000">+1만</button>
+        <button class="chip" type="button" data-add="100000">+10만</button>
+        <button class="chip" type="button" data-add="1000000">+100만</button>
+        <button class="chip" type="button" data-clear>지우기</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== T01 부가세 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, copy, moneyInput, pick, postHeight } = Eltin;
+
+let mode = "incl";
+const amount = moneyInput($("#amount"), $("#hint"), render);
+
+function calc(a){
+  const r = CONFIG.vatRate;
+  if(mode === "incl"){ const supply = Math.ceil(a / (1 + r)); return { supply, vat: a - supply, total: a }; }
+  const vat = Math.floor(a * r); return { supply: a, vat, total: a + vat };    // 부가세 원 미만 버림
+}
+
+function render(){
+  const a = amount.value;
+  if(!a){ $("#result").innerHTML = '<p class="empty">금액을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const { supply, vat, total } = calc(a);
+  $("#result").innerHTML = `
+    <p class="lead">${mode === "incl" ? "부가세를 뺀 금액(공급가액)은" : "부가세를 더한 금액(합계)은"}</p>
+    <p class="big">${won(mode === "incl" ? supply : total)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>공급가액</span><b>${won(supply)}원</b></div>
+      <div class="row"><span>부가세 (${CONFIG.vatRate*100}%)</span><b>${won(vat)}원</b></div>
+      <div class="row total"><span>합계 (부가세 포함)</span><b>${won(total)}원</b></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" type="button" id="copy">결과 복사</button>
+      <button class="btn btn-ghost" type="button" id="reset">다시 계산</button>
+    </div>`;
+  $("#copy").onclick = () => copy(`[부가세 계산] 공급가액 ${won(supply)}원 / 부가세 ${won(vat)}원 / 합계 ${won(total)}원`);
+  $("#reset").onclick = () => { amount.set(0); $("#amount").focus(); };
+  postHeight();
+}
+
+pick($$(".seg button"), b => {
+  mode = b.dataset.mode;
+  $("#amountLabel").textContent = mode === "incl" ? "부가세가 포함된 금액을 넣어주세요" : "부가세를 빼고 받은 금액을 넣어주세요";
+  render();
+});
+$$("[data-add]").forEach(b => b.addEventListener("click", () => amount.set(amount.value + Number(b.dataset.add))));
+$("[data-clear]").addEventListener("click", () => amount.set(0));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 부가세율 ${CONFIG.vatRate*100}% (${CONFIG.baseYear}년 기준), 부가세 원 미만은 버림<br>
+  간이과세자는 업종별 부가가치율이 달라 실제 납부세액과 다를 수 있어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
