@@ -144,7 +144,7 @@ function render(){
         return `<div class="row"><span>${r._label} <small>${num(r.amt, 1)}${r.u}</small></span><b>${a.text}${a.raw ? `<small>${a.raw}</small>` : ""}</b></div>`; }).join("")}
       ${newW ? `<div class="row total"><span>총중량 ('개' 제외)</span><b>${num(newW, 0)}g</b></div>` : ""}
     </div>
-    ${eggs.length ? `<p class="tip">${eggs.map(r => r._label).join(", ")}은(는) 개수로 반올림했어요. 정확히 맞추려면 풀어서 무게로 재세요 (계산값 참고).</p>` : ""}
+    ${eggs.length ? `<p class="tip">개수로 세는 재료(${eggs.map(r => r._label).join(", ")})는 반올림했어요. 정확히 맞추려면 풀어서 무게로 재세요 (계산값 참고).</p>` : ""}
     ${ACTIONS}`;
   bindActions(`[레시피 분량 ${num(f, 2)}배] ${out.map(r => `${r._label} ${fmtAmt(r.scaled, r.u).text}`).join(", ")}`,
     () => { items.set([{}, {}, {}]); times.set(2); });

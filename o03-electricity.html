@@ -54,7 +54,7 @@ const { $, won, num, ro, numInput, rowList, ACTIONS, bindActions, postHeight } =
 
 const days = numInput($("#days"), render);
 const price = numInput($("#price"), render);
-if(CONFIG.kwhPrice) price.set(CONFIG.kwhPrice);
+if(CONFIG.kwhPrice) $("#price").value = CONFIG.kwhPrice;   // 첫 render 전이므로 값만 넣음
 
 const DEFAULT_ROWS = [{ name: "오븐", n: 1 }, { name: "냉장고", n: 1, on: "all" }, { name: "커피머신", n: 1 }];
 /* 장비 1대 하루 사용량(kWh) = 소비전력(W) × 사용시간 ÷ 1000 */
