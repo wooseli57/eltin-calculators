@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="T" data-no="03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T03 단가 비교 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.rank{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;
+  background:var(--line);color:var(--ink-2);margin-right:6px}
+.rank.first{background:var(--brand-dark);color:#fff}
+.row small{display:block;font-size:12px;color:var(--ink-3);font-weight:400;text-align:right}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>단가 비교 계산기</h1>
+      <p>"1kg 12,000원과 500g 6,800원 중 어느 게 더 싸지?"에 답해줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>비교할 상품</label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== T03 단가 비교 계산기 ===== */
+const { $, won, num, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+/* 단위를 기본 단위(g, ml, 개)로 바꿔 비교. 무게·부피는 100g·100ml당, 개수는 1개당 */
+const UNITS = { g: ["g", 1], kg: ["g", 1000], ml: ["ml", 1], L: ["ml", 1000], 개: ["개", 1] };
+const base = r => UNITS[r.u][0];
+const per = r => base(r) === "개" ? 1 : 100;
+const unitPrice = r => r.price / (r.qty * UNITS[r.u][1]) * per(r);
+const perLabel = r => base(r) === "개" ? "1개당" : `100${base(r)}당`;
+
+const DEFAULT_ROWS = [{ name: "A 상품", u: "kg" }, { name: "B 상품", u: "g" }];
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name",  type: "text",   label: "상품 이름", ph: "상품 이름" },
+    { key: "price", type: "money",  label: "가격", unit: "원", ph: "12,000" },
+    { key: "qty",   type: "num",    label: "용량", ph: "1" },
+    { key: "u",     type: "select", label: "단위", options: [["g", "g"], ["kg", "kg"], ["ml", "ml"], ["L", "L"], ["개", "개"]] }
+  ],
+  cols: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr)",
+  rows: DEFAULT_ROWS,
+  min: 2,
+  addLabel: "상품 추가",
+  note: r => r.price && r.qty ? `${perLabel(r)} <b>${won(unitPrice(r))}원</b>` : "",
+  onChange: render
+});
+
+function render(){
+  const rows = items.rows().filter(r => r.price && r.qty).map((r, i) => ({ ...r, _label: r.name || `상품 ${i + 1}` }));
+  if(rows.length < 2){ $("#result").innerHTML = '<p class="empty">상품 2개 이상의 가격과 용량을 넣으면 바로 비교해요</p>'; postHeight(); return; }
+  const kinds = new Set(rows.map(base));
+  if(kinds.size > 1){ $("#result").innerHTML = '<p class="empty">무게(g·kg), 부피(ml·L), 개수 중 같은 종류끼리만 비교할 수 있어요</p>'; postHeight(); return; }
+
+  const sorted = [...rows].sort((a, b) => unitPrice(a) - unitPrice(b));
+  const best = sorted[0], worst = sorted[sorted.length - 1];
+  const save = (1 - unitPrice(best) / unitPrice(worst)) * 100;
+
+  $("#result").innerHTML = `
+    <p class="lead">더 싼 상품은 <b>${best._label}</b>, ${perLabel(best)}</p>
+    <p class="big">${won(unitPrice(best))}<small>원</small></p>
+    <div class="rows">
+      ${sorted.map((r, i) => `<div class="row"><span><i class="rank ${i ? "" : "first"}">${i + 1}</i>${r._label}<small style="text-align:left">${won(r.price)}원 / ${num(r.qty, 2)}${r.u}</small></span>
+        <b>${won(unitPrice(r))}원<small>${i ? `${num((unitPrice(r) / unitPrice(best) - 1) * 100, 1)}% 비쌈` : "가장 쌈"}</small></b></div>`).join("")}
+    </div>
+    ${save > 0.05 ? `<p class="tip"><b>${best._label}</b> 쪽이 ${worst._label}보다 <b>${num(save, 1)}%</b> 싸요. 같은 돈으로 <b>${num(unitPrice(worst) / unitPrice(best), 2)}배</b> 더 많이 살 수 있어요.</p>` : `<p class="tip">단가가 같아요.</p>`}
+    ${ACTIONS}`;
+  bindActions(`[단가 비교] ${sorted.map((r, i) => `${i + 1}위 ${r._label} ${perLabel(r)} ${won(unitPrice(r))}원`).join(" / ")}`,
+    () => items.set(DEFAULT_ROWS));
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 단가 = 가격 ÷ 용량. 무게·부피는 100g·100ml당, 개수는 1개당 가격으로 비교해요. 1kg = 1000g, 1L = 1000ml<br>
+  배송비가 따로 있으면 가격에 더해서 넣어주세요. 많이 사서 버리게 되면 싸게 산 의미가 없어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
