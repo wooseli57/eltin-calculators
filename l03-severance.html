@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="L" data-no="03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L03 퇴직금 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.input-wrap input[type="date"]{text-align:left;font-size:15px}
+.check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-top:16px}
+.check input{width:20px;height:20px;accent-color:var(--brand-dark)}
+.reason{font-size:18px;font-weight:700;color:var(--brand-dark);margin:4px 0 12px}
+.months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.months .input-wrap{padding:0 8px}
+.months input{font-size:15px!important}
+.months small{display:block;font-size:11px;color:var(--ink-3);margin-bottom:3px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>퇴직금 계산기</h1>
+      <p>1년 이상 일한 직원에게 줄 퇴직금을 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="계산 방식" id="modeSeg">
+      <button type="button" data-mode="simple" aria-pressed="true">간단 계산</button>
+      <button type="button" data-mode="exact" aria-pressed="false">정확 계산</button>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="start">입사일</label>
+        <div class="input-wrap sm"><input id="start" type="date"></div>
+      </div>
+      <div class="field">
+        <label for="end">퇴사일</label>
+        <div class="input-wrap sm"><input id="end" type="date"></div>
+      </div>
+    </div>
+    <div class="hint" style="text-align:left">퇴사일은 마지막으로 일한 날의 다음 날이에요.</div>
+
+    <div class="field" id="simpleBox">
+      <label for="monthly">최근 월급 <small>세전, 매달 받는 금액</small></label>
+      <div class="input-wrap"><input id="monthly" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="monthlyHint"></div>
+    </div>
+    <div class="field" id="exactBox" hidden>
+      <label>퇴사 전 3개월 급여 <small>세전</small></label>
+      <div class="months">
+        <div><small>3달 전</small><div class="input-wrap sm"><input id="m3" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div></div>
+        <div><small>2달 전</small><div class="input-wrap sm"><input id="m2" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div></div>
+        <div><small>직전 1달</small><div class="input-wrap sm"><input id="m1" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div></div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="bonus">1년 상여금 <small>선택</small></label>
+        <div class="input-wrap sm"><input id="bonus" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="bonusHint"></div>
+      </div>
+      <div class="field">
+        <label for="leave">1년 연차수당 <small>선택</small></label>
+        <div class="input-wrap sm"><input id="leave" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="leaveHint"></div>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="over15" checked> 주 15시간 이상 일했어요</label>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== L03 퇴직금 계산기 (사양: docs/specs/L03.md) ===== */
+const CONFIG = {
+  bonusShare: 3 / 12   // 상여금·연차수당 반영 비율 (근로기준법 평균임금 산정 실무 기준)
+};
+const { $, $$, won, num, moneyInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let mode = "simple";
+const DAY = 86400000;
+const parse = s => { if(!s) return null; const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); };
+const iso = t => new Date(t).toISOString().slice(0, 10);
+/* 같은 날짜로 n개월 이동, 그 달에 없는 날(31일 등)은 그 달 마지막 날 */
+function addMonths(t, n){
+  const d = new Date(t), y = d.getUTCFullYear(), m = d.getUTCMonth() + n, day = d.getUTCDate();
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return Date.UTC(y, m, Math.min(day, last));
+}
+/* 재직기간 → 년·개월 (달력 기준, 남는 일수는 버림) */
+function ym(s, e){
+  let months = 0; while(addMonths(s, months + 1) <= e) months++;
+  const y = Math.floor(months / 12), m = months % 12;
+  return { months, text: y && m ? `${y}년 ${m}개월` : y ? `${y}년` : `${m}개월` };
+}
+
+const today = new Date(); $("#end").value = iso(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+const monthly = moneyInput($("#monthly"), $("#monthlyHint"), render);
+const bonus = moneyInput($("#bonus"), $("#bonusHint"), render);
+const leave = moneyInput($("#leave"), $("#leaveHint"), render);
+const months = ["#m1", "#m2", "#m3"].map(s => moneyInput($(s), null, render));
+["#start", "#end"].forEach(s => $(s).addEventListener("input", render));
+$("#over15").addEventListener("change", render);
+
+function render(){
+  const s = parse($("#start").value), e = parse($("#end").value);
+  const pay3 = mode === "simple" ? monthly.value * 3 : months.reduce((a, m) => a + m.value, 0);
+  if(!s || !e){ $("#result").innerHTML = '<p class="empty">입사일과 퇴사일을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(e <= s){ $("#result").innerHTML = '<p class="empty">퇴사일은 입사일보다 뒤여야 해요</p>'; postHeight(); return; }
+  const days = Math.round((e - s) / DAY), span = ym(s, e);
+
+  if(days < 365 || !$("#over15").checked){
+    $("#result").innerHTML = `
+      <p class="lead">퇴직금 대상이 아니에요</p>
+      <p class="reason">${days < 365 ? `1년 이상 일해야 퇴직금이 생겨요 (지금 ${span.months}개월)` : "4주 평균 주 15시간 미만으로 일했다면 퇴직금 대상이 아니에요"}</p>`;
+    postHeight(); return;
+  }
+  if(!pay3){ $("#result").innerHTML = `<p class="empty">${mode === "simple" ? "최근 월급을" : "3개월 급여를"} 넣으면 바로 계산돼요</p>`; postHeight(); return; }
+
+  /* 1일 평균임금 = (3개월 급여 + 상여금·연차수당 × 3/12) ÷ 퇴사 전 3개월 달력 일수
+     퇴직금 = 1일 평균임금 × 30 × 재직일수 ÷ 365, 원 미만 버림 */
+  const periodDays = Math.round((e - addMonths(e, -3)) / DAY);
+  const extra = (bonus.value + leave.value) * CONFIG.bonusShare;
+  const daily = (pay3 + extra) / periodDays;
+  const sev = Math.floor(daily * 30 * days / 365);
+
+  $("#result").innerHTML = `
+    <p class="lead">예상 퇴직금은</p>
+    <p class="big">${won(sev)}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>재직기간</span><b>${span.text} (${won(days)}일)</b></div>
+      <div class="row"><span>3개월 급여 총액</span><b>${won(pay3)}원</b></div>
+      ${extra ? `<div class="row"><span>상여금·연차수당 반영분 (3/12)</span><b>${won(extra)}원</b></div>` : ""}
+      <div class="row"><span>1일 평균임금 (${periodDays}일로 나눔)</span><b>${num(daily, 2)}원</b></div>
+      <div class="row total"><span>퇴직금</span><b>${won(sev)}원</b></div>
+    </div>
+    <p class="tip">퇴직금은 퇴사일로부터 14일 안에 지급해야 해요.</p>
+    ${mode === "simple" ? `<p class="tip">최근 3개월 급여가 매달 다르면 정확 계산을 써주세요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[퇴직금 계산] ${$("#start").value} ~ ${$("#end").value} (${span.text}, ${won(days)}일), 3개월 급여 ${won(pay3)}원 → 1일 평균임금 ${num(daily, 2)}원, 퇴직금 ${won(sev)}원`,
+    () => { $("#start").value = ""; monthly.set(0); months.forEach(m => m.set(0)); bonus.set(0); leave.set(0); $("#over15").checked = true; render(); });
+  postHeight();
+}
+
+pick($$("#modeSeg button"), b => {
+  mode = b.dataset.mode;
+  $("#simpleBox").hidden = mode !== "simple"; $("#exactBox").hidden = mode === "simple";
+  render();
+});
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1일 평균임금 = 퇴사 전 3개월 급여 ÷ 그 기간 일수 (상여금·연차수당은 1년 치의 3/12 반영), 퇴직금 = 1일 평균임금 × 30일 × 재직일수 ÷ 365, 원 미만 버림<br>
+  1일 평균임금이 1일 통상임금보다 적으면 통상임금으로 계산해야 해요 (이 계산기는 반영하지 않음).<br>
+  퇴직금에서 떼는 퇴직소득세는 반영하지 않았어요.`;
+Eltin.yearNotice(null, "labor");
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
