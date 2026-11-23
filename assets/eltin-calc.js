@@ -51,6 +51,72 @@
       buttons.forEach(x => x.setAttribute("aria-pressed", x === b)); onPick(b);
     }));
   }
+  /* 소수 표시: num(12.345, 1) → "12.3" */
+  const num = (n, d = 1) => (Number.isFinite(n) ? n : 0).toLocaleString("ko-KR", { maximumFractionDigits: d });
+  const cleanNum = s => String(s).replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+  /* 숫자 입력칸(%, g, 시간 등): 숫자·소수점만 남김 */
+  function numInput(input, onChange){
+    input.addEventListener("input", () => { const v = cleanNum(input.value); if(v !== input.value) input.value = v; onChange(); });
+    return { get value(){ return toNum(input.value); }, set(n){ input.value = n === "" || n == null ? "" : String(n); onChange(); } };
+  }
+  /* 결과 아래 [결과 복사] [다시 계산] 버튼 */
+  const ACTIONS = `<div class="actions"><button class="btn btn-primary" type="button" id="copy">결과 복사</button><button class="btn btn-ghost" type="button" id="reset">다시 계산</button></div>`;
+  function bindActions(text, onReset){
+    const c = document.getElementById("copy"), r = document.getElementById("reset");
+    if(c) c.onclick = () => copy(text);
+    if(r) r.onclick = onReset;
+  }
+  /* 여러 줄 입력 (재료·항목 목록)
+     fields: [{key, label, type:"text"|"money"|"num"|"select", unit, ph, options:[[값,표시]]}]
+     text 칸은 줄 맨 위 이름칸, 나머지는 아래 칸으로 나란히 놓임 */
+  function rowList(box, opt){
+    const fields = opt.fields, nameF = fields.find(f => f.type === "text"), others = fields.filter(f => f.type !== "text");
+    const min = opt.min ?? 1;
+    box.classList.add("items");
+    box.innerHTML = `<div class="items-body"></div><button type="button" class="add-row">+ ${opt.addLabel || "줄 추가"}</button>`;
+    const body = box.querySelector(".items-body");
+    const fieldHtml = f => f.type === "select"
+      ? `<label><span>${f.label}</span><div class="mini-wrap"><select data-k="${f.key}">${f.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div></label>`
+      : `<label><span>${f.label}</span><div class="mini-wrap"><input data-k="${f.key}" data-t="${f.type}" type="text" inputmode="${f.type === "money" ? "numeric" : "decimal"}" autocomplete="off" placeholder="${f.ph ?? 0}">${f.unit ? `<em>${f.unit}</em>` : ""}</div></label>`;
+    function read(el){
+      const o = {};
+      el.querySelectorAll("[data-k]").forEach(i => { o[i.dataset.k] = (i.dataset.t === "money" || i.dataset.t === "num") ? toNum(i.value) : i.value; });
+      return o;
+    }
+    function changed(){
+      if(opt.note) body.querySelectorAll(".item").forEach(el => { el.querySelector(".item-note").innerHTML = opt.note(read(el)) || ""; });
+      opt.onChange();
+    }
+    function add(vals = {}, silent){
+      const el = document.createElement("div"); el.className = "item";
+      el.innerHTML = `<div class="item-top">${nameF ? `<input class="item-name" data-k="${nameF.key}" type="text" autocomplete="off" placeholder="${nameF.ph || nameF.label}" aria-label="${nameF.label}">` : `<span class="item-no"></span>`}
+          <button type="button" class="item-del" aria-label="이 줄 지우기">×</button></div>
+        <div class="item-grid" style="grid-template-columns:${opt.cols || `repeat(${others.length},minmax(0,1fr))`}">${others.map(fieldHtml).join("")}</div>
+        <div class="item-note"></div>`;
+      el.querySelectorAll("[data-k]").forEach(i => {
+        const v = vals[i.dataset.k];
+        if(v != null && v !== "") i.value = i.dataset.t === "money" ? won(v) : v;
+        i.addEventListener(i.tagName === "SELECT" ? "change" : "input", () => {
+          if(i.dataset.t === "money"){ const n = toNum(i.value); i.value = n ? won(n) : ""; }
+          else if(i.dataset.t === "num"){ const c = cleanNum(i.value); if(c !== i.value) i.value = c; }
+          changed();
+        });
+      });
+      el.querySelector(".item-del").addEventListener("click", () => {
+        if(body.children.length > min) el.remove();
+        else el.querySelectorAll("input").forEach(i => i.value = "");
+        changed();
+      });
+      body.appendChild(el);
+      if(!silent) changed();
+      return el;
+    }
+    box.querySelector(".add-row").addEventListener("click", () => { add(opt.blank ? opt.blank() : {}).querySelector("input")?.focus(); });
+    function set(rows){ body.innerHTML = ""; (rows.length ? rows : [{}]).forEach(r => add(r, true)); changed(); }
+    (opt.rows || [{}]).forEach(r => add(r, true));
+    if(opt.note) body.querySelectorAll(".item").forEach(el => { el.querySelector(".item-note").innerHTML = opt.note(read(el)) || ""; });
+    return { rows: () => [...body.querySelectorAll(".item")].map(read), add, set };
+  }
 
   /* ---------- 공통 화면 구성 ---------- */
   const isEmbed = new URLSearchParams(location.search).get("embed") === "1" || location.hash === "#embed";
@@ -87,5 +153,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, toNum, koreanUnit, toast, copy, postHeight, moneyInput, pick, init, CATEGORIES, isEmbed };
+  window.Eltin = { $, $$, won, num, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
