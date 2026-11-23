@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="S" data-no="07">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S07 생산량 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.pct-wrap{width:140px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>생산량 계산기</h1>
+      <p>예상 판매량과 폐기율로 오늘 몇 개를 만들면 좋을지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="sales">오늘 예상 판매량</label>
+      <div class="input-wrap"><input id="sales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">개</span></div>
+    </div>
+    <div class="field">
+      <label for="waste">폐기율 <small>평소 만든 것 중 남아서 버리는 비율</small></label>
+      <div class="input-wrap pct-wrap"><input id="waste" type="text" inputmode="decimal" autocomplete="off" value="5"><span class="unit">%</span></div>
+      <div class="chips" id="wasteChips">
+        <button class="chip" type="button" data-v="0">0%</button>
+        <button class="chip" type="button" data-v="5">5%</button>
+        <button class="chip" type="button" data-v="10">10%</button>
+        <button class="chip" type="button" data-v="15">15%</button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="batch">한 번에 만드는 양 <small>선택</small></label>
+        <div class="input-wrap sm"><input id="batch" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 12"><span class="unit">개</span></div>
+      </div>
+      <div class="field">
+        <label for="cost">1개 원가 <small>선택</small></label>
+        <div class="input-wrap sm"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="costHint"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== S07 생산량 계산기 ===== */
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const sales = numInput($("#sales"), render), waste = numInput($("#waste"), render), batch = numInput($("#batch"), render);
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+
+/* 만들 개수 = 예상 판매량 ÷ (1 − 폐기율), 올림. 한 번에 만드는 양이 있으면 그 배수로 올림 */
+function render(){
+  $$("#wasteChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === waste.value && $("#waste").value !== ""));
+  const s = Math.floor(sales.value), w = waste.value, b = Math.floor(batch.value);
+  if(!s){ $("#result").innerHTML = '<p class="empty">예상 판매량을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(w >= 100){ $("#result").innerHTML = '<p class="empty">폐기율은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
+
+  const need = Math.ceil(s / (1 - w / 100));
+  const rounds = b ? Math.ceil(need / b) : 0;
+  const make = b ? rounds * b : need;
+  const spare = make - s;
+
+  $("#result").innerHTML = `
+    <p class="lead">오늘 만들면 좋은 개수는</p>
+    <p class="big">${won(make)}<small>개</small></p>
+    <div class="rows">
+      <div class="row"><span>예상 판매량</span><b>${won(s)}개</b></div>
+      <div class="row"><span>폐기율 ${num(w, 1)}% 반영</span><b>${won(need)}개</b></div>
+      ${b ? `<div class="row"><span>${num(b, 0)}개씩 ${num(rounds, 0)}번</span><b>${won(make)}개</b></div>` : ""}
+      <div class="row total"><span>예상보다 더 만드는 양</span><b>${won(spare)}개</b></div>
+      ${cost.value ? `<div class="row"><span>다 남았을 때 손실 (최대)</span><b>${won(spare * cost.value)}원</b></div>` : ""}
+    </div>
+    <p class="tip">요일·날씨별로 판매량이 다르면 최근 같은 요일 평균을 넣어보세요.</p>
+    ${ACTIONS}`;
+  bindActions(`[생산량 계산] 예상 판매 ${won(s)}개, 폐기율 ${num(w, 1)}% → 오늘 ${won(make)}개 만들기${b ? ` (${num(b, 0)}개씩 ${num(rounds, 0)}번)` : ""}`,
+    () => { sales.set(""); waste.set(5); batch.set(""); cost.set(0); $("#sales").focus(); });
+  postHeight();
+}
+
+$$("#wasteChips .chip").forEach(b => b.addEventListener("click", () => waste.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 만들 개수 = 예상 판매량 ÷ (1 − 폐기율)을 올림. 한 번에 만드는 양을 넣으면 그 배수로 올려요.<br>
+  예상 판매량이 정확할수록 버리는 양이 줄어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
