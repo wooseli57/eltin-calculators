@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="A" data-no="04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A04 체험단·인플루언서 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>체험단·인플루언서 계산기</h1>
+      <p>협찬 1건 비용을 회수하려면 새 손님이 몇 명 와야 하는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="spend">협찬 1건 비용 <small>제공 메뉴 원가 + 원고료 + 기타</small></label>
+      <div class="input-wrap"><input id="spend" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="spendHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="ticket">객단가 <small>손님 1명 평균 결제</small></label>
+        <div class="input-wrap sm"><input id="ticket" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="ticketHint"></div>
+      </div>
+      <div class="field">
+        <label for="rate">원가율</label>
+        <div class="input-wrap sm"><input id="rate" type="text" inputmode="decimal" autocomplete="off" value="30"><span class="unit">%</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="visits">새 손님 1명이 평균 몇 번 올까요? <small>모르면 1번</small></label>
+      <div class="input-wrap"><input id="visits" type="text" inputmode="decimal" autocomplete="off" value="1"><span class="unit">번</span></div>
+      <div class="chips" id="visitChips">
+        <button class="chip" type="button" data-v="1">1번</button>
+        <button class="chip" type="button" data-v="2">2번</button>
+        <button class="chip" type="button" data-v="3">3번</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== A04 체험단·인플루언서 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const spend = moneyInput($("#spend"), $("#spendHint"), render);
+const ticket = moneyInput($("#ticket"), $("#ticketHint"), render);
+const rate = numInput($("#rate"), render), visits = numInput($("#visits"), render);
+
+/* 손님 1명이 남겨주는 돈 = 객단가 ÷ (1 + 부가세율) × (1 − 원가율) × 방문 횟수
+   필요 신규 손님 = 협찬 비용 ÷ 손님 1명이 남겨주는 돈, 올림 */
+function render(){
+  $$("#visitChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === visits.value));
+  const s = spend.value, t = ticket.value, r = rate.value, v = visits.value || 1;
+  if(!s || !t){ $("#result").innerHTML = '<p class="empty">협찬 비용과 객단가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(r >= 100){ $("#result").innerHTML = '<p class="empty">원가율은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
+
+  const perVisit = t / (1 + CONFIG.vatRate) * (1 - r / 100);
+  const perCustomer = perVisit * v;
+  const need = Math.ceil(s / perCustomer);
+
+  $("#result").innerHTML = `
+    <p class="lead">협찬 비용을 되찾으려면 새 손님이</p>
+    <p class="big">${won(need)}<small>명 와야 해요</small></p>
+    <div class="rows">
+      <div class="row"><span>협찬 1건 비용</span><b>${won(s)}원</b></div>
+      <div class="row"><span>손님 1번 방문에 남는 돈</span><b>${won(perVisit)}원</b></div>
+      <div class="row"><span>새 손님 1명이 남겨주는 돈 (${num(v, 1)}번 방문)</span><b>${won(perCustomer)}원</b></div>
+      <div class="row total"><span>본전 신규 손님</span><b>${won(need)}명</b></div>
+    </div>
+    <p class="tip">협찬 후 "어떻게 알고 오셨어요?"라고 물어 새 손님 수를 세 보세요. ${won(need)}명보다 많으면 남는 장사예요.</p>
+    ${ACTIONS}`;
+  bindActions(`[체험단·인플루언서 계산] 협찬 비용 ${won(s)}원, 객단가 ${won(t)}원, 원가율 ${num(r, 1)}%, 방문 ${num(v, 1)}번 → 새 손님 ${won(need)}명이면 본전`,
+    () => { spend.set(0); ticket.set(0); rate.set(30); visits.set(1); $("#spend").focus(); });
+  postHeight();
+}
+
+$$("#visitChips .chip").forEach(b => b.addEventListener("click", () => visits.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 손님 1명이 남겨주는 돈 = 객단가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) × (1 − 원가율) × 방문 횟수, ${CONFIG.baseYear}년 기준<br>
+  필요 손님 수 = 협찬 비용 ÷ 손님 1명이 남겨주는 돈, 올림. 인건비·월세는 손님이 늘어도 같다고 보고 빼지 않았어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
