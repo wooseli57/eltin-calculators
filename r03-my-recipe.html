@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R03 내 레시피 분량 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+#modeSeg button{font-size:13px;padding:10px 2px}
+.row small{font-size:12px;color:var(--ink-3);font-weight:400;margin-left:4px}
+.sel-wrap select{flex:1;border:0;outline:0;font:inherit;font-size:16px;font-weight:700;padding:11px 0;background:transparent;color:var(--ink);min-width:0}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>내 레시피 분량 계산기</h1>
+      <p>내 레시피를 넣고 배수, 목표 개수, 목표 총중량, 기준 재료 중 하나를 고르면 재료량을 다시 계산해줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>내 레시피 <small>지금 레시피 그대로</small></label>
+      <div id="items"></div>
+    </div>
+
+    <div class="field">
+      <label>어떻게 바꿀까요?</label>
+      <div class="seg" role="group" aria-label="바꾸는 방법" id="modeSeg" style="margin-bottom:10px">
+        <button type="button" data-mode="times" aria-pressed="true">배수</button>
+        <button type="button" data-mode="count" aria-pressed="false">개수</button>
+        <button type="button" data-mode="weight" aria-pressed="false">총중량</button>
+        <button type="button" data-mode="base" aria-pressed="false">기준 재료</button>
+      </div>
+
+      <div data-box="times">
+        <div class="input-wrap"><input id="times" type="text" inputmode="decimal" autocomplete="off" value="2"><span class="unit">배</span></div>
+        <div class="chips" id="timesChips">
+          <button class="chip" type="button" data-v="0.5">0.5배</button>
+          <button class="chip" type="button" data-v="1.5">1.5배</button>
+          <button class="chip" type="button" data-v="2">2배</button>
+          <button class="chip" type="button" data-v="3">3배</button>
+        </div>
+      </div>
+      <div data-box="count" hidden>
+        <div class="field-row">
+          <div><div class="input-wrap sm"><input id="fromCount" type="text" inputmode="numeric" autocomplete="off" placeholder="지금"><span class="unit">개 →</span></div></div>
+          <div><div class="input-wrap sm"><input id="toCount" type="text" inputmode="numeric" autocomplete="off" placeholder="목표"><span class="unit">개</span></div></div>
+        </div>
+        <div class="hint" style="text-align:left">지금 레시피로 만드는 개수 → 만들고 싶은 개수</div>
+      </div>
+      <div data-box="weight" hidden>
+        <div class="input-wrap"><input id="toWeight" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">g</span></div>
+        <div class="hint" id="weightHint" style="text-align:left"></div>
+      </div>
+      <div data-box="base" hidden>
+        <div class="field-row">
+          <div><div class="input-wrap sm sel-wrap"><select id="baseSel" aria-label="기준 재료"></select></div></div>
+          <div><div class="input-wrap sm"><input id="baseAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="새 양"><span class="unit" id="baseUnit">g</span></div></div>
+        </div>
+        <div class="hint" style="text-align:left">가진 재료 양에 맞춰 나머지를 계산해요. 예: 버터가 150g뿐일 때</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R03 내 레시피 분량 계산기 ===== */
+/* 분량 계산 엔진(scaleRecipe·fmtAmt)은 R04 엘틴 레시피 계산기와 함께 쓸 예정 — R04 제작 시 assets로 옮김 */
+const { $, $$, num, numInput, pick, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+let mode = "times";
+const times = numInput($("#times"), render), fromCount = numInput($("#fromCount"), render), toCount = numInput($("#toCount"), render);
+const toWeight = numInput($("#toWeight"), render), baseAmt = numInput($("#baseAmt"), render);
+
+/* 개수로 세는 재료(달걀 등)는 반올림, g·ml는 10 미만이면 소수 1자리 */
+function fmtAmt(v, u){
+  if(u === "개") return { text: `${Math.max(1, Math.round(v))}개`, raw: Math.abs(v - Math.round(v)) > 0.05 ? `계산값 ${num(v, 1)}개` : "" };
+  return { text: `${num(v, v < 10 ? 1 : 0)}${u}`, raw: "" };
+}
+/* 배율 하나로 모든 재료에 곱함 */
+const scaleRecipe = (rows, factor) => rows.map(r => ({ ...r, scaled: r.amt * factor }));
+const weightOf = rows => rows.filter(r => r.u !== "개").reduce((s, r) => s + r.amt, 0);   // g·ml 합 (ml ≈ g로 봄)
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name", type: "text",   label: "재료 이름", ph: "재료 이름 (예: 박력분)" },
+    { key: "amt",  type: "num",    label: "양", ph: "0" },
+    { key: "u",    type: "select", label: "단위", options: [["g", "g"], ["ml", "ml"], ["개", "개"]] }
+  ],
+  cols: "minmax(0,1.4fr) minmax(0,1fr)",
+  rows: [{}, {}, {}],
+  addLabel: "재료 추가",
+  onChange: render
+});
+
+function syncBaseOptions(rows){
+  const sel = $("#baseSel"), prev = sel.value;
+  sel.innerHTML = rows.map((r, i) => `<option value="${i}">${r._label}</option>`).join("");
+  if(prev && prev < rows.length) sel.value = prev;
+  const cur = rows[sel.value]; $("#baseUnit").textContent = cur ? cur.u : "g";
+}
+
+function factorFor(rows){
+  if(mode === "times") return times.value || null;
+  if(mode === "count") return fromCount.value && toCount.value ? toCount.value / fromCount.value : null;
+  if(mode === "weight"){ const w = weightOf(rows); return w && toWeight.value ? toWeight.value / w : null; }
+  const b = rows[$("#baseSel").value]; return b && baseAmt.value ? baseAmt.value / b.amt : null;
+}
+
+function render(){
+  $$("#timesChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === times.value));
+  const rows = items.rows().filter(r => r.amt).map((r, i) => ({ ...r, _label: r.name || `재료 ${i + 1}` }));
+  syncBaseOptions(rows);
+  const w = weightOf(rows);
+  $("#weightHint").textContent = w ? `지금 레시피 총중량 ${num(w, 0)}g (달걀 등 '개' 단위 제외)` : "";
+  if(!rows.length){ $("#result").innerHTML = '<p class="empty">재료 양을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const f = factorFor(rows);
+  if(!f){ $("#result").innerHTML = '<p class="empty">바꾸는 방법의 숫자를 넣어주세요</p>'; postHeight(); return; }
+
+  const out = scaleRecipe(rows, f);
+  const eggs = out.filter(r => r.u === "개" && Math.abs(r.scaled - Math.round(r.scaled)) > 0.05);
+  const newW = weightOf(out.map(r => ({ ...r, amt: r.scaled })));
+
+  $("#result").innerHTML = `
+    <p class="lead">재료를 모두 이만큼 바꿔요</p>
+    <p class="big">${num(f, 2)}<small>배</small></p>
+    <div class="rows">
+      ${out.map(r => { const a = fmtAmt(r.scaled, r.u);
+        return `<div class="row"><span>${r._label} <small>${num(r.amt, 1)}${r.u}</small></span><b>${a.text}${a.raw ? `<small>${a.raw}</small>` : ""}</b></div>`; }).join("")}
+      ${newW ? `<div class="row total"><span>총중량 ('개' 제외)</span><b>${num(newW, 0)}g</b></div>` : ""}
+    </div>
+    ${eggs.length ? `<p class="tip">${eggs.map(r => r._label).join(", ")}은(는) 개수로 반올림했어요. 정확히 맞추려면 풀어서 무게로 재세요 (계산값 참고).</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[레시피 분량 ${num(f, 2)}배] ${out.map(r => `${r._label} ${fmtAmt(r.scaled, r.u).text}`).join(", ")}`,
+    () => { items.set([{}, {}, {}]); times.set(2); });
+  postHeight();
+}
+
+pick($$("#modeSeg button"), b => {
+  mode = b.dataset.mode;
+  $$("[data-box]").forEach(x => x.hidden = x.dataset.box !== mode);
+  render();
+});
+$$("#timesChips .chip").forEach(b => b.addEventListener("click", () => times.set(b.dataset.v)));
+$("#baseSel").addEventListener("change", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · 모든 재료에 같은 배율을 곱해요. 배율 = 목표 개수 ÷ 지금 개수, 목표 총중량 ÷ 지금 총중량, 기준 재료 새 양 ÷ 지금 양<br>
+  총중량은 g과 ml를 같은 무게로 보고 더해요(물·우유 기준). 틀 크기가 바뀌면 굽는 시간과 온도도 함께 조절해 주세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
