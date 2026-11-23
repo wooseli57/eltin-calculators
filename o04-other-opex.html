@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="O" data-no="04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O04 기타 운영비 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>기타 운영비 계산기</h1>
+      <p>공과금, POS, 보험, 통신비, 세무기장료 등 매달 나가는 돈을 모아서 합해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>매달 나가는 돈 <small>1년에 한 번 내는 건 ÷ 12</small></label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== O04 기타 운영비 계산기 ===== */
+const { $, won, num, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+const DEFAULT_ROWS = [{ name: "수도·가스요금" }, { name: "POS·키오스크" }, { name: "보험료" }, { name: "통신비 (인터넷·전화)" }, { name: "세무기장료" }];
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name",   type: "text",  label: "항목 이름", ph: "항목 이름 (예: 정수기 렌탈)" },
+    { key: "amount", type: "money", label: "한 달 금액", unit: "원", ph: "0" }
+  ],
+  rows: DEFAULT_ROWS,
+  addLabel: "항목 추가",
+  onChange: render
+});
+
+function render(){
+  const rows = items.rows().filter(r => r.amount);
+  if(!rows.length){ $("#result").innerHTML = '<p class="empty">항목별 한 달 금액을 넣으면 바로 합해요</p>'; postHeight(); return; }
+  const total = rows.reduce((s, r) => s + r.amount, 0);
+  const label = (r, i) => r.name || `항목 ${i + 1}`;
+  const sorted = [...rows].sort((a, b) => b.amount - a.amount);
+
+  $("#result").innerHTML = `
+    <p class="lead">매달 나가는 기타 운영비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      ${sorted.map(r => `<div class="row"><span>${label(r, rows.indexOf(r))}</span><b>${won(r.amount)}원 <small style="color:var(--ink-3);font-weight:400">${num(r.amount / total * 100, 0)}%</small></b></div>`).join("")}
+      <div class="row total"><span>한 달 합계</span><b>${won(total)}원</b></div>
+      <div class="row"><span>1년이면</span><b>${won(total * 12)}원</b></div>
+    </div>
+    ${ACTIONS}`;
+  bindActions(`[기타 운영비 계산] ${rows.map((r, i) => `${label(r, i)} ${won(r.amount)}원`).join(" + ")} = 월 ${won(total)}원 (연 ${won(total * 12)}원)`,
+    () => items.set(DEFAULT_ROWS));
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 입력한 한 달 금액을 모두 더해요. 금액이 달마다 다르면 최근 3개월 평균을 넣어주세요.<br>
+  인건비·월세·전기요금은 따로 계산기(L·O01·O03)가 있어요. 여기엔 그 밖의 돈만 넣으면 겹치지 않아요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
