@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="O" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O05 월 고정비 합계 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>월 고정비 합계</h1>
+      <p>인건비와 운영비를 합쳐서 매달 꼭 나가는 돈을 보여줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="labor">인건비 <small>직원 급여 + 4대보험 사업주 부담</small></label>
+      <div class="input-wrap"><input id="labor" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="laborHint"></div>
+    </div>
+    <div class="field">
+      <label for="facility">시설비 <small>O01 결과 · 월세·관리비 포함</small></label>
+      <div class="input-wrap"><input id="facility" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="facilityHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="elec">전기요금 <small>O03</small></label>
+        <div class="input-wrap sm"><input id="elec" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="elecHint"></div>
+      </div>
+      <div class="field">
+        <label for="other">기타 운영비 <small>O04</small></label>
+        <div class="input-wrap sm"><input id="other" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="otherHint"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="days">한 달 영업일</label>
+      <div class="input-wrap"><input id="days" type="text" inputmode="numeric" autocomplete="off" value="26"><span class="unit">일</span></div>
+      <div class="chips" id="dayChips">
+        <button class="chip" type="button" data-v="22">22일</button>
+        <button class="chip" type="button" data-v="26">26일</button>
+        <button class="chip" type="button" data-v="30">30일</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== O05 월 고정비 합계 ===== */
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const parts = [
+  ["인건비", moneyInput($("#labor"), $("#laborHint"), render)],
+  ["시설비", moneyInput($("#facility"), $("#facilityHint"), render)],
+  ["전기요금", moneyInput($("#elec"), $("#elecHint"), render)],
+  ["기타 운영비", moneyInput($("#other"), $("#otherHint"), render)]
+];
+const days = numInput($("#days"), render);
+
+function render(){
+  $$("#dayChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === days.value));
+  const total = parts.reduce((s, [, p]) => s + p.value, 0);
+  if(!total){ $("#result").innerHTML = '<p class="empty">금액을 넣으면 바로 합해요</p>'; postHeight(); return; }
+  const d = days.value, perDay = d ? total / d : 0;
+
+  $("#result").innerHTML = `
+    <p class="lead">매달 꼭 나가는 고정비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      ${parts.filter(([, p]) => p.value).map(([n, p]) => `<div class="row"><span>${n}</span><b>${won(p.value)}원 <small style="color:var(--ink-3);font-weight:400">${num(p.value / total * 100, 0)}%</small></b></div>`).join("")}
+      <div class="row total"><span>월 고정비 합계</span><b>${won(total)}원</b></div>
+      ${d ? `<div class="row total"><span>하루 고정비 (${num(d, 0)}일 영업)</span><b>${won(perDay)}원</b></div>` : ""}
+    </div>
+    ${d ? `<p class="tip">문을 여는 날마다 <b>${won(perDay)}원</b>이 이미 나가 있는 셈이에요. 손익분기점 계산기(M02)에 월 고정비를 넣으면 하루 몇 개를 팔아야 본전인지 나와요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[월 고정비 합계] ${parts.filter(([, p]) => p.value).map(([n, p]) => `${n} ${won(p.value)}원`).join(" + ")} = 월 ${won(total)}원${d ? `, 하루 ${won(perDay)}원(${num(d, 0)}일 영업)` : ""}`,
+    () => { parts.forEach(([, p]) => p.set(0)); days.set(26); $("#labor").focus(); });
+  postHeight();
+}
+
+$$("#dayChips .chip").forEach(b => b.addEventListener("click", () => days.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 월 고정비 = 인건비 + 시설비 + 전기요금 + 기타 운영비, 하루 고정비 = 월 고정비 ÷ 영업일. 금액은 원 단위 반올림이에요.<br>
+  재료비·포장비·카드수수료처럼 팔 때마다 생기는 돈(변동비)은 넣지 않아요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
