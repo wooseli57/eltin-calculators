@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="S" data-no="06">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S06 가격 인상 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>가격 인상 계산기</h1>
+      <p>가격을 올렸을 때 손님이 몇 %까지 줄어도 이익이 그대로인지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field-row">
+      <div class="field">
+        <label for="price">지금 판매가 <small>부가세 포함</small></label>
+        <div class="input-wrap sm"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+      <div class="field">
+        <label for="cost">1개 원가</label>
+        <div class="input-wrap sm"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="costHint"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="newPrice">올린 판매가</label>
+      <div class="input-wrap"><input id="newPrice" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="newPriceHint"></div>
+      <div class="chips">
+        <button class="chip" type="button" data-add="100">+100원</button>
+        <button class="chip" type="button" data-add="300">+300원</button>
+        <button class="chip" type="button" data-add="500">+500원</button>
+        <button class="chip" type="button" data-add="1000">+1,000원</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="qty">지금 하루 판매량</label>
+      <div class="input-wrap"><input id="qty" type="text" inputmode="numeric" autocomplete="off" value="100"><span class="unit">개</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== S06 가격 인상 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const price = moneyInput($("#price"), $("#priceHint"), render);
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+const newPrice = moneyInput($("#newPrice"), $("#newPriceHint"), render);
+const qty = numInput($("#qty"), render);
+
+/* 1개 남는 돈 m = 판매가 ÷ (1 + 부가세율) − 원가
+   이익이 같으려면 판매량 × m_old = 새 판매량 × m_new → 허용 감소율 = 1 − m_old ÷ m_new */
+const m = p => p / (1 + CONFIG.vatRate) - cost.value;
+
+function render(){
+  const p = price.value, np = newPrice.value, c = cost.value, q = qty.value;
+  if(!p || !c || !np){ $("#result").innerHTML = '<p class="empty">지금 판매가·원가·올린 판매가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(np <= p){ $("#result").innerHTML = '<p class="empty">올린 판매가는 지금 판매가보다 커야 해요</p>'; postHeight(); return; }
+  const mo = m(p), mn = m(np);
+  if(mo <= 0){ $("#result").innerHTML = '<p class="empty">지금 가격에서 남는 돈이 없어요. 원가를 확인해 주세요</p>'; postHeight(); return; }
+
+  const drop = (1 - mo / mn) * 100, upPct = (np - p) / p * 100;
+  const needQty = q ? Math.ceil(q * mo / mn) : 0;
+
+  $("#result").innerHTML = `
+    <p class="lead">${won(np - p)}원 올리면 손님이 이만큼 줄어도 이익이 그대로예요</p>
+    <p class="big">${num(drop, 1)}%<small> 감소까지</small></p>
+    <div class="rows">
+      <div class="row"><span>가격 인상률</span><b>${num(upPct, 1)}%</b></div>
+      <div class="row"><span>1개 남는 돈 (지금)</span><b>${won(mo)}원</b></div>
+      <div class="row"><span>1개 남는 돈 (인상 후)</span><b>${won(mn)}원</b></div>
+      ${q ? `<div class="row total"><span>하루 ${num(q, 0)}개 팔던 이익을 지키려면</span><b>${won(needQty)}개</b></div>` : ""}
+    </div>
+    ${q ? `<p class="tip">판매량이 그대로라면 하루 <b>${won((mn - mo) * q)}원</b>, 한 달(26일) <b>${won((mn - mo) * q * 26)}원</b>이 더 남아요.</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[가격 인상 계산] ${won(p)}원 → ${won(np)}원(+${num(upPct, 1)}%), 1개 남는 돈 ${won(mo)}원 → ${won(mn)}원, 손님이 ${num(drop, 1)}% 줄어도 이익 동일${q ? ` (하루 ${num(q, 0)}개 → ${won(needQty)}개)` : ""}`,
+    () => { price.set(0); cost.set(0); newPrice.set(0); qty.set(100); $("#price").focus(); });
+  postHeight();
+}
+
+$$("[data-add]").forEach(b => b.addEventListener("click", () => newPrice.set((newPrice.value || price.value) + Number(b.dataset.add))));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 남는 돈 = 판매가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) − 원가, ${CONFIG.baseYear}년 기준<br>
+  허용 감소율 = 1 − 지금 남는 돈 ÷ 인상 후 남는 돈. 인건비·월세 같은 운영비는 판매량과 상관없이 같다고 봐요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
