@@ -60,7 +60,8 @@
 <script>
 /* ===== A06 지역광고 계산기 ===== */
 /* 클릭 단가·방문 전환율은 근거 있는 기본값이 없어 비워 둠 (calculators.md 메모) */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 
 const budget = moneyInput($("#budget"), $("#budgetHint"), render);
@@ -74,7 +75,7 @@ function render(){
   if(!b || !t){ $("#result").innerHTML = '<p class="empty">광고비와 객단가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
   if(r >= 100){ $("#result").innerHTML = '<p class="empty">원가율은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
 
-  const unit = t / (1 + CONFIG.vatRate) * (1 - r / 100);
+  const unit = t / (1 + VAT) * (1 - r / 100);
   const needCust = Math.ceil(b / unit);
   const clicks = c ? Math.floor(b / c) : null;
   const visitors = clicks != null && v ? clicks * v / 100 : null;
@@ -99,8 +100,10 @@ function render(){
   postHeight();
 }
 
-$("#note").innerHTML = `<b>계산 기준</b> · 손님 1명 남는 돈 = 객단가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) × (1 − 원가율), ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 손님 1명 남는 돈 = 객단가 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) × (1 − 원가율), ${R.useYear}년 기준<br>
   클릭 수 = 광고비 ÷ 클릭 단가, 방문 손님 = 클릭 수 × 전환율. 손님이 다시 오면 실제 효과는 더 커요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

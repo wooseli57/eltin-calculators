@@ -82,7 +82,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== A05 리뷰·쿠폰 이벤트 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
 
 let mode = "review";
@@ -92,7 +93,7 @@ const coupon = moneyInput($("#coupon"), $("#couponHint"), render);
 const ticket = moneyInput($("#ticket"), $("#ticketHint"), render);
 const joins = numInput($("#joins"), render), uses = numInput($("#uses"), render), rate = numInput($("#rate"), render);
 
-const ex = p => p / (1 + CONFIG.vatRate);
+const ex = p => p / (1 + VAT);
 const empty = msg => { $("#result").innerHTML = `<p class="empty">${msg}</p>`; postHeight(); };
 
 /* 주문 1건 남는 돈 = 주문 금액 ÷ (1 + 부가세율) × (1 − 원가율)
@@ -153,8 +154,10 @@ pick($$("#modeSeg button"), b => {
   render();
 });
 
-$("#note").innerHTML = `<b>계산 기준</b> · 주문 1건 남는 돈 = 주문 금액 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) × (1 − 원가율), ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 주문 1건 남는 돈 = 주문 금액 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) × (1 − 원가율), ${R.useYear}년 기준<br>
   본전 건수는 올림이에요. 배달앱 수수료가 있으면 원가율에 더해서 넣어주세요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

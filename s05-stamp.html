@@ -60,7 +60,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== S05 스탬프·적립 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 
 const stamps = numInput($("#stamps"), render), use = numInput($("#use"), render);
@@ -76,7 +77,7 @@ function render(){
 
   const custPct = 1 / (N + 1) * 100;
   const p = price.value, c = cost.value;
-  const sales = p * N / (1 + CONFIG.vatRate);
+  const sales = p * N / (1 + VAT);
   const burden = p && c ? c * u / sales * 100 : null;
 
   $("#result").innerHTML = `
@@ -99,8 +100,10 @@ function render(){
 
 $$("#stampChips .chip").forEach(b => b.addEventListener("click", () => stamps.set(b.dataset.v)));
 
-$("#note").innerHTML = `<b>계산 기준</b> · 손님 기준 할인율 = 1 ÷ (N + 1). 사장님 부담 = 무료 1개 원가 × 쿠폰 사용률 ÷ N개 매출(부가세 ${CONFIG.vatRate * 100}% 뺀 금액)<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 손님 기준 할인율 = 1 ÷ (N + 1). 사장님 부담 = 무료 1개 원가 × 쿠폰 사용률 ÷ N개 매출(부가세 ${VAT * 100}% 뺀 금액)<br>
   스탬프를 다 못 채우거나 쿠폰을 안 쓰는 손님이 있으면 실제 부담은 더 낮아져요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

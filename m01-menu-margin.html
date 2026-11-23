@@ -43,11 +43,12 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== M01 메뉴 마진 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026, highCostRate: 40 };   // 원가율 경고 기준(%)은 안내용
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } }, highCostRate: 40 };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, won, num, rowList, ACTIONS, bindActions, postHeight } = Eltin;
 
 /* 1개 남는 돈 = 판매가 ÷ (1 + 부가세율) − 원가, 원가율 = 원가 ÷ 부가세 뺀 판매가 */
-const ex = p => p / (1 + CONFIG.vatRate);
+const ex = p => p / (1 + VAT);
 const margin = r => ex(r.price) - r.cost;
 const costRate = r => r.cost / ex(r.price) * 100;
 
@@ -92,8 +93,10 @@ function render(){
   postHeight();
 }
 
-$("#note").innerHTML = `<b>계산 기준</b> · 1개 남는 돈 = 판매가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) − 원가, 원가율 = 원가 ÷ 부가세 뺀 판매가, ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 남는 돈 = 판매가 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) − 원가, 원가율 = 원가 ÷ 부가세 뺀 판매가, ${R.useYear}년 기준<br>
   하루 판매량을 넣으면 "1개 남는 돈 × 하루 판매량" 순서로 순위를 매겨요. 원가율 ${CONFIG.highCostRate}%는 참고용 기준이에요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

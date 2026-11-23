@@ -54,7 +54,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== T02 원가율·마진율·마크업 변환 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
 
 let mode = "cost";
@@ -81,7 +82,7 @@ function render(){
     $("#result").innerHTML = `<p class="empty">${LABELS[mode][0]}은 ${mode === "cost" ? "0%보다 크고 " : ""}100% 미만으로 넣어주세요</p>`; postHeight(); return; }
   const c = toCostRate(v), m = 1 - c, mk = (1 - c) / c;
   const vals = { cost: c, margin: m, markup: mk };
-  const k = cost.value, supply = k ? k / c : 0, withVat = supply * (1 + CONFIG.vatRate);
+  const k = cost.value, supply = k ? k / c : 0, withVat = supply * (1 + VAT);
 
   $("#result").innerHTML = `
     <p class="lead">${LABELS[mode][0]} ${num(pct.value, 1)}%를 바꾸면</p>
@@ -107,7 +108,9 @@ pick($$("#modeSeg button"), b => {
 });
 
 $("#note").innerHTML = `<b>계산 기준</b> · 원가율 = 원가 ÷ 판매가, 마진율 = 1 − 원가율, 마크업 = (판매가 − 원가) ÷ 원가<br>
-  세 비율 모두 부가세를 뺀 판매가 기준이에요. 부가세 포함 판매가는 ${CONFIG.baseYear}년 부가세율 ${CONFIG.vatRate * 100}%로 계산해요.`;
+  세 비율 모두 부가세를 뺀 판매가 기준이에요. 부가세 포함 판매가는 ${R.useYear}년 부가세율 ${VAT * 100}%로 계산해요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

@@ -59,7 +59,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== S03 할인이익 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026, compare: [10, 20, 30] };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } }, compare: [10, 20, 30] };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, toNum, koreanUnit, moneyInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
 
 let mode = "pct";
@@ -68,7 +69,7 @@ const cost = moneyInput($("#cost"), $("#costHint"), render);
 const discEl = $("#disc");
 
 /* 1개 남는 돈 = 판매가 ÷ (1 + 부가세율) − 원가 (할인 후 판매가에도 부가세가 붙음) */
-const profitAt = (p, c) => p / (1 + CONFIG.vatRate) - c;
+const profitAt = (p, c) => p / (1 + VAT) - c;
 
 function render(){
   const p = price.value, c = cost.value, dv = toNum(discEl.value);
@@ -80,7 +81,7 @@ function render(){
   const newPrice = mode === "pct" ? p * (1 - Math.min(dv, 100) / 100) : Math.max(p - dv, 0);
   const pctOff = (p - newPrice) / p * 100;
   const now = profitAt(newPrice, c);
-  const maxPct = (1 - c * (1 + CONFIG.vatRate) / p) * 100;     // 남는 돈이 0이 되는 할인율
+  const maxPct = (1 - c * (1 + VAT) / p) * 100;     // 남는 돈이 0이 되는 할인율
   const need = now > 0 ? base / now : 0;
 
   $("#result").innerHTML = `
@@ -116,8 +117,10 @@ pick($$(".seg button"), b => {
 });
 discEl.addEventListener("focus", () => discEl.select());
 
-$("#note").innerHTML = `<b>계산 기준</b> · 남는 돈 = 판매가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) − 1개 원가, ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 남는 돈 = 판매가 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) − 1개 원가, ${R.useYear}년 기준<br>
   할인 후 금액에도 부가세가 붙는다고 보고 계산해요. 인건비·월세 같은 운영비는 빠진 금액이에요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

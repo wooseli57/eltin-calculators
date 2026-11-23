@@ -74,10 +74,10 @@
     return { year, useYear, values, from, missing: !rates[year] };
   }
   const WHO = {
-    labor: "고용노동부·4대보험 공단이나 노무사",
-    tax: "국세청이나 세무사",
-    fee: "카드사·배달앱",
-    power: "한국전력"
+    labor: "고용노동부·4대보험 공단이나 노무사에게",
+    tax: "국세청이나 세무사에게",
+    fee: "카드사·배달앱에",
+    power: "한국전력에"
   };
   /* 계산 기준 끝에 공통 주의 문구, 이전 연도 값을 쓰는 항목 표시, 올해 값이 없으면 결과 위에 경고
      labels: { 키: "화면 이름" } — 이름을 준 항목만 "이전 연도 값" 안내에 나옴 */
@@ -94,7 +94,7 @@
           `<p class="tip warn" id="yearWarn">아직 ${R.year}년 요율이 반영되지 않았어요. ${R.useYear}년 값으로 계산해요.</p>`);
       }
     }
-    parts.push(`${year}년 기준이에요. 최저임금·세율·보험요율 등은 매년 바뀌고 법령 개정으로 달라질 수 있어요. 참고용으로 사용하시고, 정확한 금액은 ${WHO[field] || field}에게 확인하세요.`);
+    parts.push(`${year}년 기준이에요. 최저임금·세율·보험요율 등은 매년 바뀌고 법령 개정으로 달라질 수 있어요. 참고용으로 사용하시고, 정확한 금액은 ${WHO[field] || field} 확인하세요.`);
     const note = $("#note");
     if(note) note.innerHTML += `<br>${parts.join("<br>")}`;
   }

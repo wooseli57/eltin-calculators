@@ -58,7 +58,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== A04 체험단·인플루언서 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 
 const spend = moneyInput($("#spend"), $("#spendHint"), render);
@@ -73,7 +74,7 @@ function render(){
   if(!s || !t){ $("#result").innerHTML = '<p class="empty">협찬 비용과 객단가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
   if(r >= 100){ $("#result").innerHTML = '<p class="empty">원가율은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
 
-  const perVisit = t / (1 + CONFIG.vatRate) * (1 - r / 100);
+  const perVisit = t / (1 + VAT) * (1 - r / 100);
   const perCustomer = perVisit * v;
   const need = Math.ceil(s / perCustomer);
 
@@ -95,8 +96,10 @@ function render(){
 
 $$("#visitChips .chip").forEach(b => b.addEventListener("click", () => visits.set(b.dataset.v)));
 
-$("#note").innerHTML = `<b>계산 기준</b> · 손님 1명이 남겨주는 돈 = 객단가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) × (1 − 원가율) × 방문 횟수, ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 손님 1명이 남겨주는 돈 = 객단가 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) × (1 − 원가율) × 방문 횟수, ${R.useYear}년 기준<br>
   필요 손님 수 = 협찬 비용 ÷ 손님 1명이 남겨주는 돈, 올림. 인건비·월세는 손님이 늘어도 같다고 보고 빼지 않았어요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

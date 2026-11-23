@@ -67,7 +67,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== S01 판매가 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026, compareRates: [25, 30, 35] };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } }, compareRates: [25, 30, 35] };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, toNum, copy, moneyInput, pick, postHeight } = Eltin;
 
 let unit = 100;
@@ -77,7 +78,7 @@ const rateInput = $("#rate");
 /* 판매가(부가세 포함) = 원가 ÷ 원가율 × (1 + 부가세율), 끝자리는 올림 */
 function priceFor(c, ratePct){
   const supply = c / (ratePct / 100);
-  const raw = supply * (1 + CONFIG.vatRate);
+  const raw = supply * (1 + VAT);
   return Math.ceil(raw / unit) * unit;
 }
 
@@ -89,7 +90,7 @@ function render(){
     postHeight(); return;
   }
   const price  = priceFor(c, r);
-  const supply = Math.ceil(price / (1 + CONFIG.vatRate));
+  const supply = Math.ceil(price / (1 + VAT));
   const vat    = price - supply;
   const profit = supply - c;
   const realRate = c / supply * 100;
@@ -100,7 +101,7 @@ function render(){
     <div class="rows">
       <div class="row"><span>메뉴 1개 원가</span><b>${won(c)}원</b></div>
       <div class="row"><span>부가세 뺀 판매가</span><b>${won(supply)}원</b></div>
-      <div class="row"><span>부가세 (${CONFIG.vatRate*100}%)</span><b>${won(vat)}원</b></div>
+      <div class="row"><span>부가세 (${VAT*100}%)</span><b>${won(vat)}원</b></div>
       <div class="row total"><span>1개 팔면 원가 빼고 남는 돈</span><b>${won(profit)}원</b></div>
     </div>
     <p class="tip">끝자리를 맞춘 뒤 실제 원가율은 <b>${realRate.toFixed(1)}%</b>예요. 인건비·월세 같은 운영비는 아직 빠진 금액이에요.</p>
@@ -119,8 +120,10 @@ rateInput.addEventListener("input", () => { rateInput.value = rateInput.value.re
 $$("#rateChips .chip").forEach(b => b.addEventListener("click", () => { rateInput.value = b.dataset.rate; render(); }));
 pick($$(".seg button"), b => { unit = Number(b.dataset.unit); render(); });
 
-$("#note").innerHTML = `<b>계산 기준</b> · 원가율은 부가세를 뺀 판매가 기준, 부가세율 ${CONFIG.vatRate*100}% (${CONFIG.baseYear}년 기준)<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 원가율은 부가세를 뺀 판매가 기준, 부가세율 ${VAT*100}% (${R.useYear}년 기준)<br>
   판매가는 부가세 포함 가격이며, 끝자리는 올림으로 맞춰요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

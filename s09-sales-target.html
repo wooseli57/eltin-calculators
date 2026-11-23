@@ -65,7 +65,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== S09 목표매출 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, koreanUnit, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 
 const goal = moneyInput($("#goal"), $("#goalHint"), render);
@@ -79,7 +80,7 @@ const days = numInput($("#days"), render);
 function render(){
   const g = goal.value, f = fixed.value, p = price.value, c = cost.value, d = days.value;
   if(!p || (!g && !f)){ $("#result").innerHTML = '<p class="empty">목표 금액·고정비·판매가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
-  const unit = p / (1 + CONFIG.vatRate) - c;
+  const unit = p / (1 + VAT) - c;
   if(unit <= 0){ $("#result").innerHTML = '<p class="empty">판매가가 원가보다 낮아서 팔수록 손해예요</p>'; postHeight(); return; }
   if(!d){ $("#result").innerHTML = '<p class="empty">영업일을 넣어주세요</p>'; postHeight(); return; }
 
@@ -105,8 +106,10 @@ function render(){
 
 $$("[data-goal]").forEach(b => b.addEventListener("click", () => goal.set(Number(b.dataset.goal))));
 
-$("#note").innerHTML = `<b>계산 기준</b> · 1개 남는 돈 = 판매가 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) − 원가, ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 남는 돈 = 판매가 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) − 원가, ${R.useYear}년 기준<br>
   필요 개수 = (목표 + 월 고정비) ÷ 1개 남는 돈, 올림. 카드수수료와 종합소득세는 빠진 금액이라 실제로는 조금 더 팔아야 해요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

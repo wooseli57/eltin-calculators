@@ -59,7 +59,8 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== M02 손익분기점 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 
 const fixed = moneyInput($("#fixed"), $("#fixedHint"), render);
@@ -72,7 +73,7 @@ function render(){
   $$("#dayChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === days.value));
   const f = fixed.value, p = price.value, c = cost.value, d = days.value;
   if(!f || !p){ $("#result").innerHTML = '<p class="empty">월 고정비와 객단가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
-  const unit = p / (1 + CONFIG.vatRate) - c;
+  const unit = p / (1 + VAT) - c;
   if(unit <= 0){ $("#result").innerHTML = '<p class="empty">객단가가 변동비보다 낮아서 팔수록 손해예요</p>'; postHeight(); return; }
   if(!d){ $("#result").innerHTML = '<p class="empty">영업일을 넣어주세요</p>'; postHeight(); return; }
 
@@ -97,8 +98,10 @@ function render(){
 
 $$("#dayChips .chip").forEach(b => b.addEventListener("click", () => days.set(b.dataset.v)));
 
-$("#note").innerHTML = `<b>계산 기준</b> · 본전 개수 = 월 고정비 ÷ (객단가 ÷ ${1 + CONFIG.vatRate} − 1개당 변동비), 올림. 객단가는 부가세 포함 가격으로 넣어요 (${CONFIG.baseYear}년 부가세율 ${CONFIG.vatRate * 100}%).<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 본전 개수 = 월 고정비 ÷ (객단가 ÷ ${1 + VAT} − 1개당 변동비), 올림. 객단가는 부가세 포함 가격으로 넣어요 (${R.useYear}년 부가세율 ${VAT * 100}%).<br>
   카드수수료·배달수수료도 1개당 변동비에 넣으면 더 정확해요. 사장님 인건비를 고정비에 넣었다면 본전에 사장님 월급도 포함돼요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();

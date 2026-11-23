@@ -72,11 +72,12 @@
 <script src="assets/eltin-calc.js"></script>
 <script>
 /* ===== S04 세트·1+1 계산기 ===== */
-const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
+const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, pick, rowList, ACTIONS, bindActions, postHeight } = Eltin;
 
 let mode = "set", n = 1;
-const ex = p => p / (1 + CONFIG.vatRate);           // 부가세 뺀 금액
+const ex = p => p / (1 + VAT);           // 부가세 뺀 금액
 const DEFAULT_ROWS = [{ name: "아메리카노" }, { name: "케이크" }];
 
 const items = rowList($("#items"), {
@@ -141,7 +142,7 @@ function renderPlus(){
       <div class="row total"><span>행사 1번 남는 돈</span><b class="${profit > 0 ? "" : "neg"}">${won(profit)}원</b></div>
     </div>
     <p class="tip ${profit > 0 ? "" : "warn"}">${profit > 0 ? `행사 없이 ${give}개를 팔면 <b>${won(normal)}원</b>이 남아요. ${n}+1은 <b>${num(discPct, 1)}%</b> 할인과 같아서, 원래 안 샀을 손님이 사야 이득이에요.`
-      : `원가가 판매가의 ${num(n / give * 100 / (1 + CONFIG.vatRate), 1)}%를 넘으면 ${n}+1은 손해예요.`}</p>
+      : `원가가 판매가의 ${num(n / give * 100 / (1 + VAT), 1)}%를 넘으면 ${n}+1은 손해예요.`}</p>
     ${ACTIONS}`;
   bindActions(`[${n}+1 계산] 판매가 ${won(p)}원, 원가 ${won(c)}원 → 행사 1번 ${won(profit)}원 남음 (1개당 ${won(profit / give)}원, 실제 할인율 ${num(discPct, 1)}%)`,
     () => { price.set(0); cost.set(0); $("#price").focus(); });
@@ -157,8 +158,10 @@ pick($$("#modeSeg button"), b => {
 });
 pick($$("#nChips .chip"), b => { n = Number(b.dataset.n); render(); });
 
-$("#note").innerHTML = `<b>계산 기준</b> · 남는 돈 = 받은 돈 ÷ ${1 + CONFIG.vatRate} (부가세 ${CONFIG.vatRate * 100}% 뺀 금액) − 원가, ${CONFIG.baseYear}년 기준<br>
+$("#note").innerHTML = `<b>계산 기준</b> · 남는 돈 = 받은 돈 ÷ ${1 + VAT} (부가세 ${VAT * 100}% 뺀 금액) − 원가, ${R.useYear}년 기준<br>
   N+1의 실제 할인율 = 1 ÷ (N+1). 인건비·월세 같은 운영비는 빠진 금액이에요.`;
+
+Eltin.yearNotice(R, "tax");
 
 Eltin.init();
 render();
