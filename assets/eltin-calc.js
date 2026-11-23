@@ -51,6 +51,13 @@
       buttons.forEach(x => x.setAttribute("aria-pressed", x === b)); onPick(b);
     }));
   }
+  /* 조사 붙이기: ro("오븐") → "오븐으로", ro("우유") → "우유로" (받침 ㄹ은 "로") */
+  function ro(word){
+    const c = String(word).trim().slice(-1).charCodeAt(0) - 0xAC00;
+    if(c < 0 || c > 11171) return word + "(으)로";
+    const jong = c % 28;
+    return word + (jong === 0 || jong === 8 ? "로" : "으로");
+  }
   /* 소수 표시: num(12.345, 1) → "12.3" */
   const num = (n, d = 1) => (Number.isFinite(n) ? n : 0).toLocaleString("ko-KR", { maximumFractionDigits: d });
   const cleanNum = s => String(s).replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
@@ -153,5 +160,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, num, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { $, $$, won, num, ro, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
