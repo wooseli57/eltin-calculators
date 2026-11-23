@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="S" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S05 스탬프·적립 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.pct-wrap{width:140px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>스탬프·적립 계산기</h1>
+      <p>"10잔 마시면 1잔 무료"가 실제로 몇 % 할인인지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="stamps">몇 개 사면 1개 무료인가요?</label>
+      <div class="input-wrap"><input id="stamps" type="text" inputmode="numeric" autocomplete="off" value="10"><span class="unit">개 사면 1개 무료</span></div>
+      <div class="chips" id="stampChips">
+        <button class="chip" type="button" data-v="5">5개</button>
+        <button class="chip" type="button" data-v="8">8개</button>
+        <button class="chip" type="button" data-v="10">10개</button>
+        <button class="chip" type="button" data-v="12">12개</button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="price">평균 판매가 <small>부가세 포함</small></label>
+        <div class="input-wrap sm"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+      <div class="field">
+        <label for="cost">1개 원가</label>
+        <div class="input-wrap sm"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="costHint"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="use">무료 쿠폰을 실제로 쓰는 비율 <small>모르면 100%</small></label>
+      <div class="input-wrap pct-wrap"><input id="use" type="text" inputmode="decimal" autocomplete="off" value="100"><span class="unit">%</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== S05 스탬프·적립 계산기 ===== */
+const CONFIG = { vatRate: 0.10, baseYear: 2026 };   // 매년 확인할 값
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+const stamps = numInput($("#stamps"), render), use = numInput($("#use"), render);
+const price = moneyInput($("#price"), $("#priceHint"), render);
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+
+/* 손님 기준 할인율 = 무료 1개 ÷ (산 N개 + 무료 1개)
+   사장님 실제 부담 = 무료 1개 원가 × 사용률 ÷ N개 매출(부가세 뺀 금액) */
+function render(){
+  $$("#stampChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === stamps.value));
+  const N = Math.floor(stamps.value), u = Math.min(use.value, 100) / 100;
+  if(!N){ $("#result").innerHTML = '<p class="empty">몇 개 사면 1개 무료인지 넣어주세요</p>'; postHeight(); return; }
+
+  const custPct = 1 / (N + 1) * 100;
+  const p = price.value, c = cost.value;
+  const sales = p * N / (1 + CONFIG.vatRate);
+  const burden = p && c ? c * u / sales * 100 : null;
+
+  $("#result").innerHTML = `
+    <p class="lead">"${N}개 사면 1개 무료"는 손님에게</p>
+    <p class="big">${num(custPct, 1)}%<small> 할인</small></p>
+    <div class="rows">
+      <div class="row"><span>손님이 받는 것</span><b>${N + 1}개 중 1개 무료</b></div>
+      <div class="row"><span>판매가 기준 할인 효과</span><b>${num(custPct * u, 1)}%</b></div>
+      ${burden != null ? `<div class="row"><span>스탬프 1장 채울 때 매출</span><b>${won(p * N)}원</b></div>
+      <div class="row"><span>무료 1개에 드는 원가</span><b>${won(c * u)}원</b></div>
+      <div class="row total"><span>사장님 실제 부담 (매출 대비)</span><b>${num(burden, 1)}%</b></div>` : ""}
+    </div>
+    <p class="tip">${burden != null ? `손님은 ${num(custPct, 1)}% 할인으로 느끼지만, 사장님이 실제로 쓰는 돈은 원가 기준으로 매출의 <b>${num(burden, 1)}%</b>예요.`
+      : "판매가와 원가를 넣으면 사장님이 실제로 부담하는 비율도 알려드려요."}</p>
+    ${ACTIONS}`;
+  bindActions(`[스탬프 계산] ${N}개 사면 1개 무료 → 손님 기준 ${num(custPct, 1)}% 할인${burden != null ? `, 사장님 실제 부담 매출의 ${num(burden, 1)}% (쿠폰 사용률 ${num(u * 100, 0)}%)` : ""}`,
+    () => { stamps.set(10); use.set(100); price.set(0); cost.set(0); });
+  postHeight();
+}
+
+$$("#stampChips .chip").forEach(b => b.addEventListener("click", () => stamps.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 손님 기준 할인율 = 1 ÷ (N + 1). 사장님 부담 = 무료 1개 원가 × 쿠폰 사용률 ÷ N개 매출(부가세 ${CONFIG.vatRate * 100}% 뺀 금액)<br>
+  스탬프를 다 못 채우거나 쿠폰을 안 쓰는 손님이 있으면 실제 부담은 더 낮아져요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
