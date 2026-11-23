@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="C" data-no="02">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C02 자재비용 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>자재비용 계산기</h1>
+      <p>컵·뚜껑·빨대·박스 등 메뉴 1개에 드는 포장비를 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>메뉴 1개에 쓰는 포장 자재 <small>묶음으로 산 가격 그대로</small></label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== C02 자재비용 계산기 ===== */
+const { $, won, num, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+/* 1개 단가 = 묶음 가격 ÷ 묶음 수량, 메뉴 1개 자재비 = 단가 × 사용 개수 */
+const each = r => r.qty ? r.price / r.qty : 0;
+const lineCost = r => each(r) * r.use;
+const DEFAULT_ROWS = [{ name: "컵", use: 1 }, { name: "뚜껑", use: 1 }, { name: "빨대", use: 1 }];
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name",  type: "text",  label: "자재 이름", ph: "자재 이름 (예: 컵홀더)" },
+    { key: "price", type: "money", label: "묶음 가격", unit: "원", ph: "30,000" },
+    { key: "qty",   type: "num",   label: "묶음 수량", unit: "개", ph: "1000" },
+    { key: "use",   type: "num",   label: "1개 메뉴에", unit: "개", ph: "1" }
+  ],
+  cols: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr)",
+  rows: DEFAULT_ROWS,
+  blank: () => ({ use: 1 }),
+  addLabel: "자재 추가",
+  note: r => r.price && r.qty ? `1개당 <b>${num(each(r), 1)}원</b>${r.use ? ` · 메뉴 1개에 <b>${num(lineCost(r), 1)}원</b>` : ""}` : "",
+  onChange: render
+});
+
+function render(){
+  const rows = items.rows().filter(r => r.price && r.qty && r.use);
+  if(!rows.length){ $("#result").innerHTML = '<p class="empty">묶음 가격과 수량을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const total = rows.reduce((s, r) => s + lineCost(r), 0);
+  const label = (r, i) => r.name || `자재 ${i + 1}`;
+
+  $("#result").innerHTML = `
+    <p class="lead">메뉴 1개에 드는 포장비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      ${rows.map((r, i) => `<div class="row"><span>${label(r, i)}${r.use !== 1 ? ` × ${num(r.use, 1)}` : ""}</span><b>${num(lineCost(r), 1)}원</b></div>`).join("")}
+      <div class="row total"><span>포장비 합계</span><b>${num(total, 1)}원</b></div>
+    </div>
+    <p class="tip">하루 100개를 팔면 포장비만 한 달(26일) <b>${won(total * 100 * 26)}원</b>이에요.</p>
+    ${ACTIONS}`;
+  bindActions(`[자재비용 계산] ${rows.map((r, i) => `${label(r, i)} ${num(lineCost(r), 1)}원`).join(" + ")} = 메뉴 1개 포장비 ${won(total)}원`,
+    () => items.set(DEFAULT_ROWS));
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 단가 = 묶음 가격 ÷ 묶음 수량, 포장비 = 단가 × 메뉴 1개에 쓰는 개수. 큰 숫자는 원 단위 반올림이에요.<br>
+  묶음 가격은 실제로 낸 돈(부가세·배송비 포함)으로 넣으면 더 정확해요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
