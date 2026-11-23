@@ -128,6 +128,180 @@
     }
   };
 
+  /* ---------- 세율표 (M03 세금 계산기·마진 엔진 공통, 여기서만 관리) ---------- */
+  const taxTables = {
+    personal: {                // 종합소득세 [상한, 세율, 누진공제] — 구간 경계에서 누진 계산값과 일치 확인 (2026-11-23)
+      2026: [                  // 소득세법 제55조, 2023년 개정 세율표 유지 (확인 2026-11-23)
+        [14000000, 0.06, 0],
+        [50000000, 0.15, 1260000],
+        [88000000, 0.24, 5760000],
+        [150000000, 0.35, 15440000],
+        [300000000, 0.38, 19940000],
+        [500000000, 0.40, 25940000],
+        [1000000000, 0.42, 35940000],
+        [Infinity, 0.45, 65940000]
+      ]
+    },
+    corp: {                    // 법인세 [상한, 세율] — 사업연도 개시일 기준
+      2025: [[200000000, 0.09], [20000000000, 0.19], [300000000000, 0.21], [Infinity, 0.24]], // 2023~2025 개시 사업연도
+      2026: [[200000000, 0.10], [20000000000, 0.20], [300000000000, 0.22], [Infinity, 0.25]]  // 법인세법 제55조, 2026.1.1 이후 개시 사업연도 (확인 2026-11-23)
+    },
+    localRate: 0.10            // 지방소득세 = 세액의 10%
+  };
+
+  /* ---------- 결과 그림 (CLAUDE.md 4항 "결과 그림") ----------
+     외부 라이브러리 없이 SVG로 그림. 결과 카드의 실제 폭(px)에 맞춰 그려 글자가 12px 아래로 줄지 않게 함.
+     창 크기가 바뀌면 마지막 그림을 다시 그림. */
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const shortWon = n => { const a = Math.abs(n), s = n < 0 ? "−" : "";
+    return a >= 1e8 ? `${s}${num(a / 1e8, 1)}억` : a >= 1e4 ? `${s}${num(a / 1e4, a >= 1e6 ? 0 : 1)}만` : `${s}${won(a)}`; };
+  /* 그림 폭 = 그림을 담은 부모(결과 카드)의 안쪽 폭. 빈 칸은 :empty로 숨겨져 있어 부모 기준으로 잼 */
+  const widthOf = el => { const p = el.parentNode; if(!p) return 320; const cs = getComputedStyle(p);
+    const w = p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return Math.max(240, Math.min(480, Math.floor(w || 320))); };
+  /* 글자 폭 어림 (12px 기준: 한글 12px, 숫자·기호 7.5px) — 넘치면 "…"로 줄임 */
+  const textW = s => [...String(s)].reduce((w, ch) => w + (/[ㄱ-힝]/.test(ch) ? 12.5 : 7.5), 0);
+  const fitText = (s, max) => { s = String(s); if(textW(s) <= max) return s; let o = ""; for(const ch of s){ if(textW(o + ch + "…") > max) break; o += ch; } return o + "…"; };
+  function keep(el, fn, args){ el.dataset.chart = "1"; el._redraw = () => fn(el, ...args); }
+  let resizeT;
+  window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { $$("[data-chart]").forEach(el => el._redraw && el._redraw()); postHeight(); }, 150); });
+
+  /* 원형(도넛): items [{label, value}] 금액(0 이하 제외), center {big, small}
+     opt.profitLast: 마지막 항목이 남는 돈·여유면 --brand (기본 true)
+     opt.loss: 문구가 있으면 차트 대신 안내 한 줄, opt.unit: 범례 단위 (기본 "원")
+     6개를 넘으면 작은 비용 항목을 "기타"로 묶음 */
+  function donut(el, items, center = {}, opt = {}){
+    if(!el) return;
+    keep(el, donut, [items, center, opt]);
+    el.classList.add("donut");
+    if(opt.loss){ el.innerHTML = `<p class="chart-loss">${opt.loss}</p>`; return; }
+    const profitLast = opt.profitLast !== false, unit = opt.unit ?? "원";
+    let costs = items.slice(0, profitLast ? -1 : undefined).filter(i => i.value > 0);
+    const profit = profitLast && items[items.length - 1].value > 0 ? items[items.length - 1] : null;
+    const room = 6 - (profit ? 1 : 0);
+    if(costs.length > room){
+      const keepSet = new Set([...costs].sort((a, b) => b.value - a.value).slice(0, room - 1));
+      const rest = costs.filter(c => !keepSet.has(c));
+      costs = costs.filter(c => keepSet.has(c)).concat({ label: "기타", value: rest.reduce((s, c) => s + c.value, 0) });
+    }
+    const list = profit ? costs.concat({ ...profit, profit: true }) : costs;
+    const total = list.reduce((s, i) => s + i.value, 0);
+    if(!total){ el.innerHTML = ""; return; }
+    const color = (it, i) => it.profit ? "var(--brand)" : `var(--chart-${(i % 7) + 1})`;
+    const R = 60, C = 2 * Math.PI * R;
+    let off = 0;
+    const arcs = list.map((it, i) => {
+      const len = it.value / total * C;
+      const s = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${color(it, i)}" stroke-width="24" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}"/>`;
+      off += len; return s;
+    }).join("");
+    el.innerHTML = `
+      <div class="donut-chart">
+        <svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="${esc(list.map(i => `${i.label} ${num(i.value / total * 100, 1)}%`).join(", "))}">
+          <g transform="rotate(-90 80 80)">${arcs}</g>
+        </svg>
+        <div class="donut-center"><b>${center.big ?? ""}</b><small>${center.small ?? ""}</small></div>
+      </div>
+      <ul class="chart-legend">${list.map((it, i) => `<li><i style="background:${color(it, i)}"></i><span>${esc(it.label)}</span><b>${unit === "원" ? won(it.value) : num(it.value, 1)}${unit}</b><em>${num(it.value / total * 100, 1)}%</em></li>`).join("")}</ul>`;
+  }
+
+  /* 가로 막대: items [{label, value, highlight?}]
+     opts.sort: 큰 값부터 정렬, opts.highlight: 강조할 항목 순번(정렬 후) 또는 함수, opts.fmt: 값 라벨 함수
+     강조 --brand, 나머지 --chart-2, 음수는 0선 왼쪽으로 */
+  function bars(el, items, opts = {}){
+    if(!el) return;
+    keep(el, bars, [items, opts]);
+    el.classList.add("chart");
+    let list = items.filter(i => Number.isFinite(i.value));
+    if(opts.sort) list = [...list].sort((a, b) => b.value - a.value);
+    if(!list.length){ el.innerHTML = ""; return; }
+    const fmt = opts.fmt || (v => `${v < 0 ? "−" : ""}${won(Math.abs(v))}원`);
+    const hl = (it, i) => it.highlight || (typeof opts.highlight === "function" ? opts.highlight(it, i) : opts.highlight === i);
+    const W = widthOf(el), rowH = 30, barH = 18, top = 4;
+    const labelW = Math.min(112, Math.round(W * 0.3)), valW = 78;
+    const min = Math.min(0, ...list.map(i => i.value)), max = Math.max(0, ...list.map(i => i.value));
+    const left = labelW + 8 + (min < 0 ? valW : 0), right = W - (max > 0 ? valW : 6);
+    const span = (max - min) || 1, x = v => left + (v - min) / span * (right - left);
+    const H = top * 2 + list.length * rowH;
+    const rows = list.map((it, i) => {
+      const y = top + i * rowH, x0 = x(0), x1 = x(it.value), bx = Math.min(x0, x1), bw = Math.max(Math.abs(x1 - x0), it.value ? 2 : 0);
+      const fill = it.value < 0 ? "var(--chart-1)" : hl(it, i) ? "var(--brand)" : "var(--chart-2)";
+      const tx = it.value < 0 ? x1 - 6 : x1 + 6, anchor = it.value < 0 ? "end" : "start";
+      return `<text x="${labelW}" y="${y + rowH / 2 + 4}" text-anchor="end" class="ct-label${hl(it, i) ? " ct-strong" : ""}"><title>${esc(it.label)}</title>${esc(fitText(it.label, labelW - 2))}</text>
+        <rect x="${bx}" y="${y + (rowH - barH) / 2}" width="${bw}" height="${barH}" rx="4" fill="${fill}"/>
+        <text x="${tx}" y="${y + rowH / 2 + 4}" text-anchor="${anchor}" class="ct-val${hl(it, i) ? " ct-strong" : ""}">${esc(fmt(it.value))}</text>`;
+    }).join("");
+    const zero = min < 0 ? `<line x1="${x(0)}" x2="${x(0)}" y1="0" y2="${H}" class="ct-axis"/>` : "";
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(list.map(i => `${i.label} ${fmt(i.value)}`).join(", "))}">${zero}${rows}</svg>`;
+  }
+
+  /* 선 그래프: series [{label, points:[[x,y],…]}] (2개까지, 첫째 --brand, 둘째 --chart-1 점선)
+     opts: xLabel, yLabel, xFmt, yFmt, marks [{x, y, label}] 점+라벨, hlines [{y, label}] 기준선 */
+  function line(el, series, opts = {}){
+    if(!el) return;
+    keep(el, line, [series, opts]);
+    el.classList.add("chart");
+    series = series.slice(0, 2).filter(s => s.points.length > 1);
+    if(!series.length){ el.innerHTML = ""; return; }
+    const xFmt = opts.xFmt || (v => num(v, 0)), yFmt = opts.yFmt || shortWon;
+    const W = widthOf(el), H = 226, padL = 50, padR = 14, padT = 32, padB = 40;
+    const pts = series.flatMap(s => s.points);
+    const ys = pts.map(p => p[1]).concat((opts.hlines || []).map(h => h.y), [0]);
+    const xMin = Math.min(...pts.map(p => p[0])), xMax = Math.max(...pts.map(p => p[0]));
+    let yMax = Math.max(...ys), yMin = Math.min(...ys);
+    const niceStep = r => { const p = Math.pow(10, Math.floor(Math.log10(r || 1))), n = r / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p; };
+    const step = niceStep((yMax - yMin) / 4);
+    yMax = Math.ceil(yMax / step) * step; yMin = Math.floor(yMin / step) * step;
+    const X = v => padL + (v - xMin) / ((xMax - xMin) || 1) * (W - padL - padR);
+    const Y = v => padT + (yMax - v) / ((yMax - yMin) || 1) * (H - padT - padB);
+    let grid = "";
+    for(let v = yMin; v <= yMax + step / 2; v += step)
+      grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" class="ct-grid"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" class="ct-tick">${esc(yFmt(v))}</text>`;
+    const xs = 4; let xt = "";
+    for(let i = 0; i <= xs; i++){ const v = xMin + (xMax - xMin) * i / xs;
+      xt += `<text x="${X(v)}" y="${H - padB + 16}" text-anchor="middle" class="ct-tick">${esc(xFmt(v))}</text>`; }
+    const colors = ["var(--brand)", "var(--chart-1)"];
+    const paths = series.map((s, i) => {
+      const d = s.points.map((p, j) => `${j ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+      const last = s.points[s.points.length - 1];
+      return `<path d="${d}" fill="none" stroke="${colors[i]}" stroke-width="2.5" ${i ? 'stroke-dasharray="6 4"' : ""}/>
+        <text x="${Math.min(X(last[0]), W - padR)}" y="${Y(last[1]) - 7}" text-anchor="end" class="ct-series" fill="${colors[i]}">${esc(s.label)}</text>`;
+    }).join("");
+    const hl = (opts.hlines || []).map(h => `<line x1="${padL}" x2="${W - padR}" y1="${Y(h.y)}" y2="${Y(h.y)}" class="ct-ref"/>
+      <text x="${W - padR}" y="${Y(h.y) + 15}" text-anchor="end" class="ct-reflabel">${esc(h.label)}</text>`).join("");
+    const marks = (opts.marks || []).filter(m => m.x >= xMin && m.x <= xMax).map(m => {
+      const mx = X(m.x), my = Y(m.y), anchor = mx > W * 0.65 ? "end" : mx < W * 0.35 ? "start" : "middle";
+      return `<line x1="${mx}" x2="${mx}" y1="${my}" y2="${H - padB}" class="ct-ref"/>
+        <circle cx="${mx}" cy="${my}" r="5" fill="#fff" stroke="var(--brand-dark)" stroke-width="2.5"/>
+        <text x="${mx}" y="${my - 10}" text-anchor="${anchor}" class="ct-mark">${esc(m.label)}</text>`;
+    }).join("");
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map(s => s.label).join(", "))}${(opts.marks || []).map(m => `, ${esc(m.label)}`).join("")}">
+      ${grid}<line x1="${padL}" x2="${W - padR}" y1="${Y(yMin)}" y2="${Y(yMin)}" class="ct-axis"/>${xt}${hl}${paths}${marks}
+      <text x="${W - padR}" y="${H - 4}" text-anchor="end" class="ct-tick">${esc(opts.xLabel || "")}</text>
+      <text x="4" y="14" class="ct-tick">${esc(opts.yLabel || "")}</text></svg>`;
+  }
+
+  /* 깔때기: steps [{label, value}], 단계 사이에 전환율(%) 표시. 폭은 첫 단계 대비 (최소 14%) */
+  function funnel(el, steps){
+    if(!el) return;
+    keep(el, funnel, [steps]);
+    el.classList.add("chart");
+    steps = steps.filter(s => s.value > 0);
+    if(!steps.length){ el.innerHTML = ""; return; }
+    const W = widthOf(el), barH = 34, gap = 22, first = steps[0].value;
+    const H = steps.length * barH + (steps.length - 1) * gap;
+    const parts = steps.map((s, i) => {
+      const w = Math.max(0.14, s.value / first) * W, x = (W - w) / 2, y = i * (barH + gap);
+      const fill = i === steps.length - 1 ? "var(--brand)" : `var(--chart-${i + 1})`;
+      const conv = i ? `<text x="${W / 2}" y="${y - 7}" text-anchor="middle" class="ct-tick">↓ ${num(s.value / steps[i - 1].value * 100, 1)}%</text>` : "";
+      return `${conv}<rect x="${x}" y="${y}" width="${w}" height="${barH}" rx="6" fill="${fill}"/>
+        ${(() => { const t = `${s.label} ${num(s.value, s.value < 100 ? 1 : 0)}`;
+          return textW(t) + 16 <= w ? `<text x="${W / 2}" y="${y + barH / 2 + 5}" text-anchor="middle" class="ct-funnel">${esc(t)}</text>`
+            : `<text x="${x + w + 8}" y="${y + barH / 2 + 5}" class="ct-val">${esc(t)}</text>`; })()}`;
+    }).join("");
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(steps.map(s => `${s.label} ${num(s.value, 1)}`).join(" → "))}">${parts}</svg>`;
+  }
+
   /* 소수 표시: num(12.345, 1) → "12.3" */
   const num = (n, d = 1) => (Number.isFinite(n) ? n : 0).toLocaleString("ko-KR", { maximumFractionDigits: d });
   const cleanNum = s => String(s).replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
@@ -230,5 +404,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();

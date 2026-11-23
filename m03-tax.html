@@ -151,30 +151,14 @@ const CONFIG = {
       // 2027: 카드매출 공제 1.3%·한도 연장 여부 확인 후 추가 (docs/questions.md)
     }
   },
+  /* 세율표는 assets/eltin-calc.js의 Eltin.taxTables에서만 관리 (마진 엔진과 공유) */
   incomeTax: {
-    years: {
-      2026: {                          // 소득세법 제55조, 2023년 개정 세율표 유지 (확인 2026-11-23)
-        brackets: [                    // [상한, 세율, 누진공제] — 구간 경계에서 누진 계산값과 일치 확인 (2026-11-23)
-          [14000000, 0.06, 0],
-          [50000000, 0.15, 1260000],
-          [88000000, 0.24, 5760000],
-          [150000000, 0.35, 15440000],
-          [300000000, 0.38, 19940000],
-          [500000000, 0.40, 25940000],
-          [1000000000, 0.42, 35940000],
-          [Infinity, 0.45, 65940000]
-        ],
-        localRate: 0.10
-      }
-    },
+    years: Object.fromEntries(Object.entries(Eltin.taxTables.personal).map(([y, b]) => [y, { brackets: b, localRate: Eltin.taxTables.localRate }])),
     defaultDeduction: 1500000
   },
   corpTax: {
-    years: {
-      2025: { brackets: [[200000000,0.09],[20000000000,0.19],[300000000000,0.21],[Infinity,0.24]] }, // 2023~2025 개시 사업연도
-      2026: { brackets: [[200000000,0.10],[20000000000,0.20],[300000000000,0.22],[Infinity,0.25]] }  // 법인세법 제55조, 2026.1.1 이후 개시 사업연도 (확인 2026-11-23)
-    },
-    localRate: 0.10
+    years: Object.fromEntries(Object.entries(Eltin.taxTables.corp).map(([y, b]) => [y, { brackets: b }])),
+    localRate: Eltin.taxTables.localRate
   }
 };
 const { $, $$, won, num, koreanUnit, moneyInput, pick, yearRates, ACTIONS, bindActions, postHeight } = Eltin;
