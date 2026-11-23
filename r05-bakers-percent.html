@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R05 베이커스 퍼센트 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.row small{font-size:12px;color:var(--ink-3);font-weight:400;margin-left:4px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>베이커스 퍼센트 계산기</h1>
+      <p>밀가루 양을 기준으로 다른 재료 비율을 계산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="계산 방향" id="modeSeg">
+      <button type="button" data-mode="pct" aria-pressed="true">비율(%) → 무게(g)</button>
+      <button type="button" data-mode="g" aria-pressed="false">무게(g) → 비율(%)</button>
+    </div>
+    <div class="field">
+      <label for="flour">밀가루 양 <small>밀가루 = 100%</small></label>
+      <div class="input-wrap"><input id="flour" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">g</span></div>
+      <div class="chips" id="flourChips">
+        <button class="chip" type="button" data-v="250">250g</button>
+        <button class="chip" type="button" data-v="500">500g</button>
+        <button class="chip" type="button" data-v="1000">1kg</button>
+      </div>
+    </div>
+    <div class="field">
+      <label id="itemsLabel">다른 재료 <small>밀가루 대비 비율</small></label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R05 베이커스 퍼센트 계산기 ===== */
+const { $, $$, num, numInput, pick, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+
+let mode = "pct";
+const flour = numInput($("#flour"), render);
+const DEFAULT_ROWS = [{ name: "물" }, { name: "소금" }, { name: "이스트" }, { name: "설탕" }, { name: "버터" }];
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name", type: "text", label: "재료 이름", ph: "재료 이름" },
+    { key: "v",    type: "num",  label: "값", unit: "%", ph: "0" }
+  ],
+  rows: DEFAULT_ROWS,
+  addLabel: "재료 추가",
+  onChange: render
+});
+
+/* 무게 = 밀가루 × 비율 ÷ 100, 비율 = 재료 무게 ÷ 밀가루 × 100 */
+function render(){
+  const unit = mode === "pct" ? "%" : "g";
+  $$("#items em").forEach(e => e.textContent = unit);
+  $$("#items .item-grid label span").forEach(s => s.textContent = mode === "pct" ? "밀가루 대비 비율" : "무게");
+  $$("#flourChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === flour.value));
+  const f = flour.value;
+  const rows = items.rows().filter(r => r.v).map((r, i) => ({ ...r, _label: r.name || `재료 ${i + 1}` }));
+  if(!f || !rows.length){ $("#result").innerHTML = `<p class="empty">밀가루 양과 재료 ${mode === "pct" ? "비율" : "무게"}을 넣으면 바로 계산돼요</p>`; postHeight(); return; }
+
+  const out = rows.map(r => mode === "pct" ? { ...r, g: f * r.v / 100, pct: r.v } : { ...r, g: r.v, pct: r.v / f * 100 });
+  const total = f + out.reduce((s, r) => s + r.g, 0);
+  const totalPct = 100 + out.reduce((s, r) => s + r.pct, 0);
+  const show = r => mode === "pct" ? `${num(r.g, r.g < 10 ? 1 : 0)}g` : `${num(r.pct, 1)}%`;
+
+  $("#result").innerHTML = `
+    <p class="lead">${mode === "pct" ? "반죽 전체 무게는" : "재료 비율 합계(밀가루 100% 포함)는"}</p>
+    <p class="big">${mode === "pct" ? `${num(total, 0)}<small>g</small>` : `${num(totalPct, 1)}<small>%</small>`}</p>
+    <div class="rows">
+      <div class="row"><span>밀가루 <small>100%</small></span><b>${num(f, 0)}g</b></div>
+      ${out.map(r => `<div class="row"><span>${r._label} <small>${mode === "pct" ? `${num(r.pct, 1)}%` : `${num(r.g, 1)}g`}</small></span><b>${show(r)}</b></div>`).join("")}
+      <div class="row total"><span>합계</span><b>${num(total, 0)}g · ${num(totalPct, 1)}%</b></div>
+    </div>
+    ${ACTIONS}`;
+  bindActions(`[베이커스 퍼센트] 밀가루 ${num(f, 0)}g(100%), ${out.map(r => `${r._label} ${num(r.g, 1)}g(${num(r.pct, 1)}%)`).join(", ")} → 합계 ${num(total, 0)}g`,
+    () => { flour.set(""); items.set(DEFAULT_ROWS); $("#flour").focus(); });
+  postHeight();
+}
+
+pick($$("#modeSeg button"), b => {
+  mode = b.dataset.mode;
+  $("#itemsLabel").innerHTML = mode === "pct" ? "다른 재료 <small>밀가루 대비 비율</small>" : "다른 재료 <small>실제 넣는 무게</small>";
+  render();
+});
+$$("#flourChips .chip").forEach(b => b.addEventListener("click", () => flour.set(b.dataset.v)));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 밀가루를 100%로 보고, 재료 무게 = 밀가루 × 비율 ÷ 100, 비율 = 재료 무게 ÷ 밀가루 × 100<br>
+  밀가루를 두 가지 이상 섞으면 그 합을 100%로 넣어주세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
