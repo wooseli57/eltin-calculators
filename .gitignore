@@ -5,3 +5,6 @@ Claude outputs/
 *.pdf
 *.xlsx
 *.hwpx
+
+# 파이썬 실행 때 생기는 캐시
+__pycache__/
