@@ -1,0 +1,43 @@
+# docs/calculators.md(계산기 이름·설명·상태의 원본)가 바뀐 채로 push되면
+# tools/build-calculators.py로 data/calculators.json을 다시 만들고, 바뀌었으면 자동으로 커밋해요.
+# 검사(완료인데 파일 없음, data-cat·data-no 불일치 등)에 걸리면 이 작업이 실패로 표시돼요.
+name: 계산기 목록 데이터 만들기
+
+on:
+  push:
+    paths:
+      - docs/calculators.md
+      - tools/build-calculators.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-calculators-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 목록 데이터 만들기 + 검사
+        run: python tools/build-calculators.py
+
+      - name: 바뀌었으면 커밋
+        run: |
+          if git diff --quiet -- data/calculators.json && [ -z "$(git ls-files --others --exclude-standard -- data/calculators.json)" ]; then
+            echo "data/calculators.json 변경 없음"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/calculators.json
+          git commit -m "data/calculators.json 자동 갱신 (docs/calculators.md 기준)"
+          git push
