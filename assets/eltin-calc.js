@@ -13,6 +13,11 @@
     devPreview: true    // 디자인 확인용 테마 미리보기 (배포 시 false)
   };
 
+  /* 완성된 계산기 목록 (docs/calculators.md 상태 "완료"와 같게 유지) — 다른 계산기로 넘어가는 버튼은
+     받는 계산기가 이 목록에 있을 때만 켜고, 없으면 회색 "준비 중" (docs/specs/color-flavor-links.md 3절) */
+  const READY = new Set(["A01","A02","A03","A04","A05","A06","C01","C02","C03","C04","C05","L01","L02","L03","L04","L05","M01","M02","M03","M04","M05","M06","M07","O01","O02","O03","O04","O05","R03","R04","R05","R06","R07","R08","S01","S02","S03","S04","S05","S06","S07","S08","S09","T01","T02","T03","T05","T06","T07"]);
+  const ready = tags => [].concat(tags).every(t => READY.has(t));
+
   const CATEGORIES = {
     L:{name:"인건비 계산기",color:"#4B5BD4"}, C:{name:"원가 계산기",color:"#E0682B"},
     O:{name:"운영비 계산기",color:"#E2A800"}, S:{name:"판매 계산기",color:"#2A9758"},
@@ -415,5 +420,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { ready, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
