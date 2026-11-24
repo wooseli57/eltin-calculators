@@ -192,3 +192,29 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
 .ct-reflabel{fill:var(--ink-2);font-weight:700}
 .ct-mark{fill:var(--brand-dark);font-weight:800;font-size:13px}
 .ct-funnel{fill:#fff;font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.18);stroke-width:2px}
+
+/* 9. 접는 칸 (도우미·안내표) */
+.fold{margin-top:10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff}
+.fold>summary{font-size:13px;font-weight:500;color:var(--ink-2);cursor:pointer;list-style:none;padding:9px 12px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:"▸ ";color:var(--brand)}
+.fold[open]>summary::before{content:"▾ "}
+.fold-body{padding:0 12px 12px}
+.fold-body .field-row,.fold-body>.field{margin-top:8px}
+.fold-body .field-row .field{margin-top:0}
+.fold-body .seg{margin:4px 0 8px}
+.fold-out{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:14px}
+.fold-out b{color:var(--brand-dark);font-size:16px}
+.fold-out .btn{flex:none;padding:9px 14px}
+.fold-out .btn:disabled{opacity:.4;cursor:default}
+.fold-check{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:8px;cursor:pointer}
+.fold-check input{width:18px;height:18px;accent-color:var(--brand-dark)}
+.fold-help{font-size:12px;color:var(--ink-3);margin-top:8px;line-height:1.6}
+.ref-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.ref-table th,.ref-table td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.ref-table th{color:var(--ink-3);font-weight:500}
+.ref-table td:first-child{font-weight:700;color:var(--ink)}
+.ref-table td{color:var(--ink-2)}
+.edited{font-size:12px;font-weight:500;color:var(--brand-dark);margin-left:4px}
+.help{font-size:12px;color:var(--ink-3);margin-top:6px}
+.sel-wrap select{flex:1;border:0;outline:0;font:inherit;font-size:15px;font-weight:700;padding:12px 0;background:transparent;color:var(--ink);min-width:0}
