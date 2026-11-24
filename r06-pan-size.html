@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="06">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R06 틀 크기 변환 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.pan{border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;background:var(--brand-faint)}
+.pan+.pan{margin-top:10px}
+.pan-title{font-size:14px;font-weight:700;margin-bottom:8px}
+.pan .seg{margin-bottom:10px}
+.pan .chips{margin-top:0}
+.pan .sub{margin-top:10px}
+.pan .hint{text-align:left}
+.arrow{text-align:center;color:var(--brand);font-size:18px;line-height:1;margin:6px 0 -4px}
+.big .pct{font-size:16px;font-weight:700;color:var(--ink-2);margin-left:6px}
+.tip a{color:var(--brand-dark);font-weight:700}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>틀 크기 변환 계산기</h1>
+      <p>원형틀 1호를 2호로, 사각틀을 원형틀로 바꿀 때 재료량을 환산해요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="pan" id="fromPan"></div>
+    <p class="arrow" aria-hidden="true">▼</p>
+    <div class="pan" id="toPan"></div>
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="fromH">원래 틀 높이 <small>선택</small></label>
+        <div class="input-wrap sm"><input id="fromH" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">cm</span></div>
+      </div>
+      <div class="field">
+        <label for="toH">바꿀 틀 높이 <small>선택</small></label>
+        <div class="input-wrap sm"><input id="toH" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">cm</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="dough">원래 반죽 총무게 <small>선택</small></label>
+      <div class="input-wrap"><input id="dough" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">g</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R06 틀 크기 변환 계산기 — 사양: docs/specs/R06.md ===== */
+/* 틀 크기표는 assets/eltin-calc.js의 Eltin.pans에서만 관리 (S08과 공통) */
+const PANS = Eltin.pans;
+const { $, $$, num, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+
+/* 틀 하나 고르기: 모양(원형·사각) + 원형은 호수 칩(미니는 지름 칸) 또는 지름 직접 입력, 사각은 가로·세로 */
+function panPicker(box, title, startIdx){
+  const id = box.id;
+  box.innerHTML = `
+    <p class="pan-title">${title}</p>
+    <div class="seg" role="group" aria-label="${title} 모양">
+      <button type="button" data-shape="round" aria-pressed="true">원형</button>
+      <button type="button" data-shape="square" aria-pressed="false">사각</button>
+    </div>
+    <div data-box="round">
+      <div class="chips">${PANS.map((p, i) => `<button class="chip" type="button" data-i="${i}">${p.name}</button>`).join("")}<button class="chip" type="button" data-i="custom">지름 직접</button></div>
+      <div class="sub" data-box="d" hidden>
+        <div class="input-wrap sm"><input type="text" inputmode="decimal" autocomplete="off" data-k="d" aria-label="${title} 지름"><span class="unit">cm</span></div>
+        <div class="hint" data-k="dHint"></div>
+      </div>
+    </div>
+    <div data-box="square" hidden>
+      <div class="field-row">
+        <div><div class="input-wrap sm"><input type="text" inputmode="decimal" autocomplete="off" data-k="w" placeholder="가로" aria-label="${title} 가로"><span class="unit">cm</span></div></div>
+        <div><div class="input-wrap sm"><input type="text" inputmode="decimal" autocomplete="off" data-k="h" placeholder="세로" aria-label="${title} 세로"><span class="unit">cm</span></div></div>
+      </div>
+    </div>`;
+  const st = { shape: "round", pick: startIdx };
+  const q = s => box.querySelector(s);
+  const d = numInput(q('[data-k="d"]'), render), w = numInput(q('[data-k="w"]'), render), h = numInput(q('[data-k="h"]'), render);
+  function sync(){
+    box.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.shape === st.shape));
+    q('[data-box="round"]').hidden = st.shape !== "round"; q('[data-box="square"]').hidden = st.shape === "round";
+    box.querySelectorAll(".chips .chip").forEach(b => b.setAttribute("aria-pressed", String(st.pick) === b.dataset.i));
+    const showD = st.pick === "custom" || (st.pick === 0);
+    q('[data-box="d"]').hidden = !showD;
+    q('[data-k="dHint"]').textContent = st.pick === 0 ? "미니 지름 (가게마다 10~12cm)" : st.pick === "custom" ? "틀 안쪽 지름" : "";
+  }
+  box.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { st.shape = b.dataset.shape; render(); }));
+  box.querySelectorAll(".chips .chip").forEach(b => b.addEventListener("click", () => {
+    st.pick = b.dataset.i === "custom" ? "custom" : Number(b.dataset.i);
+    if(st.pick === 0) d.set(PANS[0].diameter); else if(st.pick === "custom" && !d.value) d.set("");
+    render();
+  }));
+  return {
+    sync,
+    /* 넓이(cm²)와 화면 표시 이름 */
+    get(){
+      if(st.shape === "square") return w.value && h.value ? { area: w.value * h.value, name: `사각 ${num(w.value, 1)}×${num(h.value, 1)}cm` } : null;
+      const dia = st.pick === "custom" || st.pick === 0 ? d.value : PANS[st.pick].diameter;
+      if(!dia) return null;
+      const name = st.pick === "custom" ? `원형 지름 ${num(dia, 1)}cm` : st.pick === 0 ? `미니 (${num(dia, 1)}cm)` : `${PANS[st.pick].name} (${dia}cm)`;
+      return { area: Math.PI * Math.pow(dia / 2, 2), name, serves: typeof st.pick === "number" ? PANS[st.pick].serves : null };
+    }
+  };
+}
+
+const from = panPicker($("#fromPan"), "원래 틀", 1);   // 처음: 1호 → 2호
+const to = panPicker($("#toPan"), "바꿀 틀", 2);
+const fromH = numInput($("#fromH"), render), toH = numInput($("#toH"), render), dough = numInput($("#dough"), render);
+
+/* 재료 배수 = 바꿀 틀 넓이 ÷ 원래 틀 넓이 (× 바꿀 높이 ÷ 원래 높이, 두 높이 모두 있을 때) */
+function render(){
+  from.sync(); to.sync();
+  const a = from.get(), b = to.get();
+  if(!a || !b){ $("#result").innerHTML = '<p class="empty">두 틀의 크기를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const hRatio = fromH.value && toH.value ? toH.value / fromH.value : null;
+  const f = b.area / a.area * (hRatio || 1);
+  const fx = Math.round(f * 100) / 100;
+
+  $("#result").innerHTML = `
+    <p class="lead">재료를 이만큼 바꾸세요</p>
+    <p class="big">${fx.toFixed(2)}<small>배</small><span class="pct">${num(f * 100, 0)}%</span></p>
+    <div class="rows">
+      <div class="row"><span>원래 틀 · ${a.name}</span><b>${num(a.area, 0)}cm²</b></div>
+      <div class="row"><span>바꿀 틀 · ${b.name}</span><b>${num(b.area, 0)}cm²</b></div>
+      ${hRatio ? `<div class="row"><span>높이 비율 (${num(fromH.value, 1)} → ${num(toH.value, 1)}cm)</span><b>${num(hRatio, 2)}배</b></div>` : ""}
+      ${dough.value ? `<div class="row total"><span>바꿀 틀 반죽 무게</span><b>${num(dough.value * f, 0)}g</b></div>` : ""}
+      ${b.serves ? `<div class="row"><span>바꿀 틀 대략 인분</span><b>${b.serves}</b></div>` : ""}
+    </div>
+    <p class="tip">재료별 양은 <a href="r03-my-recipe.html" target="_blank" rel="noopener">내 레시피 분량 계산기(R03)</a>에서 배수 <b>${fx.toFixed(2)}배</b>로 바로 계산할 수 있어요.</p>
+    <p class="tip">틀이 커지면 굽는 시간이 늘어나요. 속까지 익었는지 꼬치로 확인하세요.</p>
+    ${ACTIONS}`;
+  bindActions(`[틀 크기 변환] ${a.name} → ${b.name}: 재료 ${fx.toFixed(2)}배 (${num(f * 100, 0)}%)${dough.value ? `, 반죽 ${num(dough.value, 0)}g → ${num(dough.value * f, 0)}g` : ""}`,
+    () => { fromH.set(""); toH.set(""); dough.set(""); });
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 넓이 비율로 재료를 늘리거나 줄여요 (같은 높이로 구울 때). 원형 넓이 = π × (지름 ÷ 2)², 사각 넓이 = 가로 × 세로. 배수는 소수 둘째 자리까지 반올림.<br>
+  두 틀의 높이를 모두 넣으면 높이 비율도 곱해요. 틀 크기와 인분은 일반적인 기준이며 가게·제품마다 다를 수 있어요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
