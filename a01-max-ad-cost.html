@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="A" data-no="01">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A01 최대광고비 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.tip a{color:var(--brand-dark);font-weight:700}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>최대광고비 계산기</h1>
+      <p>상품 1개를 팔 때 손해 없이 광고에 쓸 수 있는 최대 금액과, 그 금액이 판매가의 몇 %인지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력" id="form"></section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/margin-engine.js"></script>
+<script src="assets/margin-ui.js"></script>
+<script>
+/* ===== A01 최대광고비 계산기 — 사양: docs/specs/A01.md =====
+   최대광고비 = 세후 순이익 + 현재 광고비 (공통 엔진), 비율은 판매가 기준 대표 */
+const { $, won, num, ACTIONS, bindActions, postHeight } = Eltin;
+const pct = v => `${v < 0 ? "−" : ""}${num(Math.abs(v), 1)}%`;
+
+const form = MarginUI.form($("#form"), { mode: "both", onChange: render });
+
+function render(){
+  const x = form.values(), rocket = x.type === "rocket";
+  if(!x.price || !x.buy){ $("#result").innerHTML = '<p class="empty">판매가와 매입가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const m = MarginEngine.calcMargin(x);
+
+  if(m.maxAd <= 0){
+    $("#result").innerHTML = `
+      <p class="lead">1개 팔 때 광고에 쓸 수 있는 돈이</p>
+      <p class="big">0<small>원</small></p>
+      <p class="tip warn">지금 조건으로는 광고비를 쓸 여유가 없어요. 판매가·매입가를 먼저 점검하세요.
+        <a href="${rocket ? "m07-rocket-margin.html" : "m06-online-margin.html"}" target="_blank" rel="noopener">${rocket ? "로켓배송 마진계산기(M07)" : "온라인쇼핑몰 마진계산기(M06)"}</a></p>`;
+    postHeight(); return;
+  }
+  const otherCost = m.cost - m.adAmt + m.tax;          // 광고 외 비용 (매입가·수수료·포장비·기타비용·부가세·소득세)
+
+  $("#result").innerHTML = `
+    <p class="lead">1개 팔 때 손해 없이 광고에 쓸 수 있는 최대 금액은</p>
+    <p class="big">${won(m.maxAd)}<small>원</small></p>
+    <div id="chart"></div>
+    <div class="rows">
+      <div class="row total"><span>최대광고비 비율 (판매가 기준)</span><b>${pct(m.maxAdRateSale)}</b></div>
+      ${rocket ? `<div class="row"><span>최대광고비 비율 (납품가 기준)</span><b>${pct(m.maxAdRateBase)}</b></div>` : ""}
+      <div class="row"><span>현재 광고비 (${num(x.ad, 2)}%)</span><b>${won(m.adAmt)}원</b></div>
+      <div class="row"><span>현재 세후 순이익</span><b>${m.net < 0 ? "− " : ""}${won(Math.abs(m.net))}원</b></div>
+      <div class="row"><span>최저 목표 광고수익률</span><b>${pct(m.minRoas)}</b></div>
+      <div class="row"><span>세금 효과 반영 최대광고비 (참고)</span><b>${won(m.maxAdTax)}원</b></div>
+    </div>
+    <p class="tip ${m.net < 0 ? "warn" : ""}">현재 광고비율이 최대광고비 비율보다 높으면 팔수록 손해예요.</p>
+    <p class="tip">광고비를 늘리면 부가세·소득세도 줄어서 실제로는 조금 더 쓸 수 있어요. 세금 효과 반영값은 그 경우의 참고값이에요.</p>
+    ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "광고 외 비용", value: otherCost }, { label: "현재 광고비", value: m.adAmt }, { label: "남은 광고 여유", value: m.net }],
+    { big: pct(m.maxAdRateSale), small: "최대광고비 비율 (판매가 기준)" },
+    { loss: m.net < 0 ? `현재 광고비가 최대광고비보다 ${won(-m.net)}원 많아요` : "" });
+  bindActions(`[최대광고비] ${rocket ? "로켓배송" : "온라인"} ${form.market()}, 판매가 ${won(x.price)}원, 매입가 ${won(x.buy)}원 → 최대광고비 ${won(m.maxAd)}원 (판매가의 ${pct(m.maxAdRateSale)}${rocket ? `, 납품가의 ${pct(m.maxAdRateBase)}` : ""}), 최저 목표 광고수익률 ${pct(m.minRoas)}`,
+    () => form.reset());
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 최대광고비 = 세후 순이익 + 현재 광고비, 최대광고비 비율 = 최대광고비 ÷ 판매가.<br>
+  로켓배송은 광고비를 납품가 기준으로 계산하고, 비율은 판매가 기준을 대표로 보여줘요.`;
+MarginUI.notice(false);
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
