@@ -128,6 +128,17 @@
     }
   };
 
+  /* ---------- 케이크 틀 크기표 (R03·R04·R06·S08 공통, 여기서만 관리) — 사양: docs/specs/R06.md 0절 ---------- */
+  const pans = [
+    { id: "mini", name: "미니", diameter: 12, serves: "2~4인", editable: true },  // 가게마다 10~12cm → 고르면 지름 칸 표시(수정 가능)
+    { id: "1",    name: "1호",  diameter: 15, serves: "4~6인" },
+    { id: "2",    name: "2호",  diameter: 18, serves: "6~8인" },
+    { id: "3",    name: "3호",  diameter: 21, serves: "8~10인" },
+    { id: "4",    name: "4호",  diameter: 24, serves: "10~12인" }
+  ];
+  // 지름: 국내 판매 원형틀 1호 150ø, 2호 180ø, 3호 210ø 기준, 호수당 3cm (확인 2026-11-23)
+  // 인분: 지름별 일반적인 인분 안내 참고 (확인 2026-11-23), 화면에는 "대략"으로 표시
+
   /* ---------- 세율표 (M03 세금 계산기·마진 엔진 공통, 여기서만 관리) ---------- */
   const taxTables = {
     personal: {                // 종합소득세 [상한, 세율, 누진공제] — 구간 경계에서 누진 계산값과 일치 확인 (2026-11-23)
@@ -404,5 +415,5 @@
     postHeight();
   }
 
-  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
