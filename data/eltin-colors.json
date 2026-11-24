@@ -1,5 +1,5 @@
 {
-  "_about": "엘틴 색소 제품 데이터 (R01·G01~G05 공용). 사양: docs/specs/color-flavor-links.md 2·3절",
+  "_about": "엘틴 색소 제품 데이터 (R02·G01~G05 공용). 사양: docs/specs/color-flavor-links.md 2·3절",
   "_status": "형식만 있는 빈 틀 — 제품 목록은 엘틴 자료를 받으면 채워요. 목록이 비어 있으면 화면에 '엘틴 데이터 준비 중이에요'를 표시해요. dropMl·defaultDensity는 지금 확정된 값이에요.",
   "dropMl": 0.04,
   "_dropMl": "1방울 부피(ml). 사용자 결정 2026-11-24 — 약전 표준 방울 0.05ml보다 작게 잡음(병 입구·알코올 성분 고려). 엘틴이 실측하면 이 값만 바꿔요",

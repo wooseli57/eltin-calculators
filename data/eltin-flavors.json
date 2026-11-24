@@ -1,5 +1,5 @@
 {
-  "_about": "엘틴 향료 제품과 사용 기준 (R02·R04 공용). 사양: docs/specs/color-flavor-links.md 2·3절",
+  "_about": "엘틴 향료 제품과 사용 기준 (R03·R01 공용). 사양: docs/specs/color-flavor-links.md 2·3절",
   "_status": "형식만 있는 빈 틀 — 가격·링크·다른 향료는 엘틴 자료를 받으면 채워요. dropMl·spoonMl·바닐라 익스트랙 밀도와 바닐라 사용 기준은 확정된 값이에요.",
   "dropMl": 0.04,
   "_dropMl": "1방울 부피(ml), 색소와 같은 기준 (사용자 결정 2026-11-24). 엘틴이 실측하면 이 값만 바꿔요",
@@ -18,7 +18,7 @@
     { "id": "vanilla", "name": "엘틴 퓨어 바닐라 익스트랙", "density": 0.93, "_density": "엘틴 제공 (1방울 = 0.04ml × 0.93 = 0.0372g)", "price": null, "size": null, "url": "", "usage": [] }
   ],
   "vanillaStandard": {
-    "_source": "엘틴 퓨어 바닐라 익스트랙 상세페이지 사용 기준 (docs/specs/color-flavor-links.md 3절, R04.md)",
+    "_source": "엘틴 퓨어 바닐라 익스트랙 상세페이지 사용 기준 (docs/specs/color-flavor-links.md 3절, R01.md)",
     "usage": [
       { "per": "밀가루", "amount": 125, "unit": "g", "ml": 5 },
       { "per": "우유·생크림", "amount": 250, "unit": "ml", "ml": 5 },

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="R" data-no="04">
+<html lang="ko" data-cat="R" data-no="01">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>R04 엘틴 레시피 계산기 | 엘틴 소상공인 계산기</title>
+<title>R01 엘틴 레시피 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -94,9 +94,9 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== R04 엘틴 레시피 계산기 — 사양: docs/specs/R04.md, docs/specs/color-flavor-links.md =====
+/* ===== R01 엘틴 레시피 계산기 — 사양: docs/specs/R01.md, docs/specs/color-flavor-links.md =====
    레시피 데이터: data/eltin-recipes.json (원본 docs/recipes/eltin-recipes.md → tools/build-recipes.py로 생성)
-   색소·향료(바닐라 제외) 양은 여기서 계산하지 않고 R01·R02로 넘김. 바닐라는 레시피 양 × 배수만 */
+   색소·향료(바닐라 제외) 양은 여기서 계산하지 않고 R02·R03으로 넘김. 바닐라는 레시피 양 × 배수만 */
 const DATA = { recipes: "data/eltin-recipes.json", bases: "data/color-bases.json", flavors: "data/eltin-flavors.json" };
 const { $, $$, num, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 const PANS = Eltin.pans;
@@ -141,7 +141,7 @@ function factor(){
     return ing && baseAmt.value ? baseAmt.value / ing.amount : null;
   }
   if(b.mode === "count") return count.value && b.amount ? count.value / b.amount : null;
-  if(b.mode === "pan"){                                     // 넓이 비율 (R06과 같은 틀 크기표)
+  if(b.mode === "pan"){                                     // 넓이 비율 (R07과 같은 틀 크기표)
     const from = PANS.find(p => p.id === b.pan) || PANS[1];
     return Math.pow(PANS[panIdx].diameter / from.diameter, 2);
   }
@@ -191,10 +191,10 @@ function selectRecipe(id, push){
 function linkBox(kind, f){
   const L = recipe[kind]; if(!L || !L.grams) return "";
   const v = Math.round(L.grams * f), unitParam = L.unit === "ml" ? "ml" : "g";
-  const tag = kind === "color" ? "R01" : "R02", ok = Eltin.ready(tag);
+  const tag = kind === "color" ? "R02" : "R03", ok = Eltin.ready(tag);
   const href = kind === "color"
-    ? `r01-color-dosage.html?base=${encodeURIComponent(L.base)}&${unitParam}=${v}&from=r04:${recipe.id}`
-    : `r02-flavor-dosage.html?${unitParam}=${v}&from=r04:${recipe.id}`;
+    ? `r02-color-dosage.html?base=${encodeURIComponent(L.base)}&${unitParam}=${v}&from=r01:${recipe.id}`
+    : `r03-flavor-dosage.html?${unitParam}=${v}&from=r01:${recipe.id}`;
   const label = kind === "color" ? "이 양에 색 입히기" : "향 바꾸기";
   const body = kind === "color"
     ? `원하는 색을 내려면 <b>${L.where}</b> 넣어요. 바탕은 ${BASE_NAMES[L.base] || L.base}, 색 입힐 양은 약 <b>${num(v, 0)}${L.unit}</b>${L.unit === "ml" ? "예요" : "이에요"}${L.note ? ` (${L.note})` : ""}.`
@@ -223,17 +223,17 @@ function render(){
     <div class="rows">${rows}</div>
     ${linkBox("color", f)}${linkBox("flavor", f)}
     ${fold("만드는 법", recipe.steps, true)}${fold("팁", recipe.tips)}${fold("주의", recipe.cautions)}
-    <button type="button" class="btn btn-ghost btn-take" id="take">내 레시피로 가져가기 (R03)</button>
+    <button type="button" class="btn btn-ghost btn-take" id="take">내 레시피로 가져가기 (R04)</button>
     ${ACTIONS}`;
   $$("#result details").forEach(d => d.addEventListener("toggle", postHeight));
-  $("#take").onclick = () => takeToR03(f);
+  $("#take").onclick = () => takeToR04(f);
   bindActions(`[엘틴 레시피] ${makeText(f).replace(/[을를]$/, "")} (${num(f, 2)}배): ${recipe.ingredients.map(g => `${g.name} ${qty(g, f).text}`).join(", ")}`,
     () => selectRecipe(recipe.id));
   postHeight();
 }
 
-/* 내 레시피로 가져가기: 지금 재료와 양을 R03으로 (sessionStorage, 실패해도 R03은 빈 레시피로 열림) */
-function takeToR03(f){
+/* 내 레시피로 가져가기: 지금 재료와 양을 R04로 (sessionStorage, 실패해도 R04는 빈 레시피로 열림) */
+function takeToR04(f){
   const rows = recipe.ingredients.filter(g => g.amount != null).map(g => {
     const a = Array.isArray(g.amount) ? g.amount[0] : g.amount;
     const u = g.unit === "g" || g.unit === "ml" ? g.unit : "개";
@@ -241,8 +241,8 @@ function takeToR03(f){
     return { name: g.name + extra, amt: Math.round(a * f * 10) / 10, u };
   });
   const cnt = recipe.base.mode === "count" ? Math.round(recipe.base.amount * f * 10) / 10 : null;
-  try{ sessionStorage.setItem("eltin-r03-import", JSON.stringify({ from: `r04:${recipe.id}`, rows, count: cnt })); }catch(e){}
-  window.open(`r03-my-recipe.html?from=r04${Eltin.isEmbed ? "&embed=1" : ""}`, "_top");
+  try{ sessionStorage.setItem("eltin-r04-import", JSON.stringify({ from: `r01:${recipe.id}`, rows, count: cnt })); }catch(e){}
+  window.open(`r04-my-recipe.html?from=r01${Eltin.isEmbed ? "&embed=1" : ""}`, "_top");
 }
 
 /* ---------- 입력 연결 ---------- */

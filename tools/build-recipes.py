@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-엘틴 레시피 문서 → R04용 JSON 변환기
+엘틴 레시피 문서 → R01용 JSON 변환기
 
   python tools/build-recipes.py            # docs/recipes/eltin-recipes.md → data/eltin-recipes.json
 
 원본 문서(docs/recipes/eltin-recipes.md)를 고치면 이 스크립트를 다시 실행해 JSON을 새로 만듭니다.
-형식: docs/specs/R04.md "데이터" 절, docs/specs/color-flavor-links.md 4절.
+형식: docs/specs/R01.md "데이터" 절, docs/specs/color-flavor-links.md 4절.
 읽을 수 없는 줄이 있으면 경고를 출력하고 그 값은 비워 둡니다 (조용히 틀린 값을 넣지 않음).
 """
 import json

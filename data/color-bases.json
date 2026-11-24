@@ -1,5 +1,5 @@
 {
-  "_about": "색을 입히는 바탕 종류 (R01·R04·G01~G05 공용). 사양: docs/specs/color-flavor-links.md 3절",
+  "_about": "색을 입히는 바탕 종류 (R02·R01·G01~G05 공용). 사양: docs/specs/color-flavor-links.md 3절",
   "_status": "형식만 있는 빈 틀 — id·이름·용도는 사양에서 정한 목록이고, 바탕색 안내·보정 배율·주의 문구·Lab 데이터는 엘틴 자료를 받으면 채워요.",
   "_fields": {
     "id": "바탕 id (주소 파라미터 base에 씀)",
