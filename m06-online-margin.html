@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="06">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M06 온라인쇼핑몰 마진계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>.big .sub{font-size:16px;font-weight:700;color:var(--ink-2);margin-left:6px}</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>온라인쇼핑몰 마진계산기</h1>
+      <p>스마트스토어·자사몰처럼 직접 파는 상품의 판매가, 매입·제조원가, 마켓수수료, 포장비, 광고비, 기타비용, 부가세·소득세를 넣으면 세후 순이익과 순이익률이 나와요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력" id="form"></section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <section id="targetBox"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/margin-engine.js"></script>
+<script src="assets/margin-ui.js"></script>
+<script>
+/* ===== M06 온라인쇼핑몰 마진계산기 — 사양: docs/specs/M06.md =====
+   계산은 공통 엔진 MarginEngine.calcMargin (type 'online'), 입력 화면은 MarginUI.form */
+const { $, won, num, ACTIONS, bindActions, postHeight } = Eltin;
+const pct = v => `${v < 0 ? "−" : ""}${num(Math.abs(v), 1)}%`;
+
+const form = MarginUI.form($("#form"), { mode: "online", onChange: render });
+const target = MarginUI.target($("#targetBox"), () => form.values());
+
+function render(){
+  const x = form.values();
+  target.refresh();
+  if(!x.price || !x.buy){ $("#result").innerHTML = '<p class="empty">판매가와 매입가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const m = MarginEngine.calcMargin(x), loss = m.net < 0;
+
+  $("#result").innerHTML = `
+    <p class="lead">1개 팔면 세금까지 빼고 남는 돈은</p>
+    <p class="big">${loss ? "− " : ""}${won(Math.abs(m.net))}<small>원${loss ? " 손실" : ""}</small><span class="sub">${pct(m.netRate)}</span></p>
+    <div id="chart"></div>
+    <div class="rows">
+      <div class="row"><span>판매가</span><b>${won(x.price)}원</b></div>
+      <div class="row"><span>가격마진 (판매가 − 매입가)</span><b>${won(m.priceMargin)}원 · ${pct(m.priceMarginRate)}</b></div>
+      <div class="row"><span>마켓수수료 (${num(x.fee, 2)}%)</span><b>− ${won(m.feeAmt)}원</b></div>
+      <div class="row"><span>포장비</span><b>− ${won(x.pack)}원</b></div>
+      <div class="row"><span>광고비 (${num(x.ad, 2)}%)</span><b>− ${won(m.adAmt)}원</b></div>
+      <div class="row"><span>기타비용 (${num(x.etc, 2)}%)</span><b>− ${won(m.etcAmt)}원</b></div>
+      <div class="row"><span>부가세</span><b>− ${won(m.vat)}원</b></div>
+      <div class="row"><span>소득세 (${pct(x.tax)})</span><b>− ${won(m.tax)}원</b></div>
+      <div class="row total"><span>세후 순이익</span><b>${loss ? "− " : ""}${won(Math.abs(m.net))}원</b></div>
+    </div>
+    ${loss ? `<p class="tip warn">판매가를 올리거나 매입가를 낮춰야 해요. 아래 목표 설계를 써보세요.</p>` : ""}
+    <p class="tip">최대광고비 <b>${won(m.maxAd)}원</b>(판매가의 ${pct(m.maxAdRateSale)}) · 최저 목표 광고수익률 <b>${m.minRoas ? pct(m.minRoas) : "설정 불가"}</b></p>
+    ${ACTIONS}`;
+  Eltin.donut($("#chart"), [
+    { label: "매입가", value: x.buy }, { label: "마켓수수료", value: m.feeAmt }, { label: "포장비", value: x.pack },
+    { label: "광고비", value: m.adAmt }, { label: "기타비용", value: m.etcAmt }, { label: "부가세", value: m.vat },
+    { label: "소득세", value: m.tax }, { label: "세후 순이익", value: m.net }
+  ], { big: pct(m.netRate), small: "세후 순이익률" }, { loss: loss ? `비용이 판매가보다 ${won(-m.net)}원 많아요` : "" });
+  bindActions(`[온라인 마진] ${form.market()}, 판매가 ${won(x.price)}원, 매입가 ${won(x.buy)}원, 수수료 ${pct(x.fee)} → 세후 순이익 ${won(m.net)}원 (${pct(m.netRate)}), 최대광고비 ${won(m.maxAd)}원`,
+    () => form.reset());
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 비용(매입가·수수료·포장비·광고비·기타비용) → 부가세 = (판매가 − 비용) ÷ 11 → 세전 순이익 → 소득세 → 세후 순이익. 광고비·기타비용은 판매가 대비 비율이에요.<br>
+  최대광고비 = 세후 순이익 + 현재 광고비, 최저 목표 광고수익률 = 판매가 ÷ 최대광고비 × 100.`;
+MarginUI.notice(false);
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
