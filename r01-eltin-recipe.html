@@ -279,6 +279,9 @@ function syncAlcohol(){
   postHeight();
 }
 
+/* 계산기 목록(data/calculators.json)을 다 읽으면 R02·R03 연결 버튼의 준비 중 여부를 다시 그림 */
+window.addEventListener("eltin:calcs", render);
+
 Eltin.init();
 </script>
 </body>

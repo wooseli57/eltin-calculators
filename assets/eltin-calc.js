@@ -5,7 +5,9 @@
 (function(){
   const SITE = {
     links: [   // 하단 연결 박스
-      { label:"계산기 목록", title:"다른 무료 계산기 보기", href:"https://eltin.imweb.me/calculators" }, // 목록 페이지 생성 후 주소 교체
+      // 계산기 목록: 지금은 이 저장소의 index.html (internal: 같은 창에서 열고 ?embed=1을 이어 붙임).
+      // 아임웹 계산기 목록 페이지 주소가 정해지면 href를 그 주소(예: "https://eltin.imweb.me/calculators")로 바꾸고 internal 줄을 지우세요.
+      { label:"계산기 목록", title:"다른 무료 계산기 보기", href:"index.html", internal:true },
       { label:"엘틴 쇼핑몰", title:"식용색소·향료 보러가기", href:"https://eltin.imweb.me/shop" }
     ],
     logo: { src:"assets/eltin-logo.svg", href:"https://eltin.imweb.me/" },
@@ -13,10 +15,22 @@
     devPreview: true    // 디자인 확인용 테마 미리보기 (배포 시 false)
   };
 
-  /* 완성된 계산기 목록 (docs/calculators.md 상태 "완료"와 같게 유지) — 다른 계산기로 넘어가는 버튼은
-     받는 계산기가 이 목록에 있을 때만 켜고, 없으면 회색 "준비 중" (docs/specs/color-flavor-links.md 3절) */
-  const READY = new Set(["A01","A02","A03","A04","A05","A06","C01","C02","C03","C04","C05","L01","L02","L03","L04","L05","M01","M02","M03","M04","M05","M06","M07","O01","O02","O03","O04","O05","R04","R01","R06","R07","R08","R05","S01","S02","S03","S04","S05","S06","S07","S08","S09","T01","T02","T03","T05","T06","T07"]);
-  const ready = tags => [].concat(tags).every(t => READY.has(t));
+  /* ---------- 계산기 목록 data/calculators.json (원본 docs/calculators.md → tools/build-calculators.py) ----------
+     머리말 이름·설명·제목과 "준비 중" 판단을 이 파일에서 가져옴.
+     못 읽으면(파일로 직접 열 때 등) HTML에 적힌 글자를 그대로 두고, 연결 버튼은 "준비 중"으로 둠 */
+  const CALC_URL = "data/calculators.json";
+  let CALCS = null, calcsPromise = null;
+  function loadCalcs(){
+    if(!calcsPromise) calcsPromise = fetch(CALC_URL)
+      .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d => { CALCS = d; window.dispatchEvent(new CustomEvent("eltin:calcs", { detail: d })); return d; })
+      .catch(() => null);
+    return calcsPromise;
+  }
+  /* 다른 계산기로 넘어가는 버튼: 받는 계산기가 목록에서 "완료"일 때만 true, 아니면 회색 "준비 중"
+     (docs/specs/color-flavor-links.md 4절). 목록을 다 읽기 전에는 false이고, 다 읽으면 window에
+     "eltin:calcs" 이벤트가 오니 버튼이 있는 계산기는 그때 다시 그림 */
+  const ready = tags => !!CALCS && [].concat(tags).every(t => CALCS.calculators.some(c => c.tag === t && c.status === "완료"));
 
   const CATEGORIES = {
     L:{name:"인건비 계산기",color:"#4B5BD4"}, C:{name:"원가 계산기",color:"#E0682B"},
@@ -394,8 +408,24 @@
     const tag = $(".tag"); if(tag && CATEGORIES[cat]) tag.textContent = `${cat}${no} · ${CATEGORIES[cat].name}`;
   }
 
+  /* 머리말을 목록 값으로: 태그·이름(h1)·설명(p)·<title> */
+  function fillHead(d){
+    const cat = document.documentElement.dataset.cat, no = document.documentElement.dataset.no;
+    const c = d && cat && no && d.calculators.find(x => x.cat === cat && x.no === no);
+    if(!c) return;
+    const h1 = $(".calc-head h1"), p = $(".calc-head p"), tag = $(".tag");
+    if(h1) h1.textContent = c.name;
+    if(p) p.textContent = c.desc;
+    if(tag) tag.textContent = `${c.tag} · ${c.category}`;
+    document.title = `${c.tag} ${c.name} | 엘틴 소상공인 계산기`;
+    postHeight();
+  }
+  /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을 이어 붙임 */
+  const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" : href;
+
   function init(){
     setTag();
+    loadCalcs().then(fillHead);
     const side = $(".head-side");
     if(side){
       const wordmark = `<span class="wordmark"><b>e</b><b>l</b><b>t</b><b>i</b><b>n</b></span>`;
@@ -404,7 +434,10 @@
       const img = side.querySelector("img"); img.onerror = () => { img.parentNode.innerHTML = wordmark; };
     }
     const cta = $("#cta");
-    if(cta) cta.innerHTML = SITE.links.map(l => `<a href="${l.href}" target="_top"><div><span>${l.label}</span>${l.title}</div></a>`).join("");
+    const here = location.pathname.split("/").pop() || "index.html";
+    if(cta) cta.innerHTML = SITE.links
+      .filter(l => !(l.internal && l.href === here))                 // 목록 페이지에서는 자기 자신 링크를 빼요
+      .map(l => `<a href="${l.internal ? keepEmbed(l.href) : l.href}" target="${l.internal ? "_self" : "_top"}"><div><span>${l.label}</span>${l.title}</div></a>`).join("");
 
     if(SITE.devPreview && !isEmbed && $("#dev")){
       const dev = $("#dev"); dev.hidden = false;
@@ -420,5 +453,5 @@
     postHeight();
   }
 
-  window.Eltin = { ready, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { ready, loadCalcs, keepEmbed, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();

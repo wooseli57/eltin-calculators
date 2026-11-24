@@ -13,6 +13,12 @@
   --radius:16px; --radius-sm:10px;
   --shadow:0 1px 2px rgba(20,24,40,.04),0 4px 16px rgba(20,24,40,.06);
 }
+/* data-cat이 html이 아닌 요소(목록 페이지의 분류 칸 등)에 있어도 진한·옅은 테마색을 그 분류 색으로 다시 계산 */
+[data-cat]{
+  --brand-dark:color-mix(in srgb,var(--brand) 78%,#000);
+  --brand-soft:color-mix(in srgb,var(--brand) 11%,#fff);
+  --brand-faint:color-mix(in srgb,var(--brand) 6%,#fff);
+}
 [data-cat="L"]{--brand:#4B5BD4}                     /* 인건비: 인디고 */
 [data-cat="C"]{--brand:#E0682B}                     /* 원가: 오렌지 */
 [data-cat="O"]{--brand:#E2A800;--brand-dark:#8A6500}/* 운영비: 노랑 (밝아서 진한 색 따로 지정) */
