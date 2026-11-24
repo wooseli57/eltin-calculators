@@ -162,6 +162,19 @@ $("#baseSel").addEventListener("change", render);
 $("#note").innerHTML = `<b>계산 기준</b> · 모든 재료에 같은 배율을 곱해요. 배율 = 목표 개수 ÷ 지금 개수, 목표 총중량 ÷ 지금 총중량, 기준 재료 새 양 ÷ 지금 양<br>
   총중량은 g과 ml를 같은 무게로 보고 더해요(물·우유 기준). 틀 크기가 바뀌면 굽는 시간과 온도도 함께 조절해 주세요.`;
 
+/* R04 엘틴 레시피 "내 레시피로 가져가기": 주소가 ?from=r04 이면 sessionStorage의 재료를 불러옴.
+   저장 공간을 못 쓰거나 값이 이상하면 그냥 빈 레시피로 시작 (오류 없이) */
+try{
+  if(new URLSearchParams(location.search).get("from") === "r04"){
+    const data = JSON.parse(sessionStorage.getItem("eltin-r03-import") || "null");
+    sessionStorage.removeItem("eltin-r03-import");
+    if(data && Array.isArray(data.rows) && data.rows.length){
+      items.set(data.rows.map(r => ({ name: String(r.name || ""), amt: Number(r.amt) || "", u: ["g", "ml", "개"].includes(r.u) ? r.u : "g" })));
+      if(data.count) fromCount.set(data.count);
+    }
+  }
+}catch(e){}
+
 Eltin.init();
 render();
 </script>
