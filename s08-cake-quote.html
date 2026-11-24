@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="S" data-no="08">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S08 견적 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.chip:disabled{opacity:.35;cursor:not-allowed}
+.pct-wrap{width:140px}
+.big .min{display:block;font-size:14px;font-weight:500;color:var(--ink-2);margin-top:2px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>견적 계산기</h1>
+      <p>주문 케이크의 호수·단수·디자인 난이도를 넣으면 적정 견적이 나와요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>크기 <small>가장 아래 단</small></label>
+      <div class="chips" id="sizeChips" style="margin-top:0"></div>
+      <div id="miniBox" hidden style="margin-top:10px">
+        <div class="input-wrap sm pct-wrap"><input id="miniD" type="text" inputmode="decimal" autocomplete="off" aria-label="미니 지름"><span class="unit">cm</span></div>
+        <div class="hint" style="text-align:left">미니 지름 (가게마다 10~12cm)</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>단수 <small>위로 한 호수씩 작아져요</small></label>
+      <div class="chips" id="tierChips" style="margin-top:0">
+        <button class="chip" type="button" data-v="1">1단</button>
+        <button class="chip" type="button" data-v="2">2단</button>
+        <button class="chip" type="button" data-v="3">3단</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>디자인 난이도</label>
+      <div class="seg" role="group" aria-label="디자인 난이도" id="designSeg" style="margin-bottom:10px">
+        <button type="button" data-d="basic" aria-pressed="true">기본</button>
+        <button type="button" data-d="normal" aria-pressed="false">보통</button>
+        <button type="button" data-d="hard" aria-pressed="false">어려움</button>
+      </div>
+      <label for="hours">예상 작업시간 <small>예시값, 직접 바꿀 수 있어요</small></label>
+      <div class="input-wrap"><input id="hours" type="text" inputmode="decimal" autocomplete="off"><span class="unit">시간</span></div>
+    </div>
+    <div class="field">
+      <label for="base">1호 기준 재료비</label>
+      <div class="input-wrap"><input id="base" type="text" inputmode="numeric" autocomplete="off" placeholder="예: 시트+크림+과일+장식+상자"><span class="unit">원</span></div>
+      <div class="hint" id="baseHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="extra">추가 장식비 <small>레터링 등</small></label>
+        <div class="input-wrap sm"><input id="extra" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="extraHint"></div>
+      </div>
+      <div class="field">
+        <label for="wage">시간당 인건비</label>
+        <div class="input-wrap sm"><input id="wage" type="text" inputmode="numeric" autocomplete="off"><span class="unit">원</span></div>
+        <div class="hint" id="wageHint"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="margin">목표 이익률 <small>예시값</small></label>
+      <div class="input-wrap pct-wrap"><input id="margin" type="text" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+      <div class="chips" id="marginChips"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== S08 견적 계산기 (주문 케이크) — 사양: docs/specs/S08.md ===== */
+/* 틀 크기표는 assets/eltin-calc.js의 Eltin.pans에서만 관리 (R06과 공통) */
+const CONFIG = {
+  designHours: { basic: 1.5, normal: 2.5, hard: 4 },   // 예시값 (채팅 결정 2026-11-23)
+  targetMarginDefault: 30, marginChips: [20, 30, 40],
+  vatRate: 0.10,                                         // 견적은 부가세 포함
+  baseDiameter: 15,                                      // 1호 지름 = 넓이 비율 기준
+  rates: {
+    2026: { minWage: 10320 },  // 고용노동부 고시 (확인 2026-11-23)
+    2027: { minWage: 10700 }   // 2027년 적용 최저임금 고시 2026-08-05 (확인 2026-11-23)
+  }
+};
+const R = Eltin.yearRates(CONFIG.rates), V = R.values, PANS = Eltin.pans;
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let sizeIdx = 1, tiers = 1;                    // 처음: 1호 · 1단 · 기본
+$("#sizeChips").innerHTML = PANS.map((p, i) => `<button class="chip" type="button" data-i="${i}">${p.name}</button>`).join("");
+$("#marginChips").innerHTML = CONFIG.marginChips.map(v => `<button class="chip" type="button" data-v="${v}">${v}%</button>`).join("");
+$("#miniD").value = PANS[0].diameter;
+$("#hours").value = CONFIG.designHours.basic;
+$("#wage").value = won(V.minWage);
+$("#margin").value = CONFIG.targetMarginDefault;
+
+const base = moneyInput($("#base"), $("#baseHint"), render);
+const extra = moneyInput($("#extra"), $("#extraHint"), render);
+const wage = moneyInput($("#wage"), $("#wageHint"), render);
+const hours = numInput($("#hours"), render), margin = numInput($("#margin"), render), miniD = numInput($("#miniD"), render);
+
+const diameterOf = i => i === 0 ? (miniD.value || PANS[0].diameter) : PANS[i].diameter;
+const range = s => s.match(/\d+/g).map(Number);          // "4~6인" → [4, 6]
+
+function syncChips(){
+  $$("#sizeChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.i) === sizeIdx));
+  $$("#tierChips .chip").forEach(b => {
+    const t = Number(b.dataset.v);
+    b.disabled = sizeIdx - (t - 1) < 0;                    // 가장 작은 단이 미니보다 작아지면 선택 불가
+    b.setAttribute("aria-pressed", t === tiers);
+  });
+  $$("#marginChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === margin.value));
+  $("#miniBox").hidden = sizeIdx - (tiers - 1) > 0;        // 미니가 들어가는 구성일 때만 지름 칸
+}
+
+/* 단 구성: 가장 아래 단부터 한 호수씩 작아짐. 넓이 비율 = (지름 ÷ 15)²
+   재료비 = 1호 기준 재료비 × 넓이 비율 합 + 추가 장식비, 인건비 = 작업시간 × 시간당 인건비
+   최소 견적 = 원가 × 1.1 (100원 올림), 권장 견적 = 원가 ÷ (1 − 목표 이익률) × 1.1 (1,000원 올림) */
+function render(){
+  syncChips();
+  const idxs = Array.from({ length: tiers }, (_, k) => sizeIdx - k);
+  const ratios = idxs.map(i => Math.pow(diameterOf(i) / CONFIG.baseDiameter, 2));
+  const m = margin.value;
+  if(!base.value){ $("#result").innerHTML = '<p class="empty">1호 기준 재료비를 넣으면 바로 견적이 나와요</p>'; postHeight(); return; }
+  if(m >= 100){ $("#result").innerHTML = '<p class="empty">목표 이익률은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
+
+  const mat = base.value * ratios.reduce((a, b) => a + b, 0) + extra.value;
+  const labor = hours.value * wage.value;
+  const cost = mat + labor;
+  const minQ = Math.ceil(cost * (1 + CONFIG.vatRate) / 100 - 1e-9) * 100;
+  const recQ = Math.ceil(cost / (1 - m / 100) * (1 + CONFIG.vatRate) / 1000 - 1e-9) * 1000;
+  const vat = recQ - recQ / (1 + CONFIG.vatRate), profit = recQ / (1 + CONFIG.vatRate) - cost;
+  const sv = idxs.map(i => range(PANS[i].serves));
+  const serves = `약 ${sv.reduce((a, r) => a + r[0], 0)}~${sv.reduce((a, r) => a + r[1], 0)}인`;
+  const comp = `${tiers}단 · ${idxs.map(i => i === 0 ? `미니(${num(diameterOf(0), 1)}cm)` : PANS[i].name).join(" + ")}`;
+
+  $("#result").innerHTML = `
+    <p class="lead">권장 견적은</p>
+    <p class="big">${won(recQ)}<small>원</small><span class="min">최소 ${won(minQ)}원</span></p>
+    <div id="chart"></div>
+    <div class="rows">
+      <div class="row"><span>케이크 구성</span><b>${comp}</b></div>
+      <div class="row"><span>재료비</span><b>${won(mat)}원</b></div>
+      <div class="row"><span>인건비 (${num(hours.value, 1)}시간 × ${won(wage.value)}원)</span><b>${won(labor)}원</b></div>
+      <div class="row"><span>최소 견적 (손해 안 보는 선)</span><b>${won(minQ)}원</b></div>
+      <div class="row total"><span>권장 견적 (이익률 ${num(m, 1)}%)</span><b>${won(recQ)}원</b></div>
+      <div class="row"><span>대략 인분</span><b>${serves}</b></div>
+    </div>
+    ${wage.value < V.minWage ? `<p class="tip warn">시간당 인건비가 ${R.useYear}년 최저임금(${won(V.minWage)}원)보다 낮아요.</p>` : ""}
+    <p class="tip">재료비는 1호 기준을 넓이 비율로 늘린 값이에요. 실제 재료가 더 들면 추가 장식비에 넣어주세요.</p>
+    ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "재료비", value: mat }, { label: "인건비", value: labor }, { label: "부가세", value: vat }, { label: "이익", value: profit }],
+    { big: `${Eltin.shortWon(profit)}원`, small: "이익" });
+  bindActions(`[케이크 견적] ${comp}, 재료비 ${won(mat)}원 + 인건비 ${won(labor)}원 → 최소 ${won(minQ)}원 / 권장 ${won(recQ)}원 (이익률 ${num(m, 1)}%, 부가세 포함, ${serves})`,
+    () => { sizeIdx = 1; tiers = 1; pickDesign("basic"); base.set(0); extra.set(0); wage.set(V.minWage); margin.set(CONFIG.targetMarginDefault); miniD.set(PANS[0].diameter); });
+  postHeight();
+}
+
+$$("#sizeChips .chip").forEach(b => b.addEventListener("click", () => {
+  sizeIdx = Number(b.dataset.i);
+  if(sizeIdx - (tiers - 1) < 0) tiers = sizeIdx + 1;      // 단수가 안 맞으면 가능한 최대 단수로
+  render();
+}));
+$$("#tierChips .chip").forEach(b => b.addEventListener("click", () => { if(!b.disabled){ tiers = Number(b.dataset.v); render(); } }));
+$$("#marginChips .chip").forEach(b => b.addEventListener("click", () => margin.set(b.dataset.v)));
+function pickDesign(d){
+  $$("#designSeg button").forEach(x => x.setAttribute("aria-pressed", x.dataset.d === d));
+  hours.set(CONFIG.designHours[d]);
+}
+pick($$("#designSeg button"), b => hours.set(CONFIG.designHours[b.dataset.d]));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 크기별 재료비는 1호 기준 × 넓이 비율((지름 ÷ 15)²), 견적은 부가세(${CONFIG.vatRate * 100}%) 포함이에요. 최소 견적은 100원, 권장 견적은 1,000원 단위로 올림.<br>
+  시간당 인건비 기본값은 ${R.useYear}년 최저임금이에요. 틀 크기와 인분은 일반적인 기준이며 가게마다 다를 수 있어요.`;
+Eltin.yearNotice(R, "", { minWage: "최저임금" },
+  `예상 견적이에요. 작업시간·이익률 기본값은 예시이니 우리 가게 기준으로 바꿔 넣으세요. 인건비 기본값은 ${R.useYear}년 최저임금이며 매년 바뀌어요.`);
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
