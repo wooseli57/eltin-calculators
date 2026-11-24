@@ -1,0 +1,12 @@
+{
+  "_about": "인기 색 버튼 (G02·G05·R01 공용). 사양: docs/specs/color-flavor-links.md 3절 — 구 G05 '인기 색 레시피'를 G02·G05의 버튼으로 통합",
+  "_status": "형식만 있는 빈 틀 — 색 목록과 엘틴 배합은 자료를 받으면 채워요.",
+  "_fields": {
+    "id": "인기 색 id (주소 파라미터 c·color에 씀, 예: pastel-pink)",
+    "name": "색 이름 (예: 파스텔 핑크)",
+    "hex": "표시 색 코드 (#RRGGBB)",
+    "base": "바탕 id: whipped-cream(생크림, G02) 또는 clay(클레이, G05)",
+    "mix": "엘틴 배합(있으면): [{ \"product\": 제품 id (data/eltin-colors.json), \"grams\": 바탕 100g당 g }]"
+  },
+  "presets": []
+}

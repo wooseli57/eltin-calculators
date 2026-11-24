@@ -1,23 +1,26 @@
 {
-  "_about": "색을 입히는 바탕 종류 (R01·R04·G02·G03·G05 공용). 사양: docs/specs/color-flavor-links.md 2절",
-  "_status": "빈 틀 — id·이름은 사양에서 정한 목록이고, 바탕색 안내·보정 배율·주의 문구는 엘틴 자료를 받으면 채워요.",
+  "_about": "색을 입히는 바탕 종류 (R01·R04·G01~G05 공용). 사양: docs/specs/color-flavor-links.md 3절",
+  "_status": "형식만 있는 빈 틀 — id·이름·용도는 사양에서 정한 목록이고, 바탕색 안내·보정 배율·주의 문구·Lab 데이터는 엘틴 자료를 받으면 채워요.",
   "_fields": {
     "id": "바탕 id (주소 파라미터 base에 씀)",
     "name": "화면 이름",
+    "use": "용도: food(식품용) | play(놀이용)",
     "tint": "바탕색 안내 (예: 버터크림은 노란빛이라 파랑이 초록빛으로)",
     "factor": "색소 양 보정 배율 (기본 1)",
-    "caution": "주의 문구"
+    "caution": "주의 문구",
+    "labData": "혼색 예측용 Lab 데이터 파일 위치 (G01~G05용, 생크림·클레이만). 없으면 null"
   },
   "bases": [
-    { "id": "whipped-cream", "name": "생크림",   "tint": "", "factor": 1, "caution": "" },
-    { "id": "buttercream",   "name": "버터크림", "tint": "", "factor": 1, "caution": "" },
-    { "id": "meringue",      "name": "머랭",     "tint": "", "factor": 1, "caution": "" },
-    { "id": "batter",        "name": "반죽",     "tint": "", "factor": 1, "caution": "" },
-    { "id": "icing",         "name": "아이싱",   "tint": "", "factor": 1, "caution": "" },
-    { "id": "rice",          "name": "쌀가루",   "tint": "", "factor": 1, "caution": "" },
-    { "id": "drink",         "name": "음료",     "tint": "", "factor": 1, "caution": "" },
-    { "id": "jelly",         "name": "젤리",     "tint": "", "factor": 1, "caution": "" },
-    { "id": "sugar",         "name": "설탕",     "tint": "", "factor": 1, "caution": "" },
-    { "id": "chocolate",     "name": "초콜릿",   "tint": "", "factor": 1, "caution": "" }
+    { "id": "whipped-cream", "name": "생크림",   "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "buttercream",   "name": "버터크림", "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "meringue",      "name": "머랭",     "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "batter",        "name": "반죽",     "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "icing",         "name": "아이싱",   "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "rice",          "name": "쌀가루",   "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "drink",         "name": "음료",     "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "jelly",         "name": "젤리",     "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "sugar",         "name": "설탕",     "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "chocolate",     "name": "초콜릿",   "use": "food", "tint": "", "factor": 1, "caution": "", "labData": null },
+    { "id": "clay",          "name": "흰색 클레이", "use": "play", "tint": "", "factor": 1, "caution": "", "labData": null }
   ]
 }
