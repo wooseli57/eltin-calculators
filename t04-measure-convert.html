@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="T" data-no="04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T04 계량 단위 변환 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.amt-row{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:8px}
+.amt-row .sel-wrap select{font-size:16px}
+.row.on b,.row.on span:first-child{color:var(--brand-dark);font-weight:700}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>계량 단위 변환</h1>
+      <p>레시피에 컵·큰술·작은술로 적힌 재료를 g으로, g을 컵·스푼으로 바꿔줘요. 한국(200ml)·미국(약 237ml) 컵 기준을 고를 수 있어요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="ing">재료</label>
+      <div class="input-wrap sel-wrap"><select id="ing"></select></div>
+    </div>
+    <div class="field">
+      <label>컵 기준</label>
+      <div class="seg" role="group" aria-label="컵 기준" id="cupSeg" style="margin-bottom:0">
+        <button type="button" data-cup="us" aria-pressed="true">미국 레시피 (1컵 236.6ml)</button>
+        <button type="button" data-cup="kr" aria-pressed="false">한국 레시피 (1컵 200ml)</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="amt">양 <small>1 1/2처럼 분수도 돼요</small></label>
+      <div class="amt-row">
+        <div class="input-wrap"><input id="amt" type="text" inputmode="text" autocomplete="off" value="1"></div>
+        <div class="input-wrap sel-wrap"><select id="unit" aria-label="단위">
+          <option value="cup">컵</option><option value="tbsp">큰술</option><option value="tsp">작은술</option><option value="ml">ml</option><option value="g">g</option>
+        </select></div>
+      </div>
+      <div class="chips" id="fracChips"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== T04 계량 단위 변환 — 사양: docs/specs/T04.md ===== */
+const CONFIG = {
+  /* 재료별 미국 1컵(236.6ml) 무게(g). 출처: King Arthur Baking "Ingredient Weight Chart"
+     https://www.kingarthurbaking.com/learn/ingredient-weight-chart (확인 2026-11-24)
+     출처가 1/2컵·1큰술 등으로 적은 재료는 1컵으로 환산해 적음. 밀도(g/ml) = gPerUsCup ÷ 236.6
+     물은 출처에 없어 1g/ml */
+  usCupMl: 236.6,
+  cups: {
+    us: { cup: 236.6, tbsp: 236.6 / 16, tsp: 236.6 / 48 },   // 미국: 1큰술 = 1/16컵, 1작은술 = 1/3큰술
+    kr: { cup: 200,   tbsp: 15,         tsp: 5 }             // 한국: 1컵 200ml, 1큰술 15ml, 1작은술 5ml
+  },
+  groups: [
+    { name: "가루", items: [
+      { id: "cake-flour", name: "박력분", gPerUsCup: 120, tip: "flour" },        // Unbleached Cake Flour 1 cup 120
+      { id: "ap-flour", name: "중력분", gPerUsCup: 120, tip: "flour" },          // All-Purpose Flour 1 cup 120
+      { id: "bread-flour", name: "강력분", gPerUsCup: 120, tip: "flour" },       // Bread Flour 1 cup 120
+      { id: "rice-flour", name: "쌀가루", gPerUsCup: 142, tip: "flour" },        // Rice flour (white) 1 cup 142
+      { id: "almond-flour", name: "아몬드가루", gPerUsCup: 96, tip: "flour" },   // Almond Flour 1 cup 96
+      { id: "cocoa", name: "코코아가루", gPerUsCup: 84, tip: "flour" },          // Cocoa (unsweetened) 1/2 cup 42
+      { id: "cornstarch", name: "옥수수전분", gPerUsCup: 112, tip: "flour" },    // Cornstarch 1/4 cup 28
+      { id: "matcha", name: "말차가루", gPerUsCup: 96, tip: "flour" },           // Matcha powder 2 Tbsp 12
+      { id: "milk-powder", name: "탈지분유", gPerUsCup: 112, tip: "flour" }      // Dried nonfat milk 1/4 cup 28
+    ]},
+    { name: "설탕류", items: [
+      { id: "sugar", name: "설탕", gPerUsCup: 198 },                             // Sugar (granulated white) 1 cup 198
+      { id: "powdered-sugar", name: "슈가파우더", gPerUsCup: 113, tip: "flour" }, // Confectioners' sugar 1 cup 113
+      { id: "brown-sugar", name: "흑설탕 (눌러 담기)", short: "흑설탕", gPerUsCup: 213, tip: "packed" }, // Brown sugar, packed 1 cup 213
+      { id: "honey", name: "꿀", gPerUsCup: 336 }                                // Honey 1 Tbsp 21
+    ]},
+    { name: "유제품·지방", items: [
+      { id: "butter", name: "버터", gPerUsCup: 226 },                            // Butter 1/2 cup 113
+      { id: "milk", name: "우유", gPerUsCup: 227, tip: "dairy" },                // Milk (fresh) 1 cup 227
+      { id: "cream", name: "생크림", gPerUsCup: 227, tip: "dairy" },             // Cream (heavy) 1 cup 227
+      { id: "cream-cheese", name: "크림치즈", gPerUsCup: 227 },                  // Cream cheese 1 cup 227
+      { id: "oil", name: "식용유", gPerUsCup: 198 }                              // Vegetable oil 1 cup 198
+    ]},
+    { name: "팽창제·소금", items: [
+      { id: "salt", name: "소금 (고운 소금)", short: "소금", gPerUsCup: 288 },   // Salt (table) 1 Tbsp 18
+      { id: "baking-powder", name: "베이킹파우더", gPerUsCup: 192 },             // Baking powder 1 tsp 4
+      { id: "baking-soda", name: "베이킹소다", gPerUsCup: 288 }                  // Baking soda 1/2 tsp 3
+    ]},
+    { name: "기타", items: [
+      { id: "choco-chips", name: "초코칩", gPerUsCup: 170 },                     // Chocolate Chips 1 cup 170
+      { id: "water", name: "물", gPerUsCup: 236.6 }                              // 출처 없음, 1g/ml
+    ]}
+  ],
+  fractions: [["1/4", 1 / 4], ["1/3", 1 / 3], ["1/2", 1 / 2], ["2/3", 2 / 3], ["3/4", 3 / 4]]
+};
+const ITEMS = CONFIG.groups.flatMap(g => g.items);
+const UNIT_NAME = { cup: "컵", tbsp: "큰술", tsp: "작은술", ml: "ml", g: "g" };
+const { $, $$, num, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let cup = "us";
+$("#ing").innerHTML = CONFIG.groups.map(g => `<optgroup label="${g.name}">${g.items.map(i => `<option value="${i.id}">${i.name}</option>`).join("")}</optgroup>`).join("");
+$("#fracChips").innerHTML = CONFIG.fractions.map(([t]) => `<button class="chip" type="button" data-f="${t}">${t}</button>`).join("");
+
+/* 양 읽기: "2", "1.5", "1/3", "1 1/2" */
+function parseAmt(s){
+  s = String(s).trim().replace(/\s+/g, " ");
+  let m = s.match(/^(\d+(?:\.\d+)?)?\s*(?:(\d+)\/(\d+))?$/);
+  if(!m || (!m[1] && !m[2])) return null;
+  const whole = m[1] ? Number(m[1]) : 0, frac = m[2] ? Number(m[2]) / Number(m[3] || 1) : 0;
+  if(m[2] && !Number(m[3])) return null;
+  return whole + frac;
+}
+/* 표시: g은 10g 이상 정수·10g 미만 소수 첫째 자리, 컵은 소수 둘째, 스푼은 소수 첫째, ml은 g과 같은 방식 */
+const fmt = {
+  g: v => num(v, v < 10 ? 1 : 0), ml: v => num(v, v < 10 ? 1 : 0),
+  cup: v => num(v, 2), tbsp: v => num(v, 1), tsp: v => num(v, 1)
+};
+const josa = unitKey => ({ cup: "은", tbsp: "은", tsp: "은", ml: "는", g: "은" })[unitKey];
+
+function render(){
+  const item = ITEMS.find(i => i.id === $("#ing").value) || ITEMS[0];
+  const unit = $("#unit").value, raw = $("#amt").value, a = parseAmt(raw);
+  $$("#fracChips .chip").forEach(c => { const f = CONFIG.fractions.find(x => x[0] === c.dataset.f)[1];
+    c.setAttribute("aria-pressed", a != null && Math.abs((a % 1) - f) < 1e-6); });
+  if(a == null || a <= 0){ $("#result").innerHTML = `<p class="empty">${raw.trim() ? "양은 2, 1.5, 1/3, 1 1/2처럼 넣어주세요" : "양을 넣으면 바로 바꿔드려요"}</p>`; postHeight(); return; }
+
+  /* 밀도(g/ml) = 미국 1컵 무게 ÷ 236.6, ml ↔ g = × 밀도 */
+  const dens = item.gPerUsCup / CONFIG.usCupMl, C = CONFIG.cups[cup];
+  const ml = unit === "g" ? a / dens : unit === "ml" ? a : a * C[unit];
+  const v = { cup: ml / C.cup, tbsp: ml / C.tbsp, tsp: ml / C.tsp, ml, g: ml * dens };
+  const nm = item.short || item.name;
+  const amtText = `${raw.trim()}${UNIT_NAME[unit]}`;
+  const toCup = unit === "g";                               // g을 넣으면 컵으로 보여줌
+  const bigKey = toCup ? "cup" : "g";
+  const tip = item.tip === "flour" ? "숟가락으로 떠서 컵에 담고 윗면을 깎는 방식 기준이에요. 꾹꾹 눌러 담으면 더 무거워져요."
+    : item.tip === "packed" ? "흑설탕은 컵에 꾹꾹 눌러 담은 기준이에요." : "";
+
+  $("#result").innerHTML = `
+    <p class="lead">${nm} ${amtText}${josa(unit)} 약 ${fmt[bigKey](v[bigKey])}${UNIT_NAME[bigKey]}이에요</p>
+    <p class="big">${fmt[bigKey](v[bigKey])}<small>${UNIT_NAME[bigKey]}</small></p>
+    <div class="rows">
+      ${["cup", "tbsp", "tsp", "ml", "g"].map(k => `<div class="row ${k === bigKey ? "on" : ""}"><span>${k === "cup" ? `컵 (${cup === "us" ? "미국 236.6ml" : "한국 200ml"})` : k === "tbsp" ? `큰술 (${cup === "us" ? "약 14.8ml" : "15ml"})` : k === "tsp" ? `작은술 (${cup === "us" ? "약 4.9ml" : "5ml"})` : UNIT_NAME[k]}</span><b>${fmt[k](v[k])}${UNIT_NAME[k]}</b></div>`).join("")}
+    </div>
+    ${tip ? `<p class="tip">${tip}</p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`[계량 변환] ${nm} ${amtText} (${cup === "us" ? "미국" : "한국"} 컵 기준) = ${fmt.g(v.g)}g · ${fmt.cup(v.cup)}컵 · ${fmt.tbsp(v.tbsp)}큰술 · ${fmt.tsp(v.tsp)}작은술 · ${fmt.ml(v.ml)}ml`,
+    () => { $("#ing").value = ITEMS[0].id; $("#unit").value = "cup"; $("#amt").value = "1"; render(); $("#amt").focus(); });
+  postHeight();
+}
+
+$("#amt").addEventListener("input", render);
+["#ing", "#unit"].forEach(s => $(s).addEventListener("change", render));
+pick($$("#cupSeg button"), b => { cup = b.dataset.cup; render(); });
+/* 분수 버튼: 지금 정수 부분은 두고 분수 부분만 바꿈 (2 → 2 1/2) */
+$$("#fracChips .chip").forEach(c => c.addEventListener("click", () => {
+  const cur = parseAmt($("#amt").value), whole = cur ? Math.floor(cur + 1e-9) : 0;
+  $("#amt").value = whole ? `${whole} ${c.dataset.f}` : c.dataset.f;
+  render();
+}));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 재료별 무게는 King Arthur Baking 계량표 기준의 평균값이에요. 가루는 숟가락으로 떠서 컵에 담고 윗면을 깎는 방식 기준이라, 담는 방법·습도·제품에 따라 10% 넘게 달라질 수 있어요. 정확하게 하려면 저울로 재 주세요. 한국 레시피 1컵은 200ml, 미국 레시피 1컵은 약 237ml예요.<br>
+  우유·생크림은 부엌 계량 기준 평균값(미국 1컵 227g)이라 실제 무게보다 조금 가볍게 나와요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
