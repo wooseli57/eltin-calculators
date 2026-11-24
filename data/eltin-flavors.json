@@ -1,0 +1,22 @@
+{
+  "_about": "엘틴 향료 제품과 사용 기준 (R02·R04 공용). 사양: docs/specs/color-flavor-links.md 2절",
+  "_status": "빈 틀 — 제품·가격·링크는 엘틴 자료를 받으면 채워요. 바닐라 사용 기준은 사양(R04·color-flavor-links)에 적힌 상세페이지 기준이에요.",
+  "_fields": {
+    "id": "향료 id (주소 파라미터 flavor에 씀, 예: vanilla)",
+    "name": "제품 이름",
+    "form": "형태: extract(익스트랙) | essence(에센스) | oil(오일)",
+    "price": "가격 (원)",
+    "size": "용량 (향료는 ml 단위)",
+    "url": "쇼핑몰 상품 주소",
+    "usage": "사용 기준: [{ \"per\": 기준 재료, \"amount\": 기준 양, \"unit\": 단위, \"ml\": 넣는 양(ml) }]"
+  },
+  "products": [],
+  "vanillaStandard": {
+    "_source": "엘틴 퓨어 바닐라 익스트랙 상세페이지 사용 기준 (docs/specs/color-flavor-links.md 2절, R04.md)",
+    "usage": [
+      { "per": "밀가루", "amount": 125, "unit": "g", "ml": 5 },
+      { "per": "우유·생크림", "amount": 250, "unit": "ml", "ml": 5 },
+      { "per": "버터", "amount": 225, "unit": "g", "ml": 15 }
+    ]
+  }
+}

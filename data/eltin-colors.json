@@ -1,0 +1,17 @@
+{
+  "_about": "엘틴 색소 제품 데이터 (R01·G02·G03·G04·G05 공용). 사양: docs/specs/color-flavor-links.md 2절",
+  "_status": "빈 틀 — 엘틴 자료를 받으면 채워요. 목록이 비어 있으면 화면에 '엘틴 데이터 준비 중이에요'를 표시해요.",
+  "_fields": {
+    "id": "제품 id (주소 파라미터 color에 씀)",
+    "name": "제품 이름",
+    "color": "표시 색 코드 (#RRGGBB)",
+    "form": "형태: liquid(액상) | gel(젤) | powder(분말)",
+    "dropGrams": "1방울 무게 (g)",
+    "size": "용량 (색소는 g 단위)",
+    "price": "가격 (원)",
+    "bases": "쓸 수 있는 바탕 id 목록 (data/color-bases.json). 초콜릿처럼 물이 들어가면 안 되는 바탕은 빼요",
+    "dosage": "권장 사용량: 바탕 100g당 g, 농도 단계별 { \"1\": 연하게, \"2\": 보통, \"3\": 진하게 }",
+    "url": "쇼핑몰 상품 주소"
+  },
+  "products": []
+}
