@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="04">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R04 엘틴 레시피 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.summary{font-size:13px;color:var(--ink-2);margin-top:8px;line-height:1.6}
+#modeSeg button{font-size:13px;padding:10px 2px}
+.qbox .chips{margin-top:0}
+.qbox .hint{text-align:left}
+.ing span{min-width:0}
+.ing span small{display:block;font-size:12px;color:var(--ink-3);margin-top:1px}
+.ing b{text-align:right;white-space:nowrap;padding-left:10px}
+.ing b small{display:block;font-size:12px;font-weight:400;color:var(--ink-3)}
+.ing.eltin span:first-child,.ing.eltin b{color:var(--brand-dark)}
+.ing.eltin span a{color:var(--brand-dark);font-size:12px;font-weight:700;margin-left:4px}
+.links{background:#fff;border-radius:var(--radius-sm);padding:12px 14px;margin-top:8px;font-size:13px;color:var(--ink-2);line-height:1.6}
+.links+.links{margin-top:6px}
+.links .btn{display:block;width:100%;margin-top:8px;padding:10px;text-align:center;text-decoration:none}
+.btn.soon{background:var(--line);color:var(--ink-3);cursor:not-allowed}
+.steps{padding-left:20px;font-size:14px;color:var(--ink-2);line-height:1.7}
+.steps li+li{margin-top:4px}
+.fold-list{list-style:none;font-size:13px;color:var(--ink-2);line-height:1.7}
+.fold-list li+li{margin-top:6px}
+.result .fold{margin-top:8px}
+.btn-take{margin-top:8px;width:100%}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>엘틴 레시피 계산기</h1>
+      <p>엘틴 레시피를 고르고 개수, 배수, 틀 크기, 기준 재료 중 하나로 원하는 양을 정하면 재료와 색소·향료 양이 바로 바뀌어요. 마음에 드는 레시피는 내 레시피로 가져가서 고칠 수 있어요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="recipe">레시피</label>
+      <div class="input-wrap sel-wrap"><select id="recipe"><option>불러오는 중…</option></select></div>
+      <p class="summary" id="summary"></p>
+    </div>
+    <div class="field">
+      <label>얼마나 만들까요?</label>
+      <div class="seg" role="group" aria-label="양 정하는 방법" id="modeSeg" style="margin-bottom:10px">
+        <button type="button" data-mode="main" aria-pressed="true" id="mainBtn">개수</button>
+        <button type="button" data-mode="times" aria-pressed="false">배수</button>
+        <button type="button" data-mode="base" aria-pressed="false">기준 재료</button>
+      </div>
+      <div class="qbox" data-box="count">
+        <label for="count" id="countLabel" style="font-size:13px;color:var(--ink-2)">몇 개 만들까요?</label>
+        <div class="input-wrap"><input id="count" type="text" inputmode="decimal" autocomplete="off"><span class="unit" id="countUnit">개</span></div>
+      </div>
+      <div class="qbox" data-box="pan" hidden>
+        <div class="chips" id="panChips"></div>
+      </div>
+      <div class="qbox" data-box="amount" hidden>
+        <label for="amount" id="amountLabel" style="font-size:13px;color:var(--ink-2)">몇 g 만들까요?</label>
+        <div class="input-wrap"><input id="amount" type="text" inputmode="decimal" autocomplete="off"><span class="unit" id="amountUnit">g</span></div>
+      </div>
+      <div class="qbox" data-box="times" hidden>
+        <div class="input-wrap"><input id="times" type="text" inputmode="decimal" autocomplete="off" value="1.5"><span class="unit">배</span></div>
+        <div class="chips" id="timesChips" style="margin-top:10px">
+          <button class="chip" type="button" data-v="0.5">0.5배</button>
+          <button class="chip" type="button" data-v="1.5">1.5배</button>
+          <button class="chip" type="button" data-v="2">2배</button>
+          <button class="chip" type="button" data-v="3">3배</button>
+        </div>
+      </div>
+      <div class="qbox" data-box="base" hidden>
+        <div class="field-row">
+          <div><div class="input-wrap sm sel-wrap"><select id="baseSel" aria-label="기준 재료"></select></div></div>
+          <div><div class="input-wrap sm"><input id="baseAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="가진 양"><span class="unit" id="baseUnit">g</span></div></div>
+        </div>
+        <div class="hint">가진 재료 양에 맞춰 나머지를 계산해요. 예: 버터가 150g밖에 없을 때</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">레시피를 불러오는 중이에요</p></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R04 엘틴 레시피 계산기 — 사양: docs/specs/R04.md, docs/specs/color-flavor-links.md =====
+   레시피 데이터: data/eltin-recipes.json (원본 docs/recipes/eltin-recipes.md → tools/build-recipes.py로 생성)
+   색소·향료(바닐라 제외) 양은 여기서 계산하지 않고 R01·R02로 넘김. 바닐라는 레시피 양 × 배수만 */
+const DATA = { recipes: "data/eltin-recipes.json", bases: "data/color-bases.json", flavors: "data/eltin-flavors.json" };
+const { $, $$, num, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+const PANS = Eltin.pans;
+
+let RECIPES = [], BASE_NAMES = {}, VANILLA_URL = "";
+let recipe = null, mode = "main", panIdx = 1;
+
+const count = numInput($("#count"), render), amount = numInput($("#amount"), render);
+const times = numInput($("#times"), render), baseAmt = numInput($("#baseAmt"), render);
+$("#baseSel").addEventListener("change", () => { syncBaseUnit(); render(); });
+$("#recipe").addEventListener("change", () => selectRecipe($("#recipe").value, true));
+
+/* ---------- 양 표시 ---------- */
+const COUNT_UNITS = ["개", "장"];                             // 반올림해서 보여주는 개수 단위
+const fmtV = (v, u) => COUNT_UNITS.includes(u) ? num(v, 1) : num(v, v < 10 ? 1 : 0);
+const josaUl = w => /(g|잔)$/.test(w) ? "을" : /(ml|개|호|장)$/.test(w) ? "를" : Eltin.eun(w).endsWith("은") ? "을" : "를";
+function qty(ing, f){
+  const a = ing.amount, u = ing.unit;
+  if(a == null) return { text: ing.text || "적당량" };
+  if(Array.isArray(a)) return { text: `${fmtV(a[0] * f, u)}~${fmtV(a[1] * f, u)}${u}` };
+  const v = a * f;
+  if(ing.countPer){                                         // 달걀처럼 개수로 세는 재료: "2.5개 → 3개 (약 150g)"
+    const c = v / ing.countPer, r = Math.max(1, Math.round(c));
+    return Math.abs(c - r) < 0.05
+      ? { text: `${r}${ing.countUnit}`, sub: `${num(v, 0)}${u}` }
+      : { text: `${r}${ing.countUnit}`, sub: `${num(c, 1)}${ing.countUnit} → ${r}${ing.countUnit} (약 ${num(r * ing.countPer, 0)}${u})` };
+  }
+  if(COUNT_UNITS.includes(u)){
+    const r = Math.max(1, Math.round(v));
+    return Math.abs(v - r) < 0.05 ? { text: `${r}${u}` } : { text: `${r}${u}`, sub: `계산값 ${num(v, 1)}${u}` };
+  }
+  return { text: `${fmtV(v, u)}${u}` };
+}
+
+/* ---------- 배율 ---------- */
+const numeric = () => recipe.ingredients.map((g, i) => ({ g, i })).filter(({ g }) => typeof g.amount === "number");
+function factor(){
+  const b = recipe.base;
+  if(mode === "times") return times.value || null;
+  if(mode === "base"){
+    const ing = recipe.ingredients[$("#baseSel").value];
+    return ing && baseAmt.value ? baseAmt.value / ing.amount : null;
+  }
+  if(b.mode === "count") return count.value && b.amount ? count.value / b.amount : null;
+  if(b.mode === "pan"){                                     // 넓이 비율 (R06과 같은 틀 크기표)
+    const from = PANS.find(p => p.id === b.pan) || PANS[1];
+    return Math.pow(PANS[panIdx].diameter / from.diameter, 2);
+  }
+  return amount.value && b.amount ? amount.value / b.amount : null;
+}
+/* 결과 문장: 지금 만드는 양 */
+function makeText(f){
+  const b = recipe.base, n = recipe.name;
+  if(b.mode === "pan"){
+    if(mode === "main") return `${n} ${PANS[panIdx].name}${josaUl(PANS[panIdx].name)}`;
+    const from = PANS.find(p => p.id === b.pan) || PANS[1];
+    return `${n} ${from.name}의 ${num(f, 2)}배를`;
+  }
+  const v = b.amount * f, w = `${num(v, b.mode === "count" ? 1 : 0)}${b.unit}`;
+  return `${n} ${w}${josaUl(w)}`;
+}
+
+/* ---------- 화면 ---------- */
+function syncMode(){
+  const b = recipe.base;
+  const main = { count: "count", pan: "pan", weight: "amount", volume: "amount" }[b.mode];
+  $$("[data-box]").forEach(x => x.hidden = mode === "main" ? x.dataset.box !== main : x.dataset.box !== mode);
+  $$("#modeSeg button").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === mode));
+  $$("#timesChips .chip").forEach(c => c.setAttribute("aria-pressed", Number(c.dataset.v) === times.value));
+  $$("#panChips .chip").forEach(c => c.setAttribute("aria-pressed", Number(c.dataset.i) === panIdx));
+}
+function syncBaseUnit(){ const ing = recipe.ingredients[$("#baseSel").value]; $("#baseUnit").textContent = ing ? ing.unit : "g"; }
+
+function selectRecipe(id, push){
+  recipe = RECIPES.find(r => r.id === String(id)) || RECIPES[0];
+  $("#recipe").value = recipe.id;
+  const b = recipe.base;
+  $("#summary").innerHTML = `${recipe.audience ? `${recipe.audience} · ` : ""}기본 분량 ${b.label}${recipe.source ? `<br>출처: ${recipe.source}` : ""}`;
+  $("#mainBtn").textContent = { count: "개수", pan: "틀 크기", weight: "무게", volume: "부피" }[b.mode];
+  $("#countLabel").textContent = `몇 ${b.unit} 만들까요?`; $("#countUnit").textContent = b.unit;
+  $("#amountLabel").textContent = `몇 ${b.unit} 만들까요?`; $("#amountUnit").textContent = b.unit;
+  $("#count").value = b.mode === "count" ? b.amount : "";
+  $("#amount").value = b.mode === "weight" || b.mode === "volume" ? b.amount : "";
+  panIdx = Math.max(0, PANS.findIndex(p => p.id === (b.pan || "1")));
+  $("#baseSel").innerHTML = numeric().map(({ g, i }) => `<option value="${i}">${g.name} (${num(g.amount, 1)}${g.unit})</option>`).join("");
+  $("#baseAmt").value = ""; syncBaseUnit();
+  mode = "main";
+  if(push){ try{ history.replaceState(null, "", `?r=${recipe.id}${Eltin.isEmbed ? "&embed=1" : ""}`); }catch(e){} }
+  render();
+}
+
+function linkBox(kind, f){
+  const L = recipe[kind]; if(!L || !L.grams) return "";
+  const v = Math.round(L.grams * f), unitParam = L.unit === "ml" ? "ml" : "g";
+  const tag = kind === "color" ? "R01" : "R02", ok = Eltin.ready(tag);
+  const href = kind === "color"
+    ? `r01-color-dosage.html?base=${encodeURIComponent(L.base)}&${unitParam}=${v}&from=r04:${recipe.id}`
+    : `r02-flavor-dosage.html?${unitParam}=${v}&from=r04:${recipe.id}`;
+  const label = kind === "color" ? "이 양에 색 입히기" : "향 바꾸기";
+  const body = kind === "color"
+    ? `원하는 색을 내려면 <b>${L.where}</b> 넣어요. 바탕은 ${BASE_NAMES[L.base] || L.base}, 색 입힐 양은 약 <b>${num(v, 0)}${L.unit}</b>${L.unit === "ml" ? "예요" : "이에요"}${L.note ? ` (${L.note})` : ""}.`
+    : `다른 향(${L.label})으로 바꾸려면 <b>${L.where}</b> 넣어요. 향 입힐 양은 약 <b>${num(v, 0)}${L.unit}</b>${L.unit === "ml" ? "예요" : "이에요"}.`;
+  return `<div class="links">${body}
+    ${ok ? `<a class="btn btn-primary" href="${href}" target="_top">${label}</a>`
+         : `<span class="btn soon" aria-disabled="true">${label} · 준비 중</span>`}</div>`;
+}
+
+function render(){
+  if(!recipe) return;
+  syncMode();
+  const f = factor();
+  if(!f || f <= 0){ $("#result").innerHTML = `<p class="empty">${mode === "base" ? "기준 재료의 가진 양을 넣어주세요" : "만들 양을 넣어주세요"}</p>`; postHeight(); return; }
+
+  const rows = recipe.ingredients.map(g => {
+    const q = qty(g, f), el = g.eltin === "vanilla";
+    return `<div class="row ing${el ? " eltin" : ""}"><span>${g.name}${el && VANILLA_URL ? `<a href="${VANILLA_URL}" target="_top">쇼핑몰 ›</a>` : ""}${g.note ? `<small>${g.note}</small>` : ""}</span><b>${q.text}${q.sub ? `<small>${q.sub}</small>` : ""}</b></div>`;
+  }).join("");
+  const fold = (title, items, ordered) => items.length ? `<details class="fold"><summary>${title}</summary><div class="fold-body">
+    ${ordered ? `<ol class="steps">${items.map(s => `<li>${s}</li>`).join("")}</ol>` : `<ul class="fold-list">${items.map(s => `<li>${s}</li>`).join("")}</ul>`}</div></details>` : "";
+
+  $("#result").innerHTML = `
+    <p class="lead">${makeText(f)} 만들려면</p>
+    <p class="big">${num(f, 2)}<small>배</small></p>
+    <div class="rows">${rows}</div>
+    ${linkBox("color", f)}${linkBox("flavor", f)}
+    ${fold("만드는 법", recipe.steps, true)}${fold("팁", recipe.tips)}${fold("주의", recipe.cautions)}
+    <button type="button" class="btn btn-ghost btn-take" id="take">내 레시피로 가져가기 (R03)</button>
+    ${ACTIONS}`;
+  $$("#result details").forEach(d => d.addEventListener("toggle", postHeight));
+  $("#take").onclick = () => takeToR03(f);
+  bindActions(`[엘틴 레시피] ${makeText(f).replace(/[을를]$/, "")} (${num(f, 2)}배): ${recipe.ingredients.map(g => `${g.name} ${qty(g, f).text}`).join(", ")}`,
+    () => selectRecipe(recipe.id));
+  postHeight();
+}
+
+/* 내 레시피로 가져가기: 지금 재료와 양을 R03으로 (sessionStorage, 실패해도 R03은 빈 레시피로 열림) */
+function takeToR03(f){
+  const rows = recipe.ingredients.filter(g => g.amount != null).map(g => {
+    const a = Array.isArray(g.amount) ? g.amount[0] : g.amount;
+    const u = g.unit === "g" || g.unit === "ml" ? g.unit : "개";
+    const extra = Array.isArray(g.amount) ? ` (${fmtV(g.amount[0] * f, g.unit)}~${fmtV(g.amount[1] * f, g.unit)}${g.unit})` : u === "개" && g.unit !== "개" ? ` (${g.unit})` : "";
+    return { name: g.name + extra, amt: Math.round(a * f * 10) / 10, u };
+  });
+  const cnt = recipe.base.mode === "count" ? Math.round(recipe.base.amount * f * 10) / 10 : null;
+  try{ sessionStorage.setItem("eltin-r03-import", JSON.stringify({ from: `r04:${recipe.id}`, rows, count: cnt })); }catch(e){}
+  window.open(`r03-my-recipe.html?from=r04${Eltin.isEmbed ? "&embed=1" : ""}`, "_top");
+}
+
+/* ---------- 입력 연결 ---------- */
+$("#panChips").innerHTML = PANS.map((p, i) => `<button class="chip" type="button" data-i="${i}">${p.name}</button>`).join("");
+$$("#panChips .chip").forEach(c => c.addEventListener("click", () => { panIdx = Number(c.dataset.i); render(); }));
+$$("#timesChips .chip").forEach(c => c.addEventListener("click", () => times.set(c.dataset.v)));
+$$("#modeSeg button").forEach(b => b.addEventListener("click", () => { mode = b.dataset.mode; render(); }));
+
+$("#note").innerHTML = `<b>계산 기준</b> · 모든 재료에 같은 배율을 곱해요. 틀 크기는 넓이 비율, 개수로 세는 재료(달걀 등)는 반올림하고 무게도 함께 보여줘요.<br>
+  기본 분량은 엘틴 테스트 기준이며, 오븐·재료 상태에 따라 굽는 시간과 수율이 달라질 수 있어요.<br>
+  바닐라는 달걀·유제품의 잡내를 잡기 위한 표준 양이에요. 엘틴 퓨어 바닐라 익스트랙 사용 기준(밀가루 125g·우유 250ml당 1tsp, 버터 225g당 3tsp)<br>
+  색을 입히면 바탕색에 따라 색이 달라질 수 있어요 (버터크림은 노란빛).<span id="alcohol"></span>`;
+
+/* ---------- 데이터 불러오기 ---------- */
+const getJSON = url => fetch(url).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
+Promise.all([getJSON(DATA.recipes), getJSON(DATA.bases).catch(() => null), getJSON(DATA.flavors).catch(() => null)])
+  .then(([rec, bases, flavors]) => {
+    RECIPES = rec.recipes || [];
+    (bases?.bases || []).forEach(b => BASE_NAMES[b.id] = b.name);
+    VANILLA_URL = (flavors?.products || []).find(p => p.id === "vanilla")?.url || "";
+    if(!RECIPES.length) throw new Error("empty");
+    $("#recipe").innerHTML = RECIPES.map(r => `<option value="${r.id}">${r.id}. ${r.name}</option>`).join("");
+    const want = new URLSearchParams(location.search).get("r");
+    selectRecipe(RECIPES.some(r => r.id === want) ? want : RECIPES[0].id);
+    syncAlcohol();
+    $("#recipe").addEventListener("change", syncAlcohol);
+  })
+  .catch(() => { $("#result").innerHTML = '<p class="empty">레시피를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p>'; postHeight(); });
+
+/* 바닐라 익스트랙은 알코올 함유 → 해당 레시피에 섭취 주의 문구 (엘틴 마케팅 규칙 5-2) */
+function syncAlcohol(){
+  $("#alcohol").innerHTML = recipe && recipe.ingredients.some(g => g.eltin === "vanilla")
+    ? "<br>엘틴 퓨어 바닐라 익스트랙은 알코올을 함유해요. 어린이, 임산부, 알코올에 민감한 분은 섭취에 주의하세요." : "";
+  postHeight();
+}
+
+Eltin.init();
+</script>
+</body>
+</html>
