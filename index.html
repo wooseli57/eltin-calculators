@@ -10,9 +10,12 @@
 <style>
 .jump{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
 .jump::-webkit-scrollbar{display:none}
-.jump a{flex:none;text-decoration:none;font-size:13px;font-weight:700;color:var(--brand-dark);background:var(--brand-soft);
+.jump button{flex:none;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--brand-dark);background:var(--brand-soft);
   border-radius:999px;padding:6px 12px;white-space:nowrap}
+.jump button.on{color:#fff;background:var(--brand-dark)}
+.jump button.all{--brand:#5F6B7A;--brand-dark:#4A5562;--brand-soft:#E6E9ED}
 .cat{scroll-margin-top:12px}
+.cat[hidden]{display:none}
 .cat-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
 .cat-head h2{font-size:17px;font-weight:800;color:var(--brand-dark)}
 .cat-head h2::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--brand);margin-right:7px;vertical-align:2px}
@@ -61,7 +64,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 function draw(d){
   const done = d.calculators.filter(c => c.status === "완료").length;
-  $("#jump").innerHTML = d.categories.map(g => `<a data-cat="${g.cat}" href="#cat-${g.cat}">${esc(g.name)}</a>`).join("");
+  /* 분류 칩 = 필터 (아임웹 iframe 안에서는 #앵커로 스크롤이 안 되므로 해당 분류만 보여주는 방식) */
+  $("#jump").innerHTML = `<button type="button" class="all on" data-f="">전체</button>`
+    + d.categories.map(g => `<button type="button" data-cat="${g.cat}" data-f="${g.cat}">${esc(g.name)}</button>`).join("");
   $("#cats").innerHTML = d.categories.map(g => {
     const list = d.calculators.filter(c => c.cat === g.cat);
     const ok = list.filter(c => c.status === "완료").length;
@@ -74,6 +79,18 @@ function draw(d){
     </section>`;
   }).join("");
   $(".calc-head p").textContent = `카페·베이커리 사장님을 위한 무료 계산기 ${done}개예요. 필요한 계산기를 골라 보세요`;
+  $("#jump").addEventListener("click", e => {
+    const b = e.target.closest("button"); if(!b) return;
+    const f = b.dataset.f;
+    document.querySelectorAll("#jump button").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll("#cats .cat").forEach(s => { s.hidden = !!f && s.dataset.cat !== f; });
+    try { history.replaceState(null, "", location.pathname + location.search + (f ? "#" + f : "")); } catch(_){}
+    postHeight();
+  });
+  /* 주소 끝 #S 처럼 분류를 붙이면 그 분류만 보여줌 (블로그·아임웹 메뉴 연결용) */
+  const start = (location.hash || "").replace("#", "").toUpperCase();
+  const sb = start && document.querySelector(`#jump button[data-f="${start}"]`);
+  if(sb) sb.click();
   postHeight();
 }
 
