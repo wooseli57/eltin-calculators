@@ -78,7 +78,7 @@ R02·R03·G 계산기를 만들 때와 R01의 연결 버튼을 만들 때 이 �
 | 받는 곳 | 주소 예 | 파라미터 |
 |---|---|---|
 | R02 | `r02-color-dosage.html?base=buttercream&g=500&color=pastel-pink&level=2` | `base` 바탕 id, `g`(음료는 `ml`), `color` 제품 id 또는 인기 색 id, `level` 1 연하게·2 보통·3 진하게, `from` 보낸 계산기(예: `r01:2`) |
-| R03 | `r03-flavor-dosage.html?g=410&flavor=lemon` | `g` 또는 `ml`, `flavor`, `from` |
+| R03 | `r03-flavor-dosage.html?g=410&flour=100&butter=100&egg=2&from=r01:8` | `g` 또는 `ml`, `flavor`, `from`, 재료 양 `flour`(g)·`milk`(ml)·`butter`(g)·`egg`(개) — R01이 지금 분량 기준으로 넘기면 R03 입력칸을 채움 (2026-11-25 결정) |
 | G02 | `g02-color-match.html?c=pastel-pink` | `c` 인기 색 id |
 | G05 | `g05-clay-match.html?c=mint&g=100` | `c` 인기 색 id, `g` 클레이 무게 |
 

@@ -188,13 +188,29 @@ function selectRecipe(id, push){
   render();
 }
 
+/* R03 "향 바꾸기"에 넘길 재료 양 (R03 입력칸: 밀가루 g·우유/생크림 ml·버터 g·달걀 개). 지금 분량 기준.
+   이름으로 고름: 박력분·중력분·강력분은 밀가루, 우유·생크림은 우유(g ≈ ml), 버터(버터크림 제외), 달걀(흰자·노른자 제외, 개수로) */
+const FLAVOR_INPUTS = [["flour", /박력분|중력분|강력분|밀가루/], ["milk", /우유|생크림/], ["butter", /버터(?!크림)/], ["egg", /^달걀(?!흰자|노른자)/]];
+function flavorParams(f){
+  const sum = {};
+  recipe.ingredients.forEach(g => {
+    if(typeof g.amount !== "number") return;
+    const hit = FLAVOR_INPUTS.find(([, re]) => re.test(g.name)); if(!hit) return;
+    const k = hit[0];
+    if(k === "egg"){ if(!g.countPer) return; sum.egg = (sum.egg || 0) + g.amount * f / g.countPer; return; }
+    if(g.unit !== "g" && g.unit !== "ml") return;
+    sum[k] = (sum[k] || 0) + g.amount * f;
+  });
+  return Object.entries(sum).map(([k, v]) => `&${k}=${Math.round(v * 10) / 10}`).join("");
+}
+
 function linkBox(kind, f){
   const L = recipe[kind]; if(!L || !L.grams) return "";
   const v = Math.round(L.grams * f), unitParam = L.unit === "ml" ? "ml" : "g";
   const tag = kind === "color" ? "R02" : "R03", ok = Eltin.ready(tag);
   const href = kind === "color"
     ? `r02-color-dosage.html?base=${encodeURIComponent(L.base)}&${unitParam}=${v}&from=r01:${recipe.id}`
-    : `r03-flavor-dosage.html?${unitParam}=${v}&from=r01:${recipe.id}`;
+    : `r03-flavor-dosage.html?${unitParam}=${v}${flavorParams(f)}&from=r01:${recipe.id}`;
   const label = kind === "color" ? "이 양에 색 입히기" : "향 바꾸기";
   const body = kind === "color"
     ? `원하는 색을 내려면 <b>${L.where}</b> 넣어요. 바탕은 ${BASE_NAMES[L.base] || L.base}, 색 입힐 양은 약 <b>${num(v, 0)}${L.unit}</b>${L.unit === "ml" ? "예요" : "이에요"}${L.note ? ` (${L.note})` : ""}.`

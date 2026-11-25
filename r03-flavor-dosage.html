@@ -208,10 +208,16 @@ function backLink(){
   const m = from.match(/^r01:(\w+)$/);
   return m ? `<p class="back"><a href="r01-eltin-recipe.html?r=${m[1]}${Eltin.isEmbed ? "&embed=1" : ""}">← 레시피로 돌아가기</a></p>` : "";
 }
+/* R01이 넘긴 재료 양(flour·milk·butter·egg)이 있으면 입력칸을 채움. 하나도 없으면 기본값 그대로 */
+const PASSED = ["flour", "milk", "butter", "egg"].filter(k => Number(params.get(k)) > 0);
+if(PASSED.length) ins.forEach(i => { const v = Number(params.get(i.per)); i.el.value = v > 0 ? String(v) : ""; });
 function fromNote(){
   const g = Number(params.get("g")), ml = Number(params.get("ml"));
-  if(!from.startsWith("r01:") || !(g || ml)) return "";
-  return `<p class="from">엘틴 레시피에서 넘어왔어요 · 향 입힐 양 약 <b>${num(g || ml, 0)}${g ? "g" : "ml"}</b>. 레시피의 밀가루·우유·버터·달걀 양을 아래에 넣어 주세요.</p>`;
+  if(!from.startsWith("r01:")) return "";
+  const amt = g || ml ? ` · 향 입힐 양 약 <b>${num(g || ml, 0)}${g ? "g" : "ml"}</b>` : "";
+  return PASSED.length
+    ? `<p class="from">엘틴 레시피에서 넘어왔어요${amt}. 레시피의 재료 양을 아래에 채웠어요.</p>`
+    : `<p class="from">엘틴 레시피에서 넘어왔어요${amt}. 레시피의 밀가루·우유·버터·달걀 양을 아래에 넣어 주세요.</p>`;
 }
 
 function render(){
