@@ -1,28 +1,87 @@
 {
-  "_about": "엘틴 향료 제품과 사용 기준 (R03·R01 공용). 사양: docs/specs/color-flavor-links.md 2·3절",
-  "_status": "형식만 있는 빈 틀 — 가격·링크·다른 향료는 엘틴 자료를 받으면 채워요. dropMl·spoonMl·바닐라 익스트랙 밀도와 바닐라 사용 기준은 확정된 값이에요.",
+  "_about": "엘틴 향료 제품과 사용 기준 (R03 향료 사용량·R01 엘틴 레시피 공용). 사양: docs/specs/R03.md 3절, docs/specs/color-flavor-links.md 2·3절",
+  "_status": "바닐라 익스트랙 1종이 채워져 있어요. 다른 향료는 products에 같은 형식으로 추가하면 R03 선택 목록·계산·단위 변환에 자동으로 나타나요.",
   "dropMl": 0.04,
   "_dropMl": "1방울 부피(ml), 색소와 같은 기준 (사용자 결정 2026-11-24). 엘틴이 실측하면 이 값만 바꿔요",
-  "spoonMl": { "tsp": 5, "Tbsp": 15 },
+  "spoonMl": {
+    "tsp": 5,
+    "Tbsp": 15
+  },
   "_spoonMl": "계량 표준",
   "_fields": {
     "id": "향료 id (주소 파라미터 flavor에 씀, 예: vanilla)",
     "name": "제품 이름",
     "density": "밀도(g/ml) — 방울·ml ↔ g 변환에 씀",
-    "price": "가격 (원)",
-    "size": "용량 (향료는 ml 단위)",
     "url": "쇼핑몰 상품 주소",
-    "usage": "사용 기준: [{ \"per\": 기준 재료, \"amount\": 기준 양, \"unit\": 단위, \"ml\": 넣는 양(ml) }]"
+    "sizes": "용량별 가격: [{ \"ml\": 용량, \"price\": 원 }] — 1회 비용 계산에 씀",
+    "usage": "사용 기준: [{ \"per\": 입력 id(flour·milk·butter·egg), \"label\": 화면 이름, \"amount\": 기준 양, \"unit\": 단위, \"ml\": 넣는 양(ml), \"fallbackOnly\": true면 다른 재료가 하나도 없을 때만 씀 }]",
+    "substitutes": "대체 비율: [{ \"label\": \"바닐라빈 1개\", \"ml\": 익스트랙 ml }]",
+    "cautions": "화면 계산 기준 끝에 보여줄 주의 문구"
   },
   "products": [
-    { "id": "vanilla", "name": "엘틴 퓨어 바닐라 익스트랙", "density": 0.93, "_density": "엘틴 제공 (1방울 = 0.04ml × 0.93 = 0.0372g)", "price": null, "size": null, "url": "", "usage": [] }
-  ],
-  "vanillaStandard": {
-    "_source": "엘틴 퓨어 바닐라 익스트랙 상세페이지 사용 기준 (docs/specs/color-flavor-links.md 3절, R01.md)",
-    "usage": [
-      { "per": "밀가루", "amount": 125, "unit": "g", "ml": 5 },
-      { "per": "우유·생크림", "amount": 250, "unit": "ml", "ml": 5 },
-      { "per": "버터", "amount": 225, "unit": "g", "ml": 15 }
-    ]
-  }
+    {
+      "id": "vanilla",
+      "name": "엘틴 퓨어 바닐라 익스트랙",
+      "density": 0.93,
+      "_density": "엘틴 제공 (1방울 = 0.04ml × 0.93 = 0.0372g)",
+      "url": "https://eltin.imweb.me/shop_view/?idx=169",
+      "sizes": [
+        {
+          "ml": 60,
+          "price": 10900
+        },
+        {
+          "ml": 300,
+          "price": 49000
+        },
+        {
+          "ml": 1000,
+          "price": 150500
+        }
+      ],
+      "_sizes": "아임웹 상품 옵션 가격 (M 60ml 10,900원 / 300ml 49,000원 / 1000ml 150,500원, 2026-11-24 확인). U·PX도 같은 사용 기준, 가격이 다르면 sizes를 제품별로 나눔",
+      "usage": [
+        {
+          "per": "flour",
+          "label": "밀가루",
+          "amount": 125,
+          "unit": "g",
+          "ml": 5
+        },
+        {
+          "per": "milk",
+          "label": "우유·생크림",
+          "amount": 250,
+          "unit": "ml",
+          "ml": 5
+        },
+        {
+          "per": "butter",
+          "label": "버터",
+          "amount": 225,
+          "unit": "g",
+          "ml": 15
+        },
+        {
+          "per": "egg",
+          "label": "달걀",
+          "amount": 1,
+          "unit": "개",
+          "ml": 15,
+          "fallbackOnly": true
+        }
+      ],
+      "_usage": "엘틴 퓨어 바닐라 익스트랙 상세페이지 '엘틴 퓨어 바닐라익스트랙 사용 기준' 표 (2026-11-24 확인)",
+      "substitutes": [
+        {
+          "label": "바닐라빈 1개",
+          "ml": 45
+        }
+      ],
+      "_substitutes": "상세페이지 '완벽한 대체 비율' — 바닐라빈 1개 = 익스트랙 3 Tbsp",
+      "cautions": [
+        "알코올이 들어 있어요. 굽지 않는 음료나 아이 간식에 넣을 때는 양을 줄이거나 바닐라 에센스를 고려하세요."
+      ]
+    }
+  ]
 }

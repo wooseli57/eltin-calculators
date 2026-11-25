@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R03 향료 사용량 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+#tabSeg button{font-size:13px;padding:10px 2px}
+.from{font-size:13px;color:var(--ink-2);background:var(--brand-faint);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;line-height:1.6}
+.from a,.back a{color:var(--brand-dark);font-weight:700}
+.back{font-size:13px;text-align:center;margin-top:10px}
+.row.on span:first-child,.row.on b{color:var(--brand-dark);font-weight:700}
+.row small{display:block;font-size:12px;color:var(--ink-3);font-weight:400}
+.row span small{text-align:left}
+.row b small{text-align:right}
+.levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+.levels div{background:#fff;border-radius:var(--radius-sm);padding:8px 4px;text-align:center;font-size:12px;color:var(--ink-2)}
+.levels div b{display:block;font-size:15px;color:var(--ink);margin-top:2px}
+.levels div.on{outline:1.5px solid var(--brand)}
+.levels div.on b{color:var(--brand-dark)}
+.amt-row{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:8px}
+.cost-label{font-size:13px;color:var(--ink-2);margin:14px 0 6px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>향료 사용량 계산기</h1>
+      <p>향료를 고르고 밀가루·우유·버터·달걀 양을 넣으면 권장 사용량과 비용을 알려줘요. 바닐라빈을 익스트랙으로 바꾸는 양과 방울·tsp·Tbsp·ml·g 변환도 해줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="fromBox"></div>
+    <div class="field">
+      <label>향료</label>
+      <div class="chips" id="flavorChips" style="margin-top:0"><span class="hint">불러오는 중…</span></div>
+    </div>
+    <div class="field">
+      <div class="seg" role="group" aria-label="계산 방식" id="tabSeg" style="margin-bottom:0">
+        <button type="button" data-tab="ing" aria-pressed="true">재료 양으로</button>
+        <button type="button" data-tab="bean" aria-pressed="false">바닐라빈 바꾸기</button>
+        <button type="button" data-tab="unit" aria-pressed="false">단위 바꾸기</button>
+      </div>
+    </div>
+
+    <div data-tab-box="ing">
+      <div class="field-row">
+        <div class="field"><label for="in-flour">밀가루</label>
+          <div class="input-wrap sm"><input id="in-flour" data-per="flour" type="text" inputmode="decimal" autocomplete="off" value="250"><span class="unit">g</span></div></div>
+        <div class="field"><label for="in-milk">우유·생크림</label>
+          <div class="input-wrap sm"><input id="in-milk" data-per="milk" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">ml</span></div></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="in-butter">버터</label>
+          <div class="input-wrap sm"><input id="in-butter" data-per="butter" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">g</span></div></div>
+        <div class="field"><label for="in-egg">달걀</label>
+          <div class="input-wrap sm"><input id="in-egg" data-per="egg" type="text" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">개</span></div></div>
+      </div>
+    </div>
+    <div data-tab-box="bean" hidden>
+      <div class="field">
+        <label for="beans">레시피의 바닐라빈</label>
+        <div class="input-wrap"><input id="beans" type="text" inputmode="decimal" autocomplete="off" value="1"><span class="unit">개</span></div>
+      </div>
+    </div>
+    <div data-tab-box="unit" hidden>
+      <div class="field">
+        <label for="uAmt">양</label>
+        <div class="amt-row">
+          <div class="input-wrap"><input id="uAmt" type="text" inputmode="decimal" autocomplete="off" value="1"></div>
+          <div class="input-wrap sel-wrap"><select id="uUnit" aria-label="단위">
+            <option value="drop">방울</option><option value="ml">ml</option><option value="tsp" selected>tsp</option><option value="Tbsp">Tbsp</option><option value="g">g</option>
+          </select></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="costBox">
+      <p class="cost-label">비용 계산 용량</p>
+      <div class="chips" id="sizeChips" style="margin-top:0"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">향료 데이터를 불러오는 중이에요</p></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== R03 향료 사용량 계산기 — 사양: docs/specs/R03.md, 단위 기준: docs/specs/color-flavor-links.md 2절 =====
+   향료 목록·사용 기준·가격·대체 비율·방울 기준은 모두 data/eltin-flavors.json에서 읽음 (여기에 수치를 적지 않음).
+   다른 향료는 그 파일 products에 같은 형식으로 추가하면 선택 목록에 자동으로 나타남 */
+const DATA_URL = "data/eltin-flavors.json";
+const { $, $$, won, num, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
+
+let D = null, P = null, tab = "ing", sizeIdx = 0;
+const params = new URLSearchParams(location.search);
+const ins = [...$$("[data-per]")].map(el => ({ el, per: el.dataset.per, input: numInput(el, render) }));
+const beans = numInput($("#beans"), render), uAmt = numInput($("#uAmt"), render);
+$("#uUnit").addEventListener("change", render);
+
+const short = p => p.name.replace(/^엘틴\s*(퓨어\s*)?/, "");
+/* 단위 변환: ml 기준으로 방울·tsp·Tbsp·g */
+function units(ml){
+  return { drop: ml / D.dropMl, ml, tsp: ml / D.spoonMl.tsp, Tbsp: ml / D.spoonMl.Tbsp, g: ml * P.density };
+}
+const fmtU = {
+  drop: v => `${won(v)}방울`, ml: v => `${num(v, 2)}ml`, tsp: v => `${num(v, 2)}tsp`, Tbsp: v => `${num(v, 2)}Tbsp`, g: v => `${v.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}g`
+};
+const tspKo = ml => `${num(ml / D.spoonMl.tsp, 1)}작은술`, tbspKo = ml => `${num(ml / D.spoonMl.Tbsp, 1)}큰술`;
+function unitRows(ml, skip){
+  const u = units(ml);
+  return ["ml", "tsp", "Tbsp", "drop", "g"].filter(k => k !== skip).map(k => `<div class="row"><span>${{ ml: "ml", tsp: "tsp (작은술)", Tbsp: "Tbsp (큰술)", drop: "방울", g: "g (무게)" }[k]}</span><b>${fmtU[k](u[k])}</b></div>`).join("");
+}
+function costRow(ml){
+  const s = P.sizes && P.sizes[sizeIdx]; if(!s) return "";
+  return `<div class="row total"><span>1회 비용 (${s.ml}ml ${won(s.price)}원 기준)</span><b>약 ${won(s.price / s.ml * ml)}원</b></div>`;
+}
+
+/* ---------- 탭 ① 재료 양으로 ----------
+   재료마다 기준량 비례 계산 → 밀가루·우유/생크림·버터 중 가장 큰 값 (더하지 않음).
+   달걀(fallbackOnly)은 다른 재료가 하나도 없을 때만 씀, 함께 넣으면 참고로만 표시 */
+function renderIng(){
+  const usage = P.usage || [];
+  const lines = usage.map(u => {
+    const it = ins.find(i => i.per === u.per); const v = it ? it.input.value : 0;
+    return { u, v, ml: v ? v / u.amount * u.ml : 0 };
+  });
+  const main = lines.filter(l => !l.u.fallbackOnly && l.ml > 0);
+  const fb = lines.filter(l => l.u.fallbackOnly && l.ml > 0);
+  const pool = main.length ? main : fb;
+  if(!pool.length) return empty("재료 양을 하나 이상 넣어주세요");
+  const basis = pool.reduce((a, b) => b.ml > a.ml ? b : a);
+  const ml = basis.ml;
+  $("#result").innerHTML = `
+    <p class="lead">${Eltin.eun(short(P))} ${num(ml, 1)}ml(${tspKo(ml)}) 넣으세요</p>
+    <p class="big">${num(ml, 1)}<small>ml</small></p>
+    <div class="rows">
+      ${lines.filter(l => l.v).map(l => {
+        const ref = l.u.fallbackOnly && main.length;
+        return `<div class="row ${l === basis ? "on" : ""}"><span>${l.u.label} ${num(l.v, 1)}${l.u.unit}<small>${l.u.amount}${l.u.unit}당 ${l.u.ml}ml${l === basis ? " · 이 재료 기준" : ""}</small></span>
+          <b>${num(l.ml, 1)}ml${ref ? `<small>달걀 잡내를 더 잡고 싶으면 이 양까지 늘려도 돼요</small>` : ""}</b></div>`;
+      }).join("")}
+    </div>
+    <div class="levels">
+      <div>은은하게<b>${num(ml * 0.5, 1)}ml</b></div>
+      <div class="on">표준<b>${num(ml, 1)}ml</b></div>
+      <div>진하게<b>${num(ml * 1.5, 1)}ml</b></div>
+    </div>
+    <div class="rows" style="margin-top:8px">${unitRows(ml, "ml")}${costRow(ml)}</div>
+    ${backLink()}
+    ${ACTIONS}`;
+  bindActions(`[향료 사용량] ${P.name}: ${lines.filter(l => l.v).map(l => `${l.u.label} ${num(l.v, 1)}${l.u.unit}`).join(", ")} → ${num(ml, 1)}ml(${tspKo(ml)}, 약 ${won(units(ml).drop)}방울, ${num(units(ml).g, 2)}g) · 은은하게 ${num(ml * 0.5, 1)}ml ~ 진하게 ${num(ml * 1.5, 1)}ml`,
+    () => { ins.forEach(i => i.input.set(i.per === "flour" ? 250 : "")); });
+}
+
+/* ---------- 탭 ② 바닐라빈 바꾸기: 대체 비율(substitutes) × 개수 ---------- */
+function renderBean(){
+  const sub = (P.substitutes || [])[0];
+  if(!sub) return empty("이 향료는 대체 비율 자료가 없어요");
+  const n = beans.value; if(!n) return empty("바닐라빈 개수를 넣어주세요");
+  const ml = sub.ml * n, what = sub.label.replace(/\s*1개$/, "");
+  $("#result").innerHTML = `
+    <p class="lead">${what} ${num(n, 1)}개 대신 ${short(P)} ${num(ml, 1)}ml(${tbspKo(ml)})를 넣으세요</p>
+    <p class="big">${num(ml, 1)}<small>ml</small></p>
+    <div class="rows">
+      <div class="row on"><span>${sub.label} = ${sub.ml}ml</span><b>× ${num(n, 1)}</b></div>
+      ${unitRows(ml, "ml")}${costRow(ml)}
+    </div>
+    ${backLink()}
+    ${ACTIONS}`;
+  bindActions(`[바닐라빈 바꾸기] ${what} ${num(n, 1)}개 = ${P.name} ${num(ml, 1)}ml (${tbspKo(ml)}, 약 ${won(units(ml).drop)}방울, ${num(units(ml).g, 2)}g)`,
+    () => beans.set(1));
+}
+
+/* ---------- 탭 ③ 단위 바꾸기: 방울 0.04ml, tsp 5ml, Tbsp 15ml, 밀도(g/ml) ---------- */
+function renderUnit(){
+  const a = uAmt.value, k = $("#uUnit").value;
+  if(!a) return empty("양을 넣어주세요");
+  const ml = k === "drop" ? a * D.dropMl : k === "tsp" ? a * D.spoonMl.tsp : k === "Tbsp" ? a * D.spoonMl.Tbsp : k === "g" ? a / P.density : a;
+  const u = units(ml), name = { drop: "방울", ml: "ml", tsp: "tsp", Tbsp: "Tbsp", g: "g" }[k];
+  $("#result").innerHTML = `
+    <p class="lead">${short(P)} ${num(a, 2)}${name}${k === "ml" || k === "tsp" || k === "Tbsp" ? "는" : "은"}</p>
+    <p class="big">${k === "ml" ? `${num(u.g, 2)}<small>g</small>` : `${num(ml, 2)}<small>ml</small>`}</p>
+    <div class="rows">${unitRows(ml, k)}${costRow(ml)}</div>
+    ${backLink()}
+    ${ACTIONS}`;
+  bindActions(`[향료 단위 변환] ${P.name} ${num(a, 2)}${name} = ${fmtU.ml(u.ml)} · ${fmtU.tsp(u.tsp)} · ${fmtU.Tbsp(u.Tbsp)} · ${fmtU.drop(u.drop)} · ${fmtU.g(u.g)}`,
+    () => { uAmt.set(1); $("#uUnit").value = "tsp"; render(); });
+}
+
+function empty(msg){ $("#result").innerHTML = `<p class="empty">${msg}</p>${backLink()}`; postHeight(); }
+
+/* 다른 계산기에서 넘어왔을 때(from=r01:<id>): 받은 양을 보여주고 돌아가기 링크 */
+const from = params.get("from") || "";
+function backLink(){
+  const m = from.match(/^r01:(\w+)$/);
+  return m ? `<p class="back"><a href="r01-eltin-recipe.html?r=${m[1]}${Eltin.isEmbed ? "&embed=1" : ""}">← 레시피로 돌아가기</a></p>` : "";
+}
+function fromNote(){
+  const g = Number(params.get("g")), ml = Number(params.get("ml"));
+  if(!from.startsWith("r01:") || !(g || ml)) return "";
+  return `<p class="from">엘틴 레시피에서 넘어왔어요 · 향 입힐 양 약 <b>${num(g || ml, 0)}${g ? "g" : "ml"}</b>. 레시피의 밀가루·우유·버터·달걀 양을 아래에 넣어 주세요.</p>`;
+}
+
+function render(){
+  if(!P) return;
+  $$("#flavorChips .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.id === P.id));
+  $$("#sizeChips .chip").forEach(c => c.setAttribute("aria-pressed", Number(c.dataset.i) === sizeIdx));
+  $$("[data-tab-box]").forEach(b => b.hidden = b.dataset.tabBox !== tab);
+  $("#costBox").hidden = !(P.sizes && P.sizes.length);
+  ({ ing: renderIng, bean: renderBean, unit: renderUnit })[tab]();
+  postHeight();
+}
+
+function selectFlavor(id){
+  P = D.products.find(p => p.id === id) || D.products[0];
+  $("#sizeChips").innerHTML = (P.sizes || []).map((s, i) => `<button class="chip" type="button" data-i="${i}">${s.ml >= 1000 ? `${num(s.ml / 1000, 1)}L` : `${s.ml}ml`} · ${won(s.price)}원</button>`).join("");
+  $$("#sizeChips .chip").forEach(c => c.addEventListener("click", () => { sizeIdx = Number(c.dataset.i); render(); }));
+  sizeIdx = 0;
+  const beanBtn = $('#tabSeg [data-tab="bean"]');
+  beanBtn.hidden = !(P.substitutes && P.substitutes.length);
+  if(beanBtn.hidden && tab === "bean") tab = "ing";
+  $("#note").innerHTML = `<b>계산 기준</b> · 사용량은 ${P.name} 상세페이지의 사용 기준이에요. 취향과 레시피에 따라 조절하세요.<br>
+    여러 재료가 함께 들어가면 가장 많이 필요한 재료 하나를 기준으로 계산했어요. 재료별 양을 모두 더하면 향이 지나치게 강해져요.<br>
+    1방울은 ${D.dropMl}ml로 계산했어요 (${short(P)} 1방울 약 ${num(D.dropMl * P.density, 3)}g). 병 입구 모양, 온도, 병을 기울이는 각도, 남은 양에 따라 방울 크기가 달라질 수 있으니 참고용으로 쓰시고, 정확하게 하려면 계량스푼이나 저울을 써 주세요.
+    ${(P.cautions || []).map(c => `<br>${c}`).join("")}`;
+  render();
+}
+
+pick($$("#tabSeg button"), b => { tab = b.dataset.tab; render(); });
+
+fetch(DATA_URL).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d => {
+    D = d;
+    if(!d.products || !d.products.length) throw new Error("empty");
+    $("#fromBox").innerHTML = fromNote();
+    $("#flavorChips").innerHTML = d.products.map(p => `<button class="chip" type="button" data-id="${p.id}">${p.name}</button>`).join("");
+    $$("#flavorChips .chip").forEach(c => c.addEventListener("click", () => selectFlavor(c.dataset.id)));
+    selectFlavor(params.get("flavor"));
+  })
+  .catch(() => { $("#flavorChips").innerHTML = ""; $("#result").innerHTML = `<p class="empty">엘틴 데이터 준비 중이에요</p>${backLink()}`; postHeight(); });
+
+Eltin.init();
+</script>
+</body>
+</html>
