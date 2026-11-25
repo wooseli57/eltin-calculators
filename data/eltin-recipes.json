@@ -76,7 +76,9 @@
         "unit": "g",
         "note": "반죽 전체",
         "base": "meringue"
-      }
+      },
+      "image": "data/recipe-images/1.webp",
+      "imageCredit": "https://www.pexels.com/photo/colorful-macarons-on-a-wooden-stand-32609373/"
     },
     {
       "id": "2",
@@ -138,7 +140,9 @@
         "unit": "g",
         "note": "나눠 담으면 나눈 양",
         "base": "buttercream"
-      }
+      },
+      "image": "data/recipe-images/2.webp",
+      "imageCredit": "https://www.pexels.com/photo/close-up-of-creamy-vanilla-buttercream-frosting-33775641/"
     },
     {
       "id": "3",
@@ -187,7 +191,9 @@
         "grams": 430,
         "unit": "g",
         "base": "whipped-cream"
-      }
+      },
+      "image": "data/recipe-images/3.webp",
+      "imageCredit": "https://www.pexels.com/photo/close-up-photo-of-sliced-white-cake-4110006/"
     },
     {
       "id": "4",
@@ -256,7 +262,9 @@
         "unit": "g",
         "note": "반죽",
         "base": "batter"
-      }
+      },
+      "image": "data/recipe-images/4.webp",
+      "imageCredit": "https://www.pexels.com/photo/round-baked-pastry-1359319/"
     },
     {
       "id": "5",
@@ -334,7 +342,9 @@
         "unit": "g",
         "note": "아이싱 · 나눠 담으면 나눈 양",
         "base": "icing"
-      }
+      },
+      "image": "data/recipe-images/5.webp",
+      "imageCredit": "https://www.pexels.com/photo/cookies-on-gray-tray-5954859/"
     },
     {
       "id": "6",
@@ -416,7 +426,9 @@
         "unit": "g",
         "note": "반죽 · 나눠 담으면 나눈 양",
         "base": "batter"
-      }
+      },
+      "image": "data/recipe-images/6.webp",
+      "imageCredit": "https://www.pexels.com/photo/close-up-shot-of-cupcakes-on-a-wooden-table-7525116/"
     },
     {
       "id": "7",
@@ -469,7 +481,9 @@
         "unit": "g",
         "note": "층별로 나누면 나눈 양",
         "base": "rice"
-      }
+      },
+      "image": "data/recipe-images/7.webp",
+      "imageCredit": "https://www.pexels.com/photo/rice-cakes-with-white-chocolate-and-dried-roses-on-top-16764274/"
     },
     {
       "id": "8",
@@ -542,7 +556,9 @@
         "unit": "g",
         "note": "반죽",
         "label": "레몬 마들렌 등"
-      }
+      },
+      "image": "data/recipe-images/8.webp",
+      "imageCredit": "https://www.pexels.com/photo/selective-focus-of-madeleine-cakes-25067703/"
     },
     {
       "id": "9",
@@ -595,7 +611,9 @@
         "grams": 800,
         "unit": "ml",
         "label": "과일 에이드"
-      }
+      },
+      "image": "data/recipe-images/9.webp",
+      "imageCredit": "https://www.pexels.com/photo/lime-lemonade-with-ice-16976656/"
     },
     {
       "id": "10",
@@ -660,7 +678,9 @@
         "틀에 80% 채워 190℃에서 12~14분 굽습니다."
       ],
       "tips": [],
-      "cautions": []
+      "cautions": [],
+      "image": "data/recipe-images/10.webp",
+      "imageCredit": "https://www.pexels.com/photo/gourmet-coffee-and-financier-pastries-on-rustic-table-32320128/"
     },
     {
       "id": "11",
@@ -713,7 +733,9 @@
         "열을 가하지 않고 마지막에 넣어야 천연 바닐라 향이 날아가지 않아요. 익스트랙 바닥의 검은 알갱이는 바닐라 씨앗이라 그대로 써도 됩니다."
       ],
       "cautions": [],
-      "source": "엘틴 퓨어 바닐라 익스트랙 상세페이지 \"카페 바닐라 시럽 레시피\", 엘틴 바닐라 에센스 상세페이지 \"바닐라 시럽 시그니처 레시피\""
+      "source": "엘틴 퓨어 바닐라 익스트랙 상세페이지 \"카페 바닐라 시럽 레시피\", 엘틴 바닐라 에센스 상세페이지 \"바닐라 시럽 시그니처 레시피\"",
+      "image": "data/recipe-images/11.webp",
+      "imageCredit": "https://www.pexels.com/photo/plastic-jars-with-syrups-in-cafe-5461614/"
     },
     {
       "id": "12",
@@ -765,7 +787,9 @@
       ],
       "tips": [],
       "cautions": [],
-      "source": "엘틴 퓨어 바닐라 익스트랙·바닐라 에센스 상세페이지"
+      "source": "엘틴 퓨어 바닐라 익스트랙·바닐라 에센스 상세페이지",
+      "image": "data/recipe-images/12.webp",
+      "imageCredit": "https://www.pexels.com/photo/close-up-shot-of-a-glass-of-cappuccino-5112649/"
     },
     {
       "id": "13",
@@ -817,7 +841,9 @@
         "grams": 180,
         "unit": "g",
         "base": "meringue"
-      }
+      },
+      "image": "data/recipe-images/13.webp",
+      "imageCredit": "https://www.pexels.com/photo/crop-chef-with-piping-bag-forming-meringues-on-baking-pan-5908016/"
     },
     {
       "id": "14",
@@ -883,7 +909,9 @@
         "체 친 가루를 넣어 섞고 틀에 담아 170℃에서 40~45분 굽습니다."
       ],
       "tips": [],
-      "cautions": []
+      "cautions": [],
+      "image": "data/recipe-images/14.webp",
+      "imageCredit": "https://www.pexels.com/photo/close-up-of-slice-of-iced-pound-cake-on-plate-33309797/"
     },
     {
       "id": "15",
@@ -961,7 +989,9 @@
         "unit": "g",
         "note": "반죽",
         "base": "batter"
-      }
+      },
+      "image": "data/recipe-images/15.webp",
+      "imageCredit": "https://www.pexels.com/photo/delicious-chocolate-vanilla-swirl-biscuits-35152904/"
     },
     {
       "id": "16",
@@ -1021,7 +1051,9 @@
         "랩을 밀착해 덮고 빠르게 식혀 냉장 보관합니다."
       ],
       "tips": [],
-      "cautions": []
+      "cautions": [],
+      "image": "data/recipe-images/16.webp",
+      "imageCredit": "https://www.pexels.com/photo/hand-holding-pastry-bag-over-mixing-bowl-33775616/"
     },
     {
       "id": "17",
@@ -1066,7 +1098,9 @@
         "용기에 담아 6시간 이상 얼립니다. 처음 2시간 동안 1시간마다 한 번씩 저어주면 더 부드러워요."
       ],
       "tips": [],
-      "cautions": []
+      "cautions": [],
+      "image": "data/recipe-images/17.webp",
+      "imageCredit": "https://www.pexels.com/photo/delicious-vanilla-ice-cream-cone-close-up-38987559/"
     },
     {
       "id": "18",
@@ -1119,7 +1153,9 @@
         "grams": 300,
         "unit": "g",
         "base": "chocolate"
-      }
+      },
+      "image": "data/recipe-images/18.webp",
+      "imageCredit": "https://www.pexels.com/photo/pink-lollipops-on-sticks-10171574/"
     },
     {
       "id": "19",
@@ -1182,7 +1218,9 @@
         "grams": 550,
         "unit": "g",
         "label": "과일 향"
-      }
+      },
+      "image": "data/recipe-images/19.webp",
+      "imageCredit": "https://www.pexels.com/photo/close-up-of-colorful-jellies-8191230/"
     },
     {
       "id": "20",
@@ -1256,7 +1294,9 @@
       "tips": [
         "반죽을 오래 치대면 단단해져요. 버터 알갱이가 보일 정도로만 섞어야 결이 살아납니다."
       ],
-      "cautions": []
+      "cautions": [],
+      "image": "data/recipe-images/20.webp",
+      "imageCredit": "https://www.pexels.com/photo/rustic-teapot-and-scones-on-floral-tablecloth-37790575/"
     }
   ]
 }

@@ -29,7 +29,7 @@
 | 8 | 마들렌 | https://www.pexels.com/photo/selective-focus-of-madeleine-cakes-25067703/ | |
 | 9 | 레몬 에이드 시럽 | https://www.pexels.com/photo/lime-lemonade-with-ice-16976656/ | |
 | 10 | 휘낭시에 | https://www.pexels.com/photo/gourmet-coffee-and-financier-pastries-on-rustic-table-32320128/ | |
-| 11 | 카페 바닐라 시럽 | https://www.pexels.com/photo/close-up-of-coffee-flavor-syrup-bottles-34164443/ | 다른 브랜드 시럽 병이 보이면 다른 사진으로 교체 |
+| 11 | 카페 바닐라 시럽 | https://www.pexels.com/photo/plastic-jars-with-syrups-in-cafe-5461614/ | 2026-11-25 교체: 처음 고른 사진(34164443)에 다른 브랜드 시럽 병 로고가 보여서 상표 없는 시럽 용기 사진으로 바꿈 |
 | 12 | 바닐라 라떼 | https://www.pexels.com/photo/close-up-shot-of-a-glass-of-cappuccino-5112649/ | |
 | 13 | 머랭쿠키 | https://www.pexels.com/photo/crop-chef-with-piping-bag-forming-meringues-on-baking-pan-5908016/ | |
 | 14 | 바닐라 파운드케이크 | https://www.pexels.com/photo/close-up-of-slice-of-iced-pound-cake-on-plate-33309797/ | |
