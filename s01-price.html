@@ -110,12 +110,11 @@ function render(){
       `<div class="${x === r ? "on" : ""}">원가율 ${x}%<b>${won(priceFor(c, x))}원</b></div>`).join("")}</div>
     <div class="actions">
       <button class="btn btn-primary" type="button" id="copy">결과 복사</button>
-      <button class="btn btn-ghost" type="button" id="reset">다시 계산</button>
+      <button class="btn btn-ghost" type="button" id="reset">처음으로</button>
     </div>`;
   Eltin.donut($("#chart"), [{ label: "원가", value: c }, { label: "부가세", value: vat }, { label: "남는 돈", value: profit }],
     { big: `${num(profit / price * 100, 1)}%`, small: "판매가 중 남는 돈" }, { loss: profit < 0 ? `비용이 판매가보다 ${won(-profit)}원 많아요` : "" });
   $("#copy").onclick = () => copy(`[판매가 계산] 원가 ${won(c)}원, 원가율 ${r}% → 판매가 ${won(price)}원 (부가세 포함, 1개당 남는 돈 ${won(profit)}원)`);
-  $("#reset").onclick = () => { cost.set(0); $("#cost").focus(); };
   postHeight();
 }
 

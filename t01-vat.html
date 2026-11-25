@@ -76,10 +76,9 @@ function render(){
     </div>
     <div class="actions">
       <button class="btn btn-primary" type="button" id="copy">결과 복사</button>
-      <button class="btn btn-ghost" type="button" id="reset">다시 계산</button>
+      <button class="btn btn-ghost" type="button" id="reset">처음으로</button>
     </div>`;
   $("#copy").onclick = () => copy(`[부가세 계산] 공급가액 ${won(supply)}원 / 부가세 ${won(vat)}원 / 합계 ${won(total)}원`);
-  $("#reset").onclick = () => { amount.set(0); $("#amount").focus(); };
   postHeight();
 }
 

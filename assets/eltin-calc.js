@@ -340,12 +340,44 @@
     input.addEventListener("input", () => { const v = cleanNum(input.value); if(v !== input.value) input.value = v; onChange(); });
     return { get value(){ return toNum(input.value); }, set(n){ input.value = n === "" || n == null ? "" : String(n); onChange(); } };
   }
-  /* 결과 아래 [결과 복사] [다시 계산] 버튼 */
-  const ACTIONS = `<div class="actions"><button class="btn btn-primary" type="button" id="copy">결과 복사</button><button class="btn btn-ghost" type="button" id="reset">다시 계산</button></div>`;
-  function bindActions(text, onReset){
-    const c = document.getElementById("copy"), r = document.getElementById("reset");
+  /* 결과 아래 [결과 복사] [처음으로] 버튼 */
+  const ACTIONS = `<div class="actions"><button class="btn btn-primary" type="button" id="copy">결과 복사</button><button class="btn btn-ghost" type="button" id="reset">처음으로</button></div>`;
+  /* 두 번째 인자(예전 [다시 계산] 함수)는 쓰지 않음 — [처음으로]는 모든 계산기에서 공통 resetAll()이 처리 */
+  function bindActions(text){
+    const c = document.getElementById("copy");
     if(c) c.onclick = () => copy(text);
-    if(r) r.onclick = onReset;
+  }
+
+  /* ---------- [처음으로] ----------
+     페이지를 다시 불러와 처음 열었을 때와 똑같은 기본값(예시값)으로 되돌림.
+     계산기마다 되돌릴 값을 따로 적지 않아도 되고, 새 계산기도 자동으로 같은 동작.
+     다시 불러온 뒤 "처음 값으로 돌렸어요" 알림을 띄우고 첫 입력칸에 커서를 둠 */
+  const RESET_KEY = "eltin-reset";
+  /* 처음 열었을 때의 주소 (R01처럼 고르는 값에 따라 주소를 바꾸는 계산기도 처음 연 주소로 돌아가게) */
+  const START_URL = location.href;
+  function resetAll(){
+    try{ sessionStorage.setItem(RESET_KEY, "1"); }catch(e){}
+    if(location.href === START_URL) location.reload();
+    else location.replace(START_URL);
+  }
+  /* 브라우저가 다시 불러올 때 입력값을 되살리지 않게 (그래야 정말 처음 값으로 돌아감) */
+  function noRestore(){ $$("input, select, textarea").forEach(el => el.setAttribute("autocomplete", "off")); }
+  noRestore();
+  document.addEventListener("click", e => {
+    if(e.target.closest("#reset, [data-reset]")){ e.preventDefault(); e.stopImmediatePropagation(); resetAll(); }
+  }, true);
+  function afterReset(){
+    let was = false;
+    try{ was = sessionStorage.getItem(RESET_KEY) === "1"; sessionStorage.removeItem(RESET_KEY); }catch(e){}
+    if(!was) return;
+    const go = () => {
+      toast("처음 값으로 돌렸어요");
+      const first = [...$$(".calc .card input, .calc .card select, .calc .card textarea")]
+        .find(el => !el.disabled && el.type !== "hidden" && el.offsetParent !== null);
+      if(first){ try{ first.focus({ preventScroll: true }); }catch(e){ first.focus(); } if(first.select && first.tagName === "INPUT") first.select(); }
+      window.scrollTo(0, 0);
+    };
+    if(document.readyState === "complete") setTimeout(go, 0); else window.addEventListener("load", () => setTimeout(go, 0));
   }
   /* 여러 줄 입력 (재료·항목 목록)
      fields: [{key, label, type:"text"|"money"|"num"|"select", unit, ph, options:[[값,표시]]}]
@@ -425,6 +457,8 @@
 
   function init(){
     setTag();
+    noRestore();                       // 계산기 코드가 만든 입력칸까지 포함
+    afterReset();
     loadCalcs().then(fillHead);
     const side = $(".head-side");
     if(side){
@@ -453,5 +487,5 @@
     postHeight();
   }
 
-  window.Eltin = { ready, loadCalcs, keepEmbed, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
