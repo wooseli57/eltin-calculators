@@ -81,7 +81,7 @@ function draw(d){
       ).join("")}</div>
     </section>`;
   }).join("");
-  $(".calc-head p").textContent = `카페·베이커리 사장님을 위한 무료 계산기 ${done}개예요. 필요한 계산기를 골라 보세요`;
+  $(".calc-head p").innerHTML = `카페·베이커리 사장님을 위한 무료 계산기 ${done}개예요.<br>필요한 계산기를 골라 보세요`;
   $("#jump").addEventListener("click", e => {
     const b = e.target.closest("button"); if(!b) return;
     const f = b.dataset.f;

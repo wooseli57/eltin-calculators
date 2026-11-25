@@ -143,7 +143,8 @@ def parse_recipe(block):
                 continue
             ing = {"name": cells[0], **parse_amount(cells[1]), "note": cells[2] if len(cells) > 2 else ""}
             if "바닐라" in ing["name"] and "엘틴" in ing["name"]:
-                ing["eltin"] = "vanilla"
+                # 굽는 레시피는 바닐라오일 클래식, 굽지 않는 레시피는 퓨어 바닐라 익스트랙 (2026-11-25 개정)
+                ing["eltin"] = "vanilla-oil" if "오일" in ing["name"] else "vanilla"
             if ing["amount"] is None and ing.get("text") not in ("한 꼬집", "적당량"):
                 warn(rid, f"재료 양을 숫자로 읽지 못해 글자 그대로 둠: {ing['name']} {cells[1]}")
             r["ingredients"].append(ing)
@@ -172,6 +173,28 @@ def parse_recipe(block):
     return r
 
 
+IMAGES_DOC = ROOT / "docs" / "recipes" / "recipe-images.md"
+IMAGES_DIR = ROOT / "data" / "recipe-images"
+
+
+def add_images(recipes):
+    """docs/recipes/recipe-images.md 사진 목록에서 사진 페이지 주소를 읽고,
+       data/recipe-images/<id>.webp 파일이 있는 레시피에만 image·imageCredit을 넣음"""
+    if not IMAGES_DOC.exists():
+        return
+    credits = {}
+    for line in IMAGES_DOC.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"^\|\s*(\d+)\s*\|[^|]*\|\s*(https?://\S+?)\s*\|", line)
+        if m:
+            credits[m.group(1)] = m.group(2)
+    for r in recipes:
+        f = IMAGES_DIR / f"{r['id']}.webp"
+        if f.exists():
+            r["image"] = f"data/recipe-images/{r['id']}.webp"
+            if r["id"] in credits:
+                r["imageCredit"] = credits[r["id"]]
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")   # 윈도우 콘솔에서도 한글이 깨지지 않게
@@ -180,6 +203,7 @@ def main():
     text = SRC.read_text(encoding="utf-8")
     blocks = re.split(r"^## ", text, flags=re.M)[1:]
     recipes = [parse_recipe(b) for b in blocks if re.match(r"\d+\.", b)]
+    add_images(recipes)
     data = {
         "_about": "docs/recipes/eltin-recipes.md에서 tools/build-recipes.py로 만든 파일이에요. 직접 고치지 말고 원본 문서를 고친 뒤 다시 실행하세요.",
         "_source": "docs/recipes/eltin-recipes.md",

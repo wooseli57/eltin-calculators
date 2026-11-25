@@ -2,6 +2,9 @@
    엘틴 소상공인 계산기 공통 디자인 (모든 계산기가 이 파일 하나를 함께 씀)
    분류별 테마색: 계산기 파일의 <html data-cat="S"> 글자에 따라 자동 적용
    ========================================================= */
+/* hidden 속성이 붙은 요소는 어떤 display 규칙보다 우선해서 숨김 (L02 입력 방식 전환 등) */
+[hidden]{display:none!important}
+
 :root{
   --brand:#5F6B7A;
   --brand-dark:color-mix(in srgb,var(--brand) 78%,#000);
@@ -95,6 +98,7 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
 .row+.row{border-top:1px solid var(--line)}
 .row span:first-child{color:var(--ink-2)}
 .row b{font-weight:700}
+.row span small{display:block;font-size:12px;font-weight:400;color:var(--ink-3);margin-top:1px}   /* 결과 줄 아래 작은 설명 */
 .row.total b{color:var(--brand-dark)}
 .tip{font-size:13px;color:var(--ink-2);background:#fff;border-radius:var(--radius-sm);padding:10px 14px;margin-top:8px}
 .actions{display:flex;gap:8px;margin-top:12px}

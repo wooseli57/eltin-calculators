@@ -463,15 +463,15 @@
     const side = $(".head-side");
     if(side){
       const wordmark = `<span class="wordmark"><b>e</b><b>l</b><b>t</b><b>i</b><b>n</b></span>`;
-      side.innerHTML = `<a class="logo" href="${SITE.logo.href}" target="_top" aria-label="엘틴 쇼핑몰"><img src="${SITE.logo.src}" alt="eltin"></a>
-        <a class="blog-btn" href="${SITE.blog.href}" target="_top">${SITE.blog.label}</a>`;
+      side.innerHTML = `<a class="logo" href="${SITE.logo.href}" target="_blank" rel="noopener" aria-label="엘틴 쇼핑몰"><img src="${SITE.logo.src}" alt="eltin"></a>
+        <a class="blog-btn" href="${SITE.blog.href}" target="_blank" rel="noopener">${SITE.blog.label}</a>`;
       const img = side.querySelector("img"); img.onerror = () => { img.parentNode.innerHTML = wordmark; };
     }
     const cta = $("#cta");
     const here = location.pathname.split("/").pop() || "index.html";
     if(cta) cta.innerHTML = SITE.links
       .filter(l => !(l.internal && l.href === here))                 // 목록 페이지에서는 자기 자신 링크를 빼요
-      .map(l => `<a href="${l.internal ? keepEmbed(l.href) : l.href}" target="${l.internal ? "_self" : "_top"}"><div><span>${l.label}</span>${l.title}</div></a>`).join("");
+      .map(l => `<a href="${l.internal ? keepEmbed(l.href) : l.href}" ${l.internal ? 'target="_self"' : 'target="_blank" rel="noopener"'}><div><span>${l.label}</span>${l.title}</div></a>`).join("");
 
     if(SITE.devPreview && !isEmbed && $("#dev")){
       const dev = $("#dev"); dev.hidden = false;
