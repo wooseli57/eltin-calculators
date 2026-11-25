@@ -8,8 +8,16 @@ docs/calculators.md가 계산기 이름·설명·상태의 유일한 원본입�
 data/calculators.json은 이 스크립트가 만드는 파일이라 직접 고치지 않습니다.
 (GitHub Actions가 docs/calculators.md가 바뀐 push마다 실행: .github/workflows/build-calculators.yml)
 
+읽는 형식 (2026-11-25 재구조화)
+  - 분류 제목 `## M. 메뉴 마진 [연결] (메뉴 1개 기준)` → 분류 cat·name·group("연결"|"1회성")·note
+  - `### 가격 정하기` → 그 아래 계산기의 sub
+  - 표 열 `단계`(예: 원가 1/6) → step, `함께 보이기`(예: M, L01, O01·O03) → also (목록)
+  - 분류가 아닌 `## ` 절(계산기 연결 흐름·번호 변경표·이전 번호 변경 기록)은 무시
+
 검사 (하나라도 걸리면 오류를 출력하고 JSON을 쓰지 않은 채 실패(종료 코드 1)로 끝남)
   - 표의 태그 형식(L01 같은 분류 글자 + 두 자리 번호), 태그 중복, 분류 제목과 태그 글자가 다른 경우
+  - 분류 제목에 [연결]·[1회성] 표시가 없거나 다른 글자인 경우
+  - `함께 보이기`에 목록에 없는 분류 글자나 태그가 있는 경우
   - 파일명이 태그로 시작하지 않는 경우 (예: R01 → r01-…)
   - 상태가 "완료"인데 HTML 파일이 없거나, 파일의 data-cat·data-no가 목록과 다른 경우
 안내 (실패는 아님)
@@ -35,18 +43,27 @@ def cells(line):
 def parse(text):
     """## L. 인건비 계산기 아래 표들을 읽음. 반환: (categories, calculators, errors)"""
     categories, calcs, errors = [], [], []
-    cat, header = None, None
+    cat, header, sub = None, None, ""
     for n, line in enumerate(text.splitlines(), 1):
         h = re.match(r"^##\s+([A-Z])\.\s+(.+?)\s*$", line)
         if h:
             name = h.group(2)
-            note = ""
+            note, group = "", ""
             m = re.match(r"^(.*?)\s*\((.*)\)$", name)
             if m:
                 name, note = m.group(1).strip(), m.group(2).strip()
-            cat = {"cat": h.group(1), "name": name, "note": note}
+            g = re.match(r"^(.*?)\s*\[(.*?)\]$", name)
+            if g:
+                name, group = g.group(1).strip(), g.group(2).strip()
+            if group not in ("연결", "1회성"):
+                errors.append(f"{n}행: 분류 제목에 [연결] 또는 [1회성]이 없어요: {line.strip()}")
+            cat = {"cat": h.group(1), "name": name, "group": group, "note": note}
             categories.append(cat)
-            header = None
+            header, sub = None, ""
+            continue
+        s3 = re.match(r"^###\s+(.+?)\s*$", line)
+        if s3 and cat:
+            sub, header = s3.group(1), None
             continue
         if line.startswith("## "):                 # 분류가 아닌 절(예: 계산기 연결 흐름)
             cat, header = None, None
@@ -76,16 +93,26 @@ def parse(text):
             "desc": col.get("설명", ""),
             "status": col.get("상태", ""),
             "category": cat["name"],
+            "sub": sub,
+            "step": col.get("단계", ""),
+            "also": [x for x in re.split(r"[·,\s]+", col.get("함께 보이기", "")) if x],
             "_line": n,
         })
     return categories, calcs, errors
 
 
-def check(calcs):
+def check(calcs, categories):
     errors, notes = [], []
     seen = {}
+    cats = {g["cat"] for g in categories}
+    tags = {c["tag"] for c in calcs}
     for c in calcs:
         where = f"{c['_line']}행 {c['tag']}"
+        for a in c["also"]:
+            if not (a in cats or a in tags):
+                errors.append(f"{where}: 함께 보이기 '{a}'는 목록에 없는 분류 글자·태그예요")
+            elif a == c["tag"] or a == c["cat"]:
+                errors.append(f"{where}: 함께 보이기에 자기 자신({a})이 있어요")
         if c["tag"] in seen:
             errors.append(f"{where}: 태그가 {seen[c['tag']]}행과 겹쳐요")
         seen[c["tag"]] = c["_line"]
@@ -124,7 +151,7 @@ def main():
     except Exception:
         pass
     categories, calcs, errors = parse(SRC.read_text(encoding="utf-8"))
-    more, notes = check(calcs)
+    more, notes = check(calcs, categories)
     errors += more
     for x in notes:
         print("안내:", x)

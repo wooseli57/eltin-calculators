@@ -87,7 +87,7 @@
 const CONFIG = {
   rates: { 2026: { vatRate: 0.10 } },   // 판매가 부가세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
   feeVat: 1.1,                          // 수수료에 붙는 부가세
-  defaults: { brokerRate: 7.8, payRate: 3.0, itemsPerOrder: 1, brokerChips: [2.0, 6.8, 7.8] }   // 예시값 (C03과 같은 근거, 확인 2026-11-23)
+  defaults: { brokerRate: 7.8, payRate: 3.0, itemsPerOrder: 1, brokerChips: [2.0, 6.8, 7.8] }   // 예시값 (S03과 같은 근거, 확인 2026-11-23)
 };
 const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;

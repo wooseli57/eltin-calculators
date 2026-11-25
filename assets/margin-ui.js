@@ -1,7 +1,7 @@
 /* =========================================================
-   마진 계산기 공통 입력 화면 (M06·M07·A01·A03 공용)
+   마진 계산기 공통 입력 화면 (E01·E02·A01·A03 공용)
    계산은 assets/margin-engine.js(MarginEngine), 화면 도구는 assets/eltin-calc.js(Eltin)를 씀.
-   사양: docs/specs/M06.md 1~3절, M07.md, A01.md, A03.md
+   사양: docs/specs/E01.md 1~3절, E02.md, A01.md, A03.md
    ========================================================= */
 (function(){
   const { won, num, koreanUnit, moneyInput, numInput, yearRates, taxTables } = Eltin;
@@ -201,7 +201,7 @@
     return { refresh };
   }
 
-  /* 주의 문구 (M06 사양 5절, 로켓은 "판매처 수수료" → "로켓배송 공급률") */
+  /* 주의 문구 (E01 사양 5절, 로켓은 "판매처 수수료" → "로켓배송 공급률") */
   const caution = rocket => `${R.useYear}년 기준이에요. ${rocket ? "로켓배송 공급률" : "판매처 수수료"}는 카테고리·프로모션·판매처 정책에 따라 바뀌고, 세율은 세법 개정으로 달라질 수 있어요. 기본값은 예시이니 내 상품의 실제 값으로 바꿔 넣으세요. 참고용으로 사용하시고, 정확한 금액은 판매자센터와 세무사에게 확인하세요.`;
   /* 계산 기준 + 주의 문구 넣기 (올해 판매처 데이터가 없으면 결과 위 경고) */
   function notice(rocket){ Eltin.yearNotice(R, "", {}, caution(rocket)); }

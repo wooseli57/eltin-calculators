@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="C" data-no="04">
+<html lang="ko" data-cat="M" data-no="03">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C04 손실비용 계산기 | 엘틴 소상공인 계산기</title>
+<title>M03 메뉴별 손실비용 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -13,13 +13,17 @@
   <header class="calc-head">
     <div>
       <span class="tag"></span>
-      <h1>손실비용 계산기</h1>
+      <h1>메뉴별 손실비용 계산기</h1>
       <p>버리거나 반품되는 양을 반영해서 실제 원가와 한 달 손실액을 보여줘요</p>
     </div>
     <div class="head-side"></div>
   </header>
 
   <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="menuName">메뉴 이름 <small>비워도 돼요</small></label>
+      <div class="input-wrap"><input id="menuName" type="text" autocomplete="off" maxlength="30" placeholder="예: 아메리카노" style="text-align:left"></div>
+    </div>
     <div class="field">
       <label for="cost">메뉴 1개 원가 <small>재료비 + 포장비</small></label>
       <div class="input-wrap"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
@@ -56,8 +60,11 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== C04 손실비용 계산기 ===== */
+/* ===== M03 손실비용 계산기 ===== */
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+/* 메뉴 이름 (비워도 됨): 결과 문장·결과 복사 맨 앞에 씀 */
+const menuRaw = () => $("#menuName").value.trim(), menuName = () => Eltin.esc(menuRaw());
+$("#menuName").addEventListener("input", () => render());
 
 const cost = moneyInput($("#cost"), $("#costHint"), render);
 const made = numInput($("#made"), render), lost = numInput($("#lost"), render), days = numInput($("#days"), render);
@@ -74,7 +81,7 @@ function render(){
   const dayLoss = c * l, monthLoss = dayLoss * days.value;
 
   $("#result").innerHTML = `
-    <p class="lead">버리는 양까지 반영한 1개 실제 원가는</p>
+    <p class="lead">버리는 양까지 반영한 ${menuName() ? menuName() + " " : ""}1개 실제 원가는</p>
     <p class="big">${won(real)}<small>원</small></p>
     <div class="rows">
       <div class="row"><span>장부상 원가</span><b>${won(c)}원</b></div>
@@ -85,7 +92,7 @@ function render(){
     </div>
     ${days.value ? `<p class="tip">하루 1개만 덜 버려도 한 달에 <b>${won(c * days.value)}원</b>이 남아요.</p>` : ""}
     ${ACTIONS}`;
-  bindActions(`[손실비용 계산] 원가 ${won(c)}원, 하루 ${num(m, 0)}개 중 ${num(l, 0)}개 손실(${num(rate, 1)}%) → 실제 원가 ${won(real)}원, 한 달 손실 ${won(monthLoss)}원`,
+  bindActions(`[메뉴별 손실비용] ${menuRaw() ? menuRaw() + ": " : ""}원가 ${won(c)}원, 하루 ${num(m, 0)}개 중 ${num(l, 0)}개 손실(${num(rate, 1)}%) → 실제 원가 ${won(real)}원, 한 달 손실 ${won(monthLoss)}원`,
     () => { cost.set(0); made.set(""); lost.set(""); days.set(26); $("#cost").focus(); });
   postHeight();
 }

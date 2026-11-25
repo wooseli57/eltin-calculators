@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="M" data-no="02">
+<html lang="ko" data-cat="S" data-no="05">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>M02 손익분기점 계산기 | 엘틴 소상공인 계산기</title>
+<title>S05 손익분기점 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -21,7 +21,7 @@
 
   <section class="card" aria-label="입력">
     <div class="field">
-      <label for="fixed">월 고정비 <small>O05 결과 · 인건비·월세·관리비 등</small></label>
+      <label for="fixed">월 고정비 <small>직접 입력 · 인건비·월세·관리비 등</small></label>
       <div class="input-wrap"><input id="fixed" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
       <div class="hint" id="fixedHint"></div>
     </div>
@@ -32,7 +32,7 @@
         <div class="hint" id="priceHint"></div>
       </div>
       <div class="field">
-        <label for="cost">1개당 변동비 <small>C05</small></label>
+        <label for="cost">1개당 변동비 <small>M04 메뉴 원가</small></label>
         <div class="input-wrap sm"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
         <div class="hint" id="costHint"></div>
       </div>
@@ -58,7 +58,7 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== M02 손익분기점 계산기 ===== */
+/* ===== S05 손익분기점 계산기 ===== */
 const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
 const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;

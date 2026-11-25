@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="C" data-no="05">
+<html lang="ko" data-cat="M" data-no="04">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C05 메뉴 원가 합계 | 엘틴 소상공인 계산기</title>
+<title>M04 메뉴별 원가 합계 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -14,25 +14,29 @@
   <header class="calc-head">
     <div>
       <span class="tag"></span>
-      <h1>메뉴 원가 합계</h1>
-      <p>C01~C04를 합쳐서 메뉴 1개의 진짜 원가를 알려줘요</p>
+      <h1>메뉴별 원가 합계</h1>
+      <p>원료·자재·손실비를 합쳐서 메뉴 1개의 진짜 원가를 알려줘요. 배달로도 판다면 배달비까지 더해요</p>
     </div>
     <div class="head-side"></div>
   </header>
 
   <section class="card" aria-label="입력">
     <div class="field">
-      <label for="ing">재료비 <small>C01 원료비용 계산기 결과</small></label>
+      <label for="menuName">메뉴 이름 <small>비워도 돼요</small></label>
+      <div class="input-wrap"><input id="menuName" type="text" autocomplete="off" maxlength="30" placeholder="예: 아메리카노" style="text-align:left"></div>
+    </div>
+    <div class="field">
+      <label for="ing">재료비 <small>M01 메뉴별 원료비용 결과</small></label>
       <div class="input-wrap"><input id="ing" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
       <div class="hint" id="ingHint"></div>
     </div>
     <div class="field">
-      <label for="pack">포장비 <small>C02 자재비용 계산기 결과</small></label>
+      <label for="pack">포장비 <small>M02 메뉴별 자재비용 결과</small></label>
       <div class="input-wrap"><input id="pack" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
       <div class="hint" id="packHint"></div>
     </div>
     <div class="field">
-      <label for="loss">손실률 <small>C04 결과 · 버리는 비율</small></label>
+      <label for="loss">손실률 <small>M03 결과 · 버리는 비율</small></label>
       <div class="input-wrap pct-wrap"><input id="loss" type="text" inputmode="decimal" autocomplete="off" value="0"><span class="unit">%</span></div>
       <div class="chips" id="lossChips">
         <button class="chip" type="button" data-v="0">0%</button>
@@ -58,8 +62,11 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== C05 메뉴 원가 합계 ===== */
+/* ===== M04 메뉴 원가 합계 ===== */
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
+/* 메뉴 이름 (비워도 됨): 결과 문장·결과 복사 맨 앞에 씀 */
+const menuRaw = () => $("#menuName").value.trim(), menuName = () => Eltin.esc(menuRaw());
+$("#menuName").addEventListener("input", () => render());
 
 const ing = moneyInput($("#ing"), $("#ingHint"), render);
 const pack = moneyInput($("#pack"), $("#packHint"), render);
@@ -78,7 +85,7 @@ function render(){
   const store = ingReal + p, delivery = store + d;
 
   $("#result").innerHTML = `
-    <p class="lead">메뉴 1개의 진짜 원가는${d ? " (매장 판매)" : ""}</p>
+    <p class="lead">${menuName() || "메뉴"} 1개의 진짜 원가는${d ? " (매장 판매)" : ""}</p>
     <p class="big">${won(store)}<small>원</small></p>
     <div id="chart"></div>
     <div class="rows">
@@ -89,10 +96,10 @@ function render(){
       ${d ? `<div class="row"><span>배달 1건당 비용</span><b>+ ${won(d)}원</b></div>
       <div class="row total"><span>배달 판매 원가</span><b>${won(delivery)}원</b></div>` : ""}
     </div>
-    <p class="tip">이 금액을 판매가 계산기(S01)·메뉴 마진 계산기(M01)·손익분기점 계산기(M02)에 넣어 보세요.</p>
+    <p class="tip">이 금액을 판매가 계산기(S01)·메뉴 마진 비교 계산기(S04)·손익분기점 계산기(S05)에 넣어 보세요.</p>
     ${ACTIONS}`;
   Eltin.donut($("#chart"), [{ label: "원료 (재료비)", value: i }, { label: "자재 (포장비)", value: p }, { label: "배달", value: d }, { label: "손실", value: ingReal - i }], { big: `${Eltin.shortWon(d ? delivery : store)}원`, small: d ? "배달 판매 원가" : "메뉴 원가" }, { profitLast: false });
-  bindActions(`[메뉴 원가 합계] 재료비 ${won(i)}원(손실 ${num(l, 1)}% 반영 ${won(ingReal)}원) + 포장비 ${won(p)}원 = 매장 원가 ${won(store)}원${d ? `, 배달 원가 ${won(delivery)}원` : ""}`,
+  bindActions(`[메뉴별 원가 합계] ${menuRaw() ? menuRaw() + ": " : ""}재료비 ${won(i)}원(손실 ${num(l, 1)}% 반영 ${won(ingReal)}원) + 포장비 ${won(p)}원 = 매장 원가 ${won(store)}원${d ? `, 배달 원가 ${won(delivery)}원` : ""}`,
     () => { ing.set(0); pack.set(0); deliv.set(0); loss.set(0); $("#ing").focus(); });
   postHeight();
 }

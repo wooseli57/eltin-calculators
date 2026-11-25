@@ -8,12 +8,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
 <style>
-/* 분류 칩 10개(전체 + 9개 분류)를 4칸씩 세 줄로: 전체·인건비·원가·운영비 / 판매·마진·광고·기본 도구 / 레시피·조색 (분류 이름 그대로) */
-.jump{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:2px 2px 4px}
-.jump button{min-width:0;text-align:center;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700;letter-spacing:-.3px;color:var(--brand-dark);background:var(--brand-soft);
-  border-radius:999px;padding:6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 분류 버튼: 맨 앞 "전체", 그다음 세 줄 (연결 계산 / 1회성 계산 / 레시피·조색·기본 도구). 글자는 분류 이름 그대로, 좁으면 두 줄로 */
+.jump{display:flex;flex-direction:column;gap:8px;padding:2px 2px 4px}
+.jump-row{display:grid;gap:6px}
+.jump-label{font-size:11px;font-weight:700;color:var(--ink-3);margin:0 0 -3px 4px}
+.jump button{min-width:0;text-align:center;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700;letter-spacing:-.3px;line-height:1.25;color:var(--brand-dark);background:var(--brand-soft);
+  border-radius:16px;padding:7px 4px;word-break:keep-all}
 .jump button.on{color:#fff;background:var(--brand-dark)}
-.jump button.all{--brand:#5F6B7A;--brand-dark:#4A5562;--brand-soft:#E6E9ED}
+.jump button.all{--brand:#5F6B7A;--brand-dark:#4A5562;--brand-soft:#E6E9ED;align-self:flex-start;padding:7px 22px}
+.sub-head{font-size:13px;font-weight:700;color:var(--ink-2);margin:14px 2px 8px}
+.sub-head:first-of-type{margin-top:2px}
+.calc-item .step{flex:none;font-size:11px;font-weight:700;color:var(--brand-dark);border:1px solid var(--brand);border-radius:999px;padding:1px 7px}
+.also{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.also .sub-head{margin-top:0}
 .cat{scroll-margin-top:12px}
 .cat[hidden]{display:none}
 .cat-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
@@ -62,23 +69,48 @@ a.calc-item::after{content:"›";position:absolute;right:13px;top:50%;transform:
 const { $, postHeight, keepEmbed, isEmbed } = Eltin;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-/* 목록 순서: 사업 계산기(L·C·O·S·M·A·T) 다음에 레시피·조색(R·G) */
-const ORDER = "LCOSMATRG";
+/* 분류 버튼 줄 (docs/restructure-worklist.md 5절). 분류 순서·이름은 docs/calculators.md 그대로 */
+const ROWS = [
+  { label: "연결 계산", cats: "MEB" },
+  { label: "1회성 계산", cats: "LOSA" },
+  { label: "", cats: "RGT" }
+];
+const item = (c, step) => {
+  const head = `<span class="t"><span class="code">${c.tag}</span><b>${esc(c.name)}</b>${step && c.step ? `<span class="step">${esc(c.step)}</span>` : ""}`;
+  return c.status === "완료"
+    ? `<a class="calc-item" data-cat="${c.cat}" href="${esc(keepEmbed(c.file))}">${head}</span><p>${esc(c.desc)}</p></a>`
+    : `<div class="calc-item soon" aria-disabled="true">${head}<span class="badge">준비 중</span></span><p>${esc(c.desc)}</p></div>`;
+};
+const stepNo = s => { const m = /(\d+)\s*\/\s*\d+/.exec(s || ""); return m ? Number(m[1]) : 0; };
+
 function draw(d){
-  d.categories = [...d.categories].sort((a, b) => ORDER.indexOf(a.cat) - ORDER.indexOf(b.cat));
   const done = d.calculators.filter(c => c.status === "완료").length;
-  /* 분류 칩 = 필터 (아임웹 iframe 안에서는 #앵커로 스크롤이 안 되므로 해당 분류만 보여주는 방식) */
+  const byCat = Object.fromEntries(d.categories.map(g => [g.cat, g]));
+  /* 분류 버튼 = 필터 (아임웹 iframe 안에서는 #앵커로 스크롤이 안 되므로 해당 분류만 보여주는 방식) */
   $("#jump").innerHTML = `<button type="button" class="all on" data-f="">전체</button>`
-    + d.categories.map(g => `<button type="button" data-cat="${g.cat}" data-f="${g.cat}">${esc(g.name)}</button>`).join("");
+    + ROWS.map(row => {
+      const cats = [...row.cats].filter(k => byCat[k]);
+      return `${row.label ? `<p class="jump-label">${row.label}</p>` : ""}<div class="jump-row" style="grid-template-columns:repeat(${cats.length},minmax(0,1fr))">${
+        cats.map(k => `<button type="button" data-cat="${k}" data-f="${k}">${esc(byCat[k].name)}</button>`).join("")}</div>`;
+    }).join("");
+
   $("#cats").innerHTML = d.categories.map(g => {
-    const list = d.calculators.filter(c => c.cat === g.cat);
+    const linked = g.group === "연결";
+    let list = d.calculators.filter(c => c.cat === g.cat);
+    if(linked) list = [...list].sort((a, b) => stepNo(a.step) - stepNo(b.step) || a.no.localeCompare(b.no));
     const ok = list.filter(c => c.status === "완료").length;
+    /* 세부 분류(### 가격 정하기 등)는 분류 안 작은 제목 */
+    const subs = [...new Set(list.map(c => c.sub))];
+    const body = subs.map(sub => `${sub ? `<h3 class="sub-head">${esc(sub)}</h3>` : ""}<div class="list">${list.filter(c => c.sub === sub).map(c => item(c, linked)).join("")}</div>`).join("");
+    /* 함께 보이기: 다른 분류 계산기 중 이 분류 글자를 적은 것 + 이 분류 계산기가 적은 태그 */
+    const tags = new Set();
+    d.calculators.forEach(c => { if(c.cat !== g.cat && (c.also || []).includes(g.cat)) tags.add(c.tag); });
+    list.forEach(c => (c.also || []).forEach(a => { if(/^[A-Z]\d\d$/.test(a)) tags.add(a); }));
+    const also = d.calculators.filter(c => tags.has(c.tag));
     return `<section class="card cat" id="cat-${g.cat}" data-cat="${g.cat}">
       <div class="cat-head"><h2>${esc(g.name)}</h2>${g.note ? `<small>${esc(g.note)}</small>` : ""}<span class="count">${ok}/${list.length}</span></div>
-      <div class="list">${list.map(c => c.status === "완료"
-        ? `<a class="calc-item" href="${esc(keepEmbed(c.file))}"><span class="t"><span class="code">${c.tag}</span><b>${esc(c.name)}</b></span><p>${esc(c.desc)}</p></a>`
-        : `<div class="calc-item soon" aria-disabled="true"><span class="t"><span class="code">${c.tag}</span><b>${esc(c.name)}</b><span class="badge">준비 중</span></span><p>${esc(c.desc)}</p></div>`
-      ).join("")}</div>
+      ${body}
+      ${also.length ? `<div class="also"><h3 class="sub-head">함께 쓰면 좋은 계산기</h3><div class="list">${also.map(c => item(c, false)).join("")}</div></div>` : ""}
     </section>`;
   }).join("");
   $(".calc-head p").innerHTML = `카페·베이커리 사장님을 위한 무료 계산기 ${done}개예요.<br>필요한 계산기를 골라 보세요`;
@@ -90,7 +122,7 @@ function draw(d){
     try { history.replaceState(null, "", location.pathname + location.search + (f ? "#" + f : "")); } catch(_){}
     postHeight();
   });
-  /* 주소 끝 #S 처럼 분류를 붙이면 그 분류만 보여줌 (블로그·아임웹 메뉴 연결용) */
+  /* 주소 끝 #M 처럼 분류를 붙이면 그 분류만 보여줌 (블로그·아임웹 메뉴 연결용) */
   const start = (location.hash || "").replace("#", "").toUpperCase();
   const sb = start && document.querySelector(`#jump button[data-f="${start}"]`);
   if(sb) sb.click();

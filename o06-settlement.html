@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="M" data-no="04">
+<html lang="ko" data-cat="O" data-no="06">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>M04 실수령 정산 계산기 | 엘틴 소상공인 계산기</title>
+<title>O06 실수령 정산 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -98,10 +98,10 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== M04 실수령 정산 계산기 (사양: docs/specs/M04.md) ===== */
+/* ===== O06 실수령 정산 계산기 (사양: docs/specs/O06.md) ===== */
 /* 카드 구간표는 assets/eltin-calc.js의 Eltin.cardTiers에서만 관리 (O02와 공통) */
 const CONFIG = {
-  delivery: { brokerRate: 7.8, payRate: 3.0 },   // 예시값: C03과 같은 근거 (확인 2026-11-23)
+  delivery: { brokerRate: 7.8, payRate: 3.0 },   // 예시값: S03과 같은 근거 (확인 2026-11-23)
   feeVat: 1.1
 };
 const CT = Eltin.cardTiers, R = Eltin.yearRates(CT.rates), V = R.values;
@@ -151,7 +151,7 @@ function render(){
       <div class="row total"><span>실수령액</span><b>${won(net)}원</b></div>
     </div>
     ${d && !perFee.value ? `<p class="tip">배달비가 있으면 수수료 설정에서 건당 배달비를 넣어주세요.</p>` : ""}
-    <p class="tip">부가세·소득세, 광고비, 쿠폰 부담분은 빠진 금액이에요. 세금은 세금 계산기(M03)에서 확인하세요.</p>
+    <p class="tip">부가세·소득세, 광고비, 쿠폰 부담분은 빠진 금액이에요. 세금은 세금 계산기(O05)에서 확인하세요.</p>
     ${ACTIONS}`;
   Eltin.donut($("#chart"), [{ label: "카드수수료", value: cardFee }, { label: "배달 수수료", value: delivFee }, { label: "배달비", value: delivCost }, { label: "실수령액", value: net }], { big: `${num(ratio, 1)}%`, small: "매출 중 수수료" }, { loss: net < 0 ? `수수료가 매출보다 ${won(-net)}원 많아요` : "" });
   bindActions(`[실수령 정산] 총매출 ${won(total)}원 − 카드수수료 ${won(cardFee)}원 − 배달 수수료 ${won(delivFee)}원 − 배달비 ${won(delivCost)}원 = 실수령 ${won(net)}원 (수수료 ${num(ratio, 1)}%)`,

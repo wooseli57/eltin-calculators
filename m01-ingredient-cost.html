@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="C" data-no="01">
+<html lang="ko" data-cat="M" data-no="01">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C01 원료비용 계산기 | 엘틴 소상공인 계산기</title>
+<title>M01 메뉴별 원료비용 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -13,13 +13,17 @@
   <header class="calc-head">
     <div>
       <span class="tag"></span>
-      <h1>원료비용 계산기</h1>
+      <h1>메뉴별 원료비용 계산기</h1>
       <p>재료 구입가격과 용량으로 g·ml당 가격을 구하고, 메뉴 1개에 들어가는 재료비를 알려줘요</p>
     </div>
     <div class="head-side"></div>
   </header>
 
   <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="menuName">메뉴 이름 <small>비워도 돼요</small></label>
+      <div class="input-wrap"><input id="menuName" type="text" autocomplete="off" maxlength="30" placeholder="예: 아메리카노" style="text-align:left"></div>
+    </div>
     <div class="field">
       <label>메뉴 1개에 들어가는 재료 <small>재료마다 한 줄씩</small></label>
       <div id="items"></div>
@@ -36,8 +40,11 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== C01 원료비용 계산기 ===== */
+/* ===== M01 원료비용 계산기 ===== */
 const { $, won, num, ro, rowList, ACTIONS, bindActions, postHeight } = Eltin;
+/* 메뉴 이름 (비워도 됨): 결과 문장·결과 복사 맨 앞에 씀 */
+const menuRaw = () => $("#menuName").value.trim(), menuName = () => Eltin.esc(menuRaw());
+$("#menuName").addEventListener("input", () => render());
 
 /* 단가 = 구입 가격 ÷ 구입 용량, 재료비 = 단가 × 1개 사용량 */
 const unitPrice = r => r.qty ? r.price / r.qty : 0;
@@ -66,7 +73,7 @@ function render(){
   const label = (r, i) => r.name || `재료 ${i + 1}`;
 
   $("#result").innerHTML = `
-    <p class="lead">메뉴 1개에 들어가는 재료비는</p>
+    <p class="lead">${menuName() || "메뉴"} 1개에 들어가는 재료비는</p>
     <p class="big">${won(total)}<small>원</small></p>
     <div id="chart"></div>
     <div class="rows">
@@ -76,7 +83,7 @@ function render(){
     ${rows.length > 1 ? `<p class="tip">가장 비싼 재료는 <b>${ro(label(top, rows.indexOf(top)))}</b> 재료비의 <b>${num(lineCost(top) / total * 100, 0)}%</b>를 차지해요.</p>` : ""}
     ${ACTIONS}`;
   Eltin.donut($("#chart"), rows.map((r, i) => ({ label: label(r, i), value: lineCost(r) })), { big: `${Eltin.shortWon(total)}원`, small: "메뉴 1개 재료비" }, { profitLast: false });
-  bindActions(`[원료비용 계산] ${rows.map((r, i) => `${label(r, i)} ${won(lineCost(r))}원`).join(" + ")} = 메뉴 1개 재료비 ${won(total)}원`,
+  bindActions(`[메뉴별 원료비용] ${menuRaw() ? menuRaw() + ": " : ""}${rows.map((r, i) => `${label(r, i)} ${won(lineCost(r))}원`).join(" + ")} = 메뉴 1개 재료비 ${won(total)}원`,
     () => items.set([{}, {}]));
   postHeight();
 }

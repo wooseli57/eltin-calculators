@@ -32,12 +32,13 @@
      "eltin:calcs" 이벤트가 오니 버튼이 있는 계산기는 그때 다시 그림 */
   const ready = tags => !!CALCS && [].concat(tags).every(t => CALCS.calculators.some(c => c.tag === t && c.status === "완료"));
 
+  /* 분류 이름·색 (JSON을 못 읽을 때 머리말에 쓰는 기본값. 원본은 docs/calculators.md, 색은 eltin-calc.css와 같게) */
   const CATEGORIES = {
-    L:{name:"인건비 계산기",color:"#4B5BD4"}, C:{name:"원가 계산기",color:"#E0682B"},
-    O:{name:"운영비 계산기",color:"#E2A800"}, S:{name:"판매 계산기",color:"#2A9758"},
-    M:{name:"마진 계산기",color:"#1F84D0"},   A:{name:"광고 계산기",color:"#D2416F"},
-    R:{name:"레시피 계산기",color:"#A9680F"}, G:{name:"조색 가이드",color:"#8E44C9"},
-    T:{name:"기본 도구",color:"#5F6B7A"}
+    M:{name:"메뉴 마진",color:"#E0682B"},       E:{name:"온라인 상품 마진",color:"#0B7285"},
+    B:{name:"월 마진",color:"#1F84D0"},         L:{name:"인건비 계산기",color:"#4B5BD4"},
+    O:{name:"운영비 계산기",color:"#E2A800"},   S:{name:"판매 응용 계산기",color:"#2A9758"},
+    A:{name:"광고 계산기",color:"#D2416F"},     R:{name:"레시피 계산기",color:"#A9680F"},
+    G:{name:"조색 가이드",color:"#8E44C9"},     T:{name:"기본 도구",color:"#5F6B7A"}
   };
 
   /* ---------- 도구 ---------- */
@@ -119,7 +120,7 @@
     if(note) note.innerHTML += `<br>${parts.join("<br>")}`;
   }
 
-  /* ---------- 카드 우대수수료 구간표 (O02·M04 공통, 여기서만 관리) ----------
+  /* ---------- 카드 우대수수료 구간표 (O02·O06 공통, 여기서만 관리) ----------
      요율은 % 숫자. credit·check가 null이면 일반가맹점 → 계산기에서 입력한 요율 사용 */
   const cardTiers = {
     generalRateExample: 2.2,   // 예시: 금융위원회 보도자료의 일반가맹점 수수료율 예시 (확인 2026-11-23)
@@ -147,7 +148,7 @@
     }
   };
 
-  /* ---------- 케이크 틀 크기표 (R04·R01·R07·S08 공통, 여기서만 관리) — 사양: docs/specs/R07.md 0절 ---------- */
+  /* ---------- 케이크 틀 크기표 (R04·R01·R07·S07 공통, 여기서만 관리) — 사양: docs/specs/R07.md 0절 ---------- */
   const pans = [
     { id: "mini", name: "미니", diameter: 12, serves: "2~4인", editable: true },  // 가게마다 10~12cm → 고르면 지름 칸 표시(수정 가능)
     { id: "1",    name: "1호",  diameter: 15, serves: "4~6인" },
@@ -158,7 +159,7 @@
   // 지름: 국내 판매 원형틀 1호 150ø, 2호 180ø, 3호 210ø 기준, 호수당 3cm (확인 2026-11-23)
   // 인분: 지름별 일반적인 인분 안내 참고 (확인 2026-11-23), 화면에는 "대략"으로 표시
 
-  /* ---------- 세율표 (M03 세금 계산기·마진 엔진 공통, 여기서만 관리) ---------- */
+  /* ---------- 세율표 (O05 세금 계산기·마진 엔진 공통, 여기서만 관리) ---------- */
   const taxTables = {
     personal: {                // 종합소득세 [상한, 세율, 누진공제] — 구간 경계에서 누진 계산값과 일치 확인 (2026-11-23)
       2026: [                  // 소득세법 제55조, 2023년 개정 세율표 유지 (확인 2026-11-23)
@@ -182,7 +183,7 @@
   /* ---------- 결과 그림 (CLAUDE.md 4항 "결과 그림") ----------
      외부 라이브러리 없이 SVG로 그림. 결과 카드의 실제 폭(px)에 맞춰 그려 글자가 12px 아래로 줄지 않게 함.
      창 크기가 바뀌면 마지막 그림을 다시 그림. */
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));   // 화면에 넣는 글자 (사용자가 쓴 메뉴 이름 등)
   const shortWon = n => { const a = Math.abs(n), s = n < 0 ? "−" : "";
     return a >= 1e8 ? `${s}${num(a / 1e8, 1)}억` : a >= 1e4 ? `${s}${num(a / 1e4, a >= 1e6 ? 0 : 1)}만` : `${s}${won(a)}`; };
   /* 그림 폭 = 그림을 담은 부모(결과 카드)의 안쪽 폭. 빈 칸은 :empty로 숨겨져 있어 부모 기준으로 잼 */
@@ -448,9 +449,29 @@
     const h1 = $(".calc-head h1"), p = $(".calc-head p"), tag = $(".tag");
     if(h1) h1.textContent = c.name;
     if(p) p.textContent = c.desc;
-    if(tag) tag.textContent = `${c.tag} · ${c.category}`;
+    if(tag) tag.textContent = `${c.tag} · ${c.step || c.category}`;   // 연결 계산은 단계 표시 (M03 · 원가 3/6)
     document.title = `${c.tag} ${c.name} | 엘틴 소상공인 계산기`;
+    nextStep(d, c);
     postHeight();
+  }
+
+  /* 연결 계산: 결과 아래 "다음 단계 →" 버튼 (같은 분류에서 단계 번호가 다음인 계산기, 준비 중이면 회색).
+     값 넘기기(주소 파라미터)는 계산기마다 사양에서 정함 */
+  const stepNo = s => { const m = /(\d+)\s*\/\s*\d+/.exec(s || ""); return m ? Number(m[1]) : 0; };
+  function nextStep(d, c){
+    const g = d.categories.find(x => x.cat === c.cat);
+    if(!g || g.group !== "연결" || !c.step) return;
+    const here = stepNo(c.step);
+    const next = d.calculators.filter(x => x.cat === c.cat && stepNo(x.step) > here).sort((a, b) => stepNo(a.step) - stepNo(b.step))[0];
+    const res = document.getElementById("result");
+    if(!next || !res || $(".next-step")) return;
+    const nav = document.createElement("nav");
+    nav.className = "next-step"; nav.setAttribute("aria-label", "다음 단계");
+    const label = `<span class="ns-k">다음 단계 · ${next.step}</span><span class="ns-n">${next.tag} ${next.name}</span>`;
+    nav.innerHTML = next.status === "완료"
+      ? `<a href="${keepEmbed(next.file)}" target="_self">${label}<b aria-hidden="true">→</b></a>`
+      : `<span class="soon" aria-disabled="true">${label}<b>준비 중</b></span>`;
+    res.after(nav);
   }
   /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을 이어 붙임 */
   const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" : href;
@@ -487,5 +508,5 @@
     postHeight();
   }
 
-  window.Eltin = { ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { esc, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
