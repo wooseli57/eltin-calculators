@@ -8,10 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
 <style>
-.jump{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
-.jump::-webkit-scrollbar{display:none}
-.jump button{flex:none;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:var(--brand-dark);background:var(--brand-soft);
-  border-radius:999px;padding:6px 12px;white-space:nowrap}
+/* 분류 칩 10개(전체 + 9개 분류)를 4칸씩 세 줄로: 전체·인건비·원가·운영비 / 판매·마진·광고·기본 도구 / 레시피·조색 (분류 이름 그대로) */
+.jump{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:2px 2px 4px}
+.jump button{min-width:0;text-align:center;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700;letter-spacing:-.3px;color:var(--brand-dark);background:var(--brand-soft);
+  border-radius:999px;padding:6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jump button.on{color:#fff;background:var(--brand-dark)}
 .jump button.all{--brand:#5F6B7A;--brand-dark:#4A5562;--brand-soft:#E6E9ED}
 .cat{scroll-margin-top:12px}
@@ -62,7 +62,10 @@ a.calc-item::after{content:"›";position:absolute;right:13px;top:50%;transform:
 const { $, postHeight, keepEmbed, isEmbed } = Eltin;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/* 목록 순서: 사업 계산기(L·C·O·S·M·A·T) 다음에 레시피·조색(R·G) */
+const ORDER = "LCOSMATRG";
 function draw(d){
+  d.categories = [...d.categories].sort((a, b) => ORDER.indexOf(a.cat) - ORDER.indexOf(b.cat));
   const done = d.calculators.filter(c => c.status === "완료").length;
   /* 분류 칩 = 필터 (아임웹 iframe 안에서는 #앵커로 스크롤이 안 되므로 해당 분류만 보여주는 방식) */
   $("#jump").innerHTML = `<button type="button" class="all on" data-f="">전체</button>`
