@@ -21,6 +21,9 @@
 .calc-item .step{flex:none;font-size:11px;font-weight:700;color:var(--brand-dark);border:1px solid var(--brand);border-radius:999px;padding:1px 7px}
 .also{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
 .also .sub-head{margin-top:0}
+.calc-item .member{flex:none;font-size:11px;font-weight:700;color:var(--ink-2);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+.calc-item.soon .member{opacity:.7}
+.member-note{font-size:12px;color:var(--ink-2);background:var(--card);border-radius:var(--radius-sm);padding:8px 12px;text-align:center}
 .cat{scroll-margin-top:12px}
 .cat[hidden]{display:none}
 .cat-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
@@ -54,6 +57,7 @@ a.calc-item::after{content:"›";position:absolute;right:13px;top:50%;transform:
   </header>
 
   <nav class="jump" id="jump" aria-label="분류 바로가기"></nav>
+  <p class="member-note">🔒 표시는 엘틴 쇼핑몰 회원 전용이에요. 회원가입은 무료예요.</p>
   <div id="cats" style="display:flex;flex-direction:column;gap:12px"><section class="card"><p class="empty">계산기 목록을 불러오는 중이에요</p></section></div>
 
   <nav class="cta" id="cta"></nav>
@@ -75,10 +79,13 @@ const ROWS = [
   { label: "1회성 계산", cats: "LOSA" },
   { label: "", cats: "RGT" }
 ];
+/* 회원 전용(🔒)은 GitHub 주소가 아니라 아임웹 회원 전용 페이지로 (docs/specs/access.md) */
 const item = (c, step) => {
-  const head = `<span class="t"><span class="code">${c.tag}</span><b>${esc(c.name)}</b>${step && c.step ? `<span class="step">${esc(c.step)}</span>` : ""}`;
+  const member = c.access === "member";
+  const head = `<span class="t"><span class="code">${c.tag}</span><b>${esc(c.name)}</b>${step && c.step ? `<span class="step">${esc(c.step)}</span>` : ""}${member ? `<span class="member" title="엘틴 쇼핑몰 회원 전용 (회원가입 무료)">🔒 회원</span>` : ""}`;
+  const href = member ? Eltin.memberHref(c.tag) : keepEmbed(c.file);
   return c.status === "완료"
-    ? `<a class="calc-item" data-cat="${c.cat}" href="${esc(keepEmbed(c.file))}">${head}</span><p>${esc(c.desc)}</p></a>`
+    ? `<a class="calc-item" data-cat="${c.cat}" href="${esc(href)}"${member ? ' target="_top"' : ""}>${head}</span><p>${esc(c.desc)}</p></a>`
     : `<div class="calc-item soon" aria-disabled="true">${head}<span class="badge">준비 중</span></span><p>${esc(c.desc)}</p></div>`;
 };
 const stepNo = s => { const m = /(\d+)\s*\/\s*\d+/.exec(s || ""); return m ? Number(m[1]) : 0; };

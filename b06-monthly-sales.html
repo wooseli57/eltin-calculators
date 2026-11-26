@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="B" data-no="06">
+<html lang="ko" data-cat="B" data-no="06" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -84,7 +84,7 @@ function render(){
   if(unit <= 0){ $("#result").innerHTML = '<p class="empty">판매가가 원가보다 낮아서 팔수록 손해예요</p>'; postHeight(); return; }
   if(!d){ $("#result").innerHTML = '<p class="empty">영업일을 넣어주세요</p>'; postHeight(); return; }
 
-  const monthQty = Math.ceil((g + f) / unit);
+  const monthQty = Math.ceil((g + f) / unit - 1e-9);   // - 1e-9: 소수 계산 오차(100.00000000000001)로 한 개 더 올라가는 것을 막음
   const dayQty = Math.ceil(monthQty / d);
   const monthSales = monthQty * p, daySales = dayQty * p;
 

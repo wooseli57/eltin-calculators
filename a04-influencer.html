@@ -76,7 +76,7 @@ function render(){
 
   const perVisit = t / (1 + VAT) * (1 - r / 100);
   const perCustomer = perVisit * v;
-  const need = Math.ceil(s / perCustomer);
+  const need = Math.ceil(s / perCustomer - 1e-9);   // - 1e-9: 소수 계산 오차(3.0000000000000004)로 한 명 더 올라가는 것을 막음
 
   $("#result").innerHTML = `
     <p class="lead">협찬 비용을 되찾으려면 새 손님이</p>

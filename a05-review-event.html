@@ -101,7 +101,7 @@ const empty = msg => { $("#result").innerHTML = `<p class="empty">${msg}</p>`; p
 function renderReview(unit){
   const g = gift.value, j = joins.value;
   if(!g || !j) return empty("서비스 메뉴 원가와 참여 건수를 넣으면 바로 계산돼요");
-  const spend = g * j, need = Math.ceil(spend / unit);
+  const spend = g * j, need = Math.ceil(spend / unit - 1e-9);   // - 1e-9: 소수 계산 오차 방지
   $("#result").innerHTML = `
     <p class="lead">이벤트 비용을 되찾으려면 한 달에 주문이</p>
     <p class="big">${won(need)}<small>건 더 늘어야 해요</small></p>
@@ -124,7 +124,7 @@ function renderFlyer(t, r){
   if(!p) return empty("전단 인쇄·배포비를 넣으면 바로 계산돼요");
   const per = ex(t - d) - ex(t) * r;
   if(per <= 0) return empty("쿠폰 할인액이 너무 커서 쿠폰 주문마다 손해예요");
-  const need = Math.ceil(p / per);
+  const need = Math.ceil(p / per - 1e-9);
   const net = u ? u * per - p : null;
   $("#result").innerHTML = `
     <p class="lead">전단비를 되찾으려면 쿠폰을</p>

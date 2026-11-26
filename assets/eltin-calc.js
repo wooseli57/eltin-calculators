@@ -12,6 +12,13 @@
     ],
     logo: { src:"assets/eltin-logo.svg", href:"https://eltin.imweb.me/" },
     blog: { label:"블로그", href:"https://blog.naver.com/" },             // 엘틴 네이버 블로그 주소로 교체
+    /* 회원 전용 계산기 (docs/specs/access.md). 진짜 잠금은 아임웹 페이지 접근 권한("로그인한 회원만")이 하고,
+       여기서는 아임웹 iframe 밖에서 열렸을 때 안내 화면을 보여줌.
+       memberPage: 회원 전용 계산기를 넣은 아임웹 페이지 — "{tag}"를 넣으면 계산기 태그로 바뀜 (계산기마다 페이지를 만들 때)
+       signup: 아임웹 회원가입 페이지. 두 주소 모두 확정 전이라 쇼핑몰 첫 화면으로 둠 (docs/questions.md) */
+    memberPage: "https://eltin.imweb.me/",
+    signup: "https://eltin.imweb.me/",
+    memberHosts: ["eltin.imweb.me"],                                      // 이 주소의 iframe 안에서만 회원 전용 계산기를 보여줌
     devPreview: true    // 디자인 확인용 테마 미리보기 (배포 시 false)
   };
 
@@ -490,6 +497,41 @@
   }
   /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을 이어 붙임 */
   const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" : href;
+  /* ---------- 회원 전용 계산기 (docs/specs/access.md) ----------
+     아임웹 iframe 안(?embed=1 + 부모 페이지가 memberHosts)에서만 계산 화면을 보여줌.
+     부모 주소: location.ancestorOrigins(크롬 등)가 있으면 그것으로, 없으면(사파리 등) document.referrer로 판단.
+     iframe 안에서 계산기끼리 이동한 경우(referrer가 같은 사이트)도 허용. 개발 지식으로 일부러 우회하는 것까지는 못 막음 */
+  const hostOf = u => { try{ return new URL(u).hostname; }catch(e){ return ""; } };
+  const isMemberHost = h => !!h && SITE.memberHosts.some(m => h === m || h.endsWith("." + m));
+  function memberFrameOK(ctx){
+    if(!ctx.embed || !ctx.framed) return false;
+    if(ctx.ancestors && ctx.ancestors.length) return ctx.ancestors.some(a => isMemberHost(hostOf(a)));
+    const rh = hostOf(ctx.referrer);
+    return isMemberHost(rh) || (!!rh && rh === hostOf(ctx.origin));
+  }
+  const memberHref = tag => SITE.memberPage.replace("{tag}", tag || "");
+  function memberGate(){
+    if(document.documentElement.dataset.access !== "member") return;
+    const head = $(".calc-head"); if(!head) return;
+    if(SITE.devPreview){
+      head.insertAdjacentHTML("afterend", `<p class="member-dev">🔒 회원 전용 (개발 미리보기) · 배포하면 아임웹 회원 페이지 밖에서는 안내 화면이 보여요</p>`);
+      return;
+    }
+    let framed = true; try{ framed = window.top !== window; }catch(e){}
+    if(memberFrameOK({ embed: isEmbed, framed, ancestors: location.ancestorOrigins ? [...location.ancestorOrigins] : null, referrer: document.referrer, origin: location.href })) return;
+    document.documentElement.classList.add("member-locked");
+    const tag = (document.documentElement.dataset.cat || "") + (document.documentElement.dataset.no || "");
+    head.insertAdjacentHTML("afterend", `<section class="card member-lock" aria-label="회원 전용 안내">
+      <p class="ml-icon" aria-hidden="true">🔒</p>
+      <h2>엘틴 쇼핑몰 회원 전용 계산기예요</h2>
+      <p>회원가입은 무료예요. 가입하면 메뉴 마진·월 마진·레시피 계산기 <span class="ml-count">30</span>개를 모두 쓸 수 있어요</p>
+      <div class="ml-btns">
+        <a class="btn btn-primary" href="${memberHref(tag)}" target="_blank" rel="noopener">회원 전용 계산기 열기</a>
+        <a class="btn btn-ghost" href="${SITE.signup}" target="_blank" rel="noopener">무료 회원가입</a>
+      </div></section>`);
+    loadCalcs().then(d => { const n = d && d.calculators.filter(c => c.access === "member").length; if(n) $(".ml-count").textContent = n; postHeight(); });
+  }
+
   /* 앞 단계에서 주소로 받은 값 (저장하지 않음). 숫자가 아니면 null → 계산기는 기본값을 씀 */
   const QS = new URLSearchParams(location.search);
   function param(k, opt = {}){
@@ -501,6 +543,7 @@
 
   function init(){
     setTag();
+    memberGate();                      // 회원 전용이면 아임웹 밖에서 안내 화면
     noRestore();                       // 계산기 코드가 만든 입력칸까지 포함
     afterReset();
     loadCalcs().then(fillHead);
@@ -531,5 +574,5 @@
     postHeight();
   }
 
-  window.Eltin = { esc, setFlow, param, paramText, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { esc, setFlow, param, paramText, memberHref, memberFrameOK, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();

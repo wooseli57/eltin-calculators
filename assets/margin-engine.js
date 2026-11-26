@@ -45,7 +45,7 @@
       if(field === "buy") (f(m) >= 0 ? lo = m : hi = m);
       else (f(m) >= 0 ? hi = m : lo = m);
     }
-    return field === "buy" ? Math.floor(lo) : Math.ceil(hi);
+    return field === "buy" ? Math.floor(lo + 1e-9) : Math.ceil(hi - 1e-9);   // ± 1e-9: 답이 딱 정수일 때 소수 오차로 1원 어긋나는 것을 막음
   }
 
   /* 누진 세액: table = [[상한(원), 세율(0~1)], ...] (Eltin.taxTables와 같은 형식, 3번째 칸은 무시) */

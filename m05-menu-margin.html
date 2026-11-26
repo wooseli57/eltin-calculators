@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="M" data-no="05">
+<html lang="ko" data-cat="M" data-no="05" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -125,7 +125,7 @@ function calc(){
     r.dRate = r.dSupply ? r.dMargin / r.dSupply * 100 : 0;
     /* 매장만큼 남기는 배달 판매가: P/v − c − P·f − 1개당 배달비 = 매장 마진 → P = (마진 + c + 배달비) ÷ (1/v − f), 100원 단위 올림 */
     const k = 1 / v - f;
-    r.dEven = k > 0 ? Math.ceil((margin + c + r.dPer) / k / 100) * 100 : null;
+    r.dEven = k > 0 ? Math.ceil((margin + c + r.dPer) / k / 100 - 1e-9) * 100 : null;
   }
   return r;
 }

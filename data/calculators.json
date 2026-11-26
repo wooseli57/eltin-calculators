@@ -75,7 +75,8 @@
       "category": "메뉴 마진",
       "sub": "",
       "step": "원가 1/6",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "M",
@@ -88,7 +89,8 @@
       "category": "메뉴 마진",
       "sub": "",
       "step": "원가 2/6",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "M",
@@ -101,7 +103,8 @@
       "category": "메뉴 마진",
       "sub": "",
       "step": "원가 3/6",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "M",
@@ -114,7 +117,8 @@
       "category": "메뉴 마진",
       "sub": "",
       "step": "원가 4/6",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "M",
@@ -127,7 +131,8 @@
       "category": "메뉴 마진",
       "sub": "",
       "step": "마진 5/6",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "M",
@@ -140,7 +145,8 @@
       "category": "메뉴 마진",
       "sub": "",
       "step": "손익 6/6",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "E",
@@ -153,7 +159,8 @@
       "category": "온라인 상품 마진",
       "sub": "",
       "step": "마진 1/2",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "E",
@@ -166,7 +173,8 @@
       "category": "온라인 상품 마진",
       "sub": "",
       "step": "마진 1/2",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "E",
@@ -179,7 +187,8 @@
       "category": "온라인 상품 마진",
       "sub": "",
       "step": "손익 2/2",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -192,7 +201,8 @@
       "category": "월 마진",
       "sub": "",
       "step": "비용 1/8",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -207,7 +217,8 @@
       "step": "비용 2/8",
       "also": [
         "O02"
-      ]
+      ],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -220,7 +231,8 @@
       "category": "월 마진",
       "sub": "",
       "step": "비용 3/8",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -235,7 +247,8 @@
       "step": "비용 4/8",
       "also": [
         "L01"
-      ]
+      ],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -251,7 +264,8 @@
       "also": [
         "O01",
         "O03"
-      ]
+      ],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -264,7 +278,8 @@
       "category": "월 마진",
       "sub": "",
       "step": "매출 6/8",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -277,7 +292,8 @@
       "category": "월 마진",
       "sub": "",
       "step": "손익 7/8",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "B",
@@ -290,7 +306,8 @@
       "category": "월 마진",
       "sub": "",
       "step": "손익 8/8",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "L",
@@ -303,7 +320,8 @@
       "category": "인건비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "L",
@@ -316,7 +334,8 @@
       "category": "인건비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "L",
@@ -329,7 +348,8 @@
       "category": "인건비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "L",
@@ -342,7 +362,8 @@
       "category": "인건비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "L",
@@ -355,7 +376,8 @@
       "category": "인건비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "O",
@@ -368,7 +390,8 @@
       "category": "운영비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "O",
@@ -381,7 +404,8 @@
       "category": "운영비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "O",
@@ -394,7 +418,8 @@
       "category": "운영비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "O",
@@ -407,7 +432,8 @@
       "category": "운영비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "O",
@@ -420,7 +446,8 @@
       "category": "운영비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "O",
@@ -433,7 +460,8 @@
       "category": "운영비 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -446,7 +474,8 @@
       "category": "판매 응용 계산기",
       "sub": "가격 정하기",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -459,7 +488,8 @@
       "category": "판매 응용 계산기",
       "sub": "가격 정하기",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -474,7 +504,8 @@
       "step": "",
       "also": [
         "M"
-      ]
+      ],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -487,7 +518,8 @@
       "category": "판매 응용 계산기",
       "sub": "가격 정하기",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -500,7 +532,8 @@
       "category": "판매 응용 계산기",
       "sub": "가격 정하기",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -513,7 +546,8 @@
       "category": "판매 응용 계산기",
       "sub": "가격 정하기",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -526,7 +560,8 @@
       "category": "판매 응용 계산기",
       "sub": "가격 정하기",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -539,7 +574,8 @@
       "category": "판매 응용 계산기",
       "sub": "행사",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -552,7 +588,8 @@
       "category": "판매 응용 계산기",
       "sub": "행사",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "S",
@@ -565,7 +602,8 @@
       "category": "판매 응용 계산기",
       "sub": "행사",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "A",
@@ -578,7 +616,8 @@
       "category": "광고 계산기",
       "sub": "온라인 광고",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "A",
@@ -591,7 +630,8 @@
       "category": "광고 계산기",
       "sub": "온라인 광고",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "A",
@@ -604,7 +644,8 @@
       "category": "광고 계산기",
       "sub": "온라인 광고",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "A",
@@ -617,7 +658,8 @@
       "category": "광고 계산기",
       "sub": "매장 홍보",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "A",
@@ -630,7 +672,8 @@
       "category": "광고 계산기",
       "sub": "매장 홍보",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "A",
@@ -643,7 +686,8 @@
       "category": "광고 계산기",
       "sub": "매장 홍보",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "R",
@@ -656,7 +700,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -669,7 +714,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -682,7 +728,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -695,7 +742,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -708,7 +756,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -721,7 +770,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -734,7 +784,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "R",
@@ -747,7 +798,8 @@
       "category": "레시피 계산기",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "G",
@@ -760,7 +812,8 @@
       "category": "조색 가이드",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "G",
@@ -773,7 +826,8 @@
       "category": "조색 가이드",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "G",
@@ -786,7 +840,8 @@
       "category": "조색 가이드",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "G",
@@ -799,7 +854,8 @@
       "category": "조색 가이드",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "G",
@@ -812,7 +868,8 @@
       "category": "조색 가이드",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "member"
     },
     {
       "cat": "T",
@@ -825,7 +882,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "T",
@@ -838,7 +896,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "T",
@@ -851,7 +910,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "T",
@@ -864,7 +924,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "T",
@@ -877,7 +938,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "T",
@@ -890,7 +952,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     },
     {
       "cat": "T",
@@ -903,7 +966,8 @@
       "category": "기본 도구",
       "sub": "",
       "step": "",
-      "also": []
+      "also": [],
+      "access": "free"
     }
   ]
 }

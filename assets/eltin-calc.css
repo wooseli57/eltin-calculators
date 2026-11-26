@@ -253,3 +253,14 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
 .mf-sub{margin-top:8px;font-size:13px}
 .mf-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .mf-btns a{display:block;text-align:center;text-decoration:none;font-size:13px;font-weight:700;color:var(--brand-dark);background:var(--card);border:1px solid var(--brand);border-radius:var(--radius-sm);padding:10px 6px}
+
+/* 회원 전용 계산기 안내 (docs/specs/access.md) — 아임웹 밖에서 열면 입력·결과 대신 안내 카드 */
+.member-locked .calc > section:not(.member-lock), .member-locked .calc > .note, .member-locked .next-step, .member-locked .dev{display:none!important}
+.member-lock{text-align:center;padding:28px 20px}
+.member-lock .ml-icon{font-size:34px;line-height:1}
+.member-lock h2{font-size:18px;font-weight:800;color:var(--brand-dark);margin:10px 0 8px}
+.member-lock p{font-size:14px;color:var(--ink-2);line-height:1.6}
+.member-lock .ml-btns{display:grid;gap:8px;margin-top:18px}
+.member-lock .ml-btns a{text-decoration:none;display:block;padding:12px}
+.member-dev{font-size:12px;font-weight:700;color:var(--brand-dark);background:var(--brand-soft);border-radius:var(--radius-sm);padding:7px 12px}
+.lock{font-size:11px;font-weight:700;color:var(--ink-2);white-space:nowrap}

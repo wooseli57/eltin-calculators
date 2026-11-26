@@ -71,7 +71,7 @@ function render(){
   if(!s){ $("#result").innerHTML = '<p class="empty">예상 판매량을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
   if(w >= 100){ $("#result").innerHTML = '<p class="empty">폐기율은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
 
-  const need = Math.ceil(s / (1 - w / 100));
+  const need = Math.ceil(s / (1 - w / 100) - 1e-9);   // - 1e-9: 소수 계산 오차(1000.0000000000001)로 한 개 더 올라가는 것을 막음
   const rounds = b ? Math.ceil(need / b) : 0;
   const make = b ? rounds * b : need;
   const spare = make - s;

@@ -81,7 +81,7 @@ function render(){
   if(mo <= 0){ $("#result").innerHTML = '<p class="empty">지금 가격에서 남는 돈이 없어요. 원가를 확인해 주세요</p>'; postHeight(); return; }
 
   const drop = (1 - mo / mn) * 100, upPct = (np - p) / p * 100;
-  const needQty = q ? Math.ceil(q * mo / mn) : 0;
+  const needQty = q ? Math.ceil(q * mo / mn - 1e-9) : 0;
 
   $("#result").innerHTML = `
     <p class="lead">${won(np - p)}원 올리면 손님이 이만큼 줄어도 이익이 그대로예요</p>

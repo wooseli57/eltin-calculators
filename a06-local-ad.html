@@ -102,11 +102,11 @@ function render(){
   if(!br){ $("#result").innerHTML = '<p class="empty">구매율을 넣어주세요</p>'; postHeight(); return; }
 
   const unit = t / (1 + VAT) * (1 - r / 100);
-  const needCust = Math.ceil(b / unit);
+  const needCust = Math.ceil(b / unit - 1e-9);   // - 1e-9: 소수 계산 오차 방지
   const clicks = c ? Math.floor(b / c) : null;
   const visitors = clicks != null && v ? clicks * v / 100 : null;
   const buyers = visitors != null ? visitors * br : null;
-  const needClicks = v ? Math.ceil(needCust / (v / 100 * br)) : null;
+  const needClicks = v ? Math.ceil(needCust / (v / 100 * br) - 1e-9) : null;
   const net = buyers != null ? buyers * unit - b : null;
   const views = clicks != null && ctr.value ? clicks / (ctr.value / 100) : null;
 

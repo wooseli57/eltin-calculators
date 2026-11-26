@@ -75,11 +75,12 @@ let unit = 100;
 const cost = moneyInput($("#cost"), $("#costHint"), render);
 const rateInput = $("#rate");
 
-/* 판매가(부가세 포함) = 원가 ÷ 원가율 × (1 + 부가세율), 끝자리는 올림 */
+/* 판매가(부가세 포함) = 원가 ÷ 원가율 × (1 + 부가세율), 끝자리는 올림
+   - 1e-9: 소수 계산 오차(7700.000…01)로 한 단위 더 올라가는 것을 막음 */
 function priceFor(c, ratePct){
   const supply = c / (ratePct / 100);
   const raw = supply * (1 + VAT);
-  return Math.ceil(raw / unit) * unit;
+  return Math.ceil(raw / unit - 1e-9) * unit;
 }
 
 function render(){
@@ -90,7 +91,7 @@ function render(){
     postHeight(); return;
   }
   const price  = priceFor(c, r);
-  const supply = Math.ceil(price / (1 + VAT));
+  const supply = Math.ceil(price / (1 + VAT) - 1e-9);
   const vat    = price - supply;
   const profit = supply - c;
   const realRate = c / supply * 100;

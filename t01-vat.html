@@ -58,7 +58,7 @@ const amount = moneyInput($("#amount"), $("#hint"), render);
 
 function calc(a){
   const r = VAT;
-  if(mode === "incl"){ const supply = Math.ceil(a / (1 + r)); return { supply, vat: a - supply, total: a }; }
+  if(mode === "incl"){ const supply = Math.ceil(a / (1 + r) - 1e-9); return { supply, vat: a - supply, total: a }; }
   const vat = Math.floor(a * r); return { supply: a, vat, total: a + vat };    // 부가세 원 미만 버림
 }
 

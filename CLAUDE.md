@@ -41,6 +41,7 @@ s01-price.html            기준 샘플 2 (입력 여러 개 + 비교표)
 
 - 파일 이름: `docs/calculators.md`의 파일명 열을 그대로 사용 (예: `m01-ingredient-cost.html`).
 - `<html lang="ko" data-cat="M" data-no="01">`: 분류 글자와 번호만 적으면 머리말 태그("M01 · 메뉴 마진")와 테마색이 자동 적용됨. 연결 계산이면 단계 표시("M01 · 원가 1/6")와 결과 아래 "다음 단계" 버튼도 자동으로 붙음.
+- 회원 전용 계산기(`docs/calculators.md` 이용 열 "회원", M·E·B·R·G)는 `<html>`에 `data-access="member"`를 붙임. 공통 JS가 아임웹 iframe 밖에서 열리면 안내 화면을 보여줌 (사양: `docs/specs/access.md`, 목록 검사가 이용 열과 맞는지 확인)
 - `<title>`: `M01 메뉴별 원료비용 계산기 | 엘틴 소상공인 계산기`
 - 머리말의 `h1`은 계산기 이름, `p`는 `docs/calculators.md`의 설명 문장(괄호 부분 제외). 화면에서는 `Eltin.init()`이 `data/calculators.json`의 값으로 다시 채우고, HTML에 적힌 글자는 JSON을 못 읽을 때(파일로 직접 열 때 등) 보이는 기본값이다.
 - 공통 파일은 `assets/eltin-calc.css`, `assets/eltin-calc.js`를 상대 경로로 불러옴.
