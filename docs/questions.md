@@ -4,7 +4,7 @@
 
 | 태그 | 질문 | 적은 날짜 |
 |---|---|---|
-| 공통 | 엘틴 네이버 블로그 주소 (`assets/eltin-calc.js`의 `SITE.blog`). 2026-11-26 배포 때도 아직 받지 못해 `https://blog.naver.com/` 그대로 — 받으면 바로 교체 | 2026-11-23 |
+| 공통 | ~~엘틴 네이버 블로그 주소 (`assets/eltin-calc.js`의 `SITE.blog`)~~ → 해결 (2026-11-26): `https://blog.naver.com/eltin_lab` | 2026-11-23 |
 | 공통 | ~~아임웹 계산기 목록 페이지 주소~~ → `https://eltin.imweb.me/calculators`로 확정(`SITE.listPage`, docs/specs/imweb-embed.md). 하단 "계산기 목록"은 임베드 안에서는 index.html, 밖에서는 이 주소 | 2026-11-23 |
 | L01 | 2027년 장기요양보험 비율, 고용보험 요율, 평균 산재보험료율 (고시되면 `CONFIG.rates[2027]`에 추가) | 2026-11-23 |
 | L01 | 2027년 1월 국민연금 10% 시행 확인 | 2026-11-23 |

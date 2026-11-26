@@ -11,7 +11,7 @@
       { label:"엘틴 쇼핑몰", title:"식용색소·향료 보러가기", href:"https://eltin.imweb.me/shop" }
     ],
     logo: { src:"assets/eltin-logo.svg", href:"https://eltin.imweb.me/" },
-    blog: { label:"블로그", href:"https://blog.naver.com/" },             // 엘틴 네이버 블로그 주소로 교체
+    blog: { label:"블로그", href:"https://blog.naver.com/eltin_lab" },        // 엘틴 네이버 블로그 (2026-11-26 확정)
     /* 회원 전용 계산기 (docs/specs/access.md). 진짜 잠금은 아임웹 페이지 접근 권한("로그인한 회원만")이 하고,
        여기서는 아임웹 iframe 밖에서 열렸을 때 안내 화면을 보여줌.
        아임웹 페이지 구성: 목록 1페이지(누구나) + 회원 전용 1페이지 (docs/specs/imweb-embed.md)
