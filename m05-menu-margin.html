@@ -66,6 +66,7 @@
         <div class="field"><label for="perOrder">1건당 메뉴 수</label>
           <div class="input-wrap sm"><input id="perOrder" type="text" inputmode="decimal" autocomplete="off" value="2"><span class="unit">개</span></div></div>
       </div>
+      <label class="check" style="margin-top:12px"><input type="checkbox" id="feeVat" checked> 수수료에 부가세(10%) 포함</label>
       <p class="help" style="margin-left:0">예시값이에요. 내 가게 정산서의 실제 요율과 배달비로 바꿔주세요.</p>
     </div>
   </section>
@@ -87,6 +88,7 @@ const CONFIG = {
   vatRate: 1.1,
   defaults: { cost: 1200, price: 4500, dprice: 5000, dfee: 2900 },
   delivery: { brokerRate: 7.8, payRate: 3.0, brokerChips: [2.0, 6.8, 7.8] },   // 예시값 (S03과 같은 근거, 확인 2026-11-23)
+  feeVat: 1.1,                                                                  // 배달 수수료에 붙는 부가세 (S02·S03·O06과 같게, 체크 시)
   costRateWarn: 35                                                              // 원가율 안내 기준 (참고용)
 };
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc } = Eltin;
@@ -108,7 +110,7 @@ const dprice = moneyInput($("#dprice"), $("#dpriceHint"), render);
 const dfee = moneyInput($("#dfee"), $("#dfeeHint"), render);
 const broker = numInput($("#broker"), render), pay = numInput($("#pay"), render), perOrder = numInput($("#perOrder"), render);
 $("#menuName").addEventListener("input", render);
-["#vat", "#dOn"].forEach(s => $(s).addEventListener("change", render));
+["#vat", "#dOn", "#feeVat"].forEach(s => $(s).addEventListener("change", render));
 $("#brokerChips").innerHTML = CONFIG.delivery.brokerChips.map(v => `<button class="chip" type="button" data-v="${v}">중개 ${num(v, 1)}%</button>`).join("");
 $$("#brokerChips .chip").forEach(b => b.addEventListener("click", () => broker.set(b.dataset.v)));
 
@@ -119,7 +121,8 @@ function calc(){
   const r = { v, c, p, supply, vat: p - supply, margin, mRate: supply ? margin / supply * 100 : 0, cRate: supply ? c / supply * 100 : 0 };
   r.dOn = $("#dOn").checked;
   if(r.dOn){
-    const dp = dprice.value, f = (broker.value + pay.value) / 100, n = perOrder.value || 1;
+    /* 수수료율 = (중개 + 결제)% × (수수료에 부가세 포함이면 1.1) — 배달 판매가 계산기(S02)와 같은 기준 */
+    const dp = dprice.value, f = (broker.value + pay.value) / 100 * ($("#feeVat").checked ? CONFIG.feeVat : 1), n = perOrder.value || 1;
     r.dp = dp; r.dSupply = dp / v; r.dFee = dp * f; r.dPer = dfee.value / n;
     r.dMargin = r.dSupply - c - r.dFee - r.dPer;
     r.dRate = r.dSupply ? r.dMargin / r.dSupply * 100 : 0;
@@ -153,7 +156,7 @@ function render(){
       <div class="row"><span>배달 판매가</span><b>${won(r.dp)}원</b></div>
       ${r.v > 1 ? `<div class="row"><span>부가세</span><b>− ${won(r.dp - r.dSupply)}원</b></div>` : ""}
       <div class="row"><span>원가</span><b>− ${won(r.c)}원</b></div>
-      <div class="row"><span>배달앱 수수료<small>${num(broker.value, 1)}% + ${num(pay.value, 1)}%</small></span><b>− ${won(r.dFee)}원</b></div>
+      <div class="row"><span>배달앱 수수료<small>(${num(broker.value, 1)}% + ${num(pay.value, 1)}%)${$("#feeVat").checked ? " × 1.1 (부가세 포함)" : ""}</small></span><b>− ${won(r.dFee)}원</b></div>
       <div class="row"><span>1개당 배달비<small>${won(dfee.value)}원 ÷ ${num(perOrder.value || 1, 1)}개</small></span><b>− ${won(r.dPer)}원</b></div>
       <div class="row total"><span>배달 1개 마진</span><b>${r.dMargin < 0 ? "−" : ""}${won(Math.abs(r.dMargin))}원</b></div>
       <div class="row"><span>배달 마진율</span><b>${num(r.dRate, 1)}%</b></div>` : ""}
@@ -172,7 +175,7 @@ function render(){
 }
 
 $("#note").innerHTML = `<b>계산 기준</b> · 1개 마진 = 부가세 뺀 판매가(판매가 ÷ 1.1) − 원가. 부가세 빼기를 끄면 판매가에서 원가만 빼요. 금액은 원 단위 반올림이에요.<br>
-  배달 수수료는 배달 판매가 × (중개 + 결제 수수료율), 배달비는 1건 금액을 1건당 메뉴 수로 나눠요. 광고비·쿠폰 부담분은 빠져 있어요.<br>
+  배달 수수료는 배달 판매가 × (중개 + 결제 수수료율)이고, "수수료에 부가세 포함"을 켜면 × 1.1을 해요(배달 판매가 계산기 S02와 같은 기준). 배달비는 1건 금액을 1건당 메뉴 수로 나눠요. 광고비·쿠폰 부담분은 빠져 있어요.<br>
   원가율 ${CONFIG.costRateWarn}%는 참고용 기준이에요. 메뉴와 가게마다 알맞은 원가율은 달라요.<br>
   기본값은 예시예요. 배달앱 수수료와 배달비는 앱마다 다르고, 가게의 매출 구간, 가게와 손님 사이의 거리, 앱의 정책에 따라 수시로 바뀌어요. 참고용으로 사용하시고, 정확한 금액은 각 앱의 정산서와 공지를 확인하세요.`;
 
