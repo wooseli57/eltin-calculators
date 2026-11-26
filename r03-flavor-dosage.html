@@ -148,7 +148,8 @@ function renderIng(){
     <p class="big">${num(ml, 1)}<small>ml</small></p>
     <div class="rows">
       ${lines.filter(l => l.v).map(l => {
-        const ref = l.u.fallbackOnly && main.length;
+        /* 달걀(참고용) 기준 양이 권장량보다 클 때만 "이 양까지 늘려도 돼요" 안내 (같거나 작으면 숨김) */
+        const ref = l.u.fallbackOnly && main.length && l.ml > ml + 1e-9;
         return `<div class="row ${l === basis ? "on" : ""}"><span>${l.u.label} ${num(l.v, 1)}${l.u.unit}<small>${l.u.amount}${l.u.unit}당 ${l.u.ml}ml${l === basis ? " · 이 재료 기준" : ""}</small></span>
           <b>${num(l.ml, 1)}ml${ref ? `<small>달걀 잡내를 더 잡고 싶으면 이 양까지 늘려도 돼요</small>` : ""}</b></div>`;
       }).join("")}
