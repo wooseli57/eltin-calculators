@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="B" data-no="07">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B07 월 손익 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);cursor:pointer;margin-top:8px}
+.check input{width:18px;height:18px;accent-color:var(--brand-dark);flex:none}
+.adv{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.adv summary{font-size:13px;color:var(--ink-2);cursor:pointer;list-style:none}
+.adv summary::before{content:"▸ ";color:var(--brand)}
+.adv[open] summary::before{content:"▾ "}
+.adv .field{margin-top:10px}
+.row.minor span:first-child{color:var(--ink-3)}
+#result .row b{white-space:nowrap;padding-left:8px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>월 손익 계산기</h1>
+      <p>원가·판매비·광고비·인건비·운영비를 가져오거나 직접 넣으면 한 달에 남는 돈, 손익분기 매출, 1년 환산 이익을 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="mfTabs"></div>
+    <div class="field">
+      <div class="mf-head"><label for="sales">월 매출</label><span class="mf-link" data-tag="B06"></span></div>
+      <div class="input-wrap"><input id="sales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="salesHint"></div>
+      <div id="salesFrom"></div>
+    </div>
+    <div id="lines"></div>
+    <details class="adv" id="onlineBox">
+      <summary>고급 설정 · 온라인 월 이익 더하기</summary>
+      <div class="field">
+        <label for="online">온라인 월 이익 <small>매장과 온라인을 같이 할 때</small></label>
+        <div class="input-wrap"><input id="online" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="onlineHint"></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/monthly-flow.js"></script>
+<script>
+/* ===== B07 월 손익 계산기 (중심 계산기) — 사양: docs/specs/B-monthly.md B07 =====
+   변동비 = 원가 + 판매비 (+ 광고비가 매출 비례면 광고비), 고정비 = 인건비 + 운영비 (+ 광고비가 고정이면 광고비)
+   감가상각 후 이익 = 매출 − 변동비 − 고정비 (+ 온라인 월 이익), 감가상각 전 = 후 + 감가상각
+   손익분기 매출 = 고정비 ÷ (1 − 변동비율), 1년 환산 = 감가상각 후 이익 × 12 */
+const { $, won, num, moneyInput, ACTIONS, bindActions, postHeight, keepEmbed } = Eltin;
+const G = MF.got;
+
+const DEF = {
+  sales: { store: 15000000, online: 10000000 },
+  dep:   { store: 500000,   online: 0 },
+  adv:   { store: false,    online: true }
+};
+const sales = moneyInput($("#sales"), $("#salesHint"), render);
+const online = moneyInput($("#online"), $("#onlineHint"), render);
+
+/* 비용 5줄 */
+const box = $("#lines");
+const L = {
+  mat:   MF.line(box, { label: "원가", sub: "원재료·자재", link: "B01", imported: G.mat, onChange: render,
+           def: { store: { t: "pct", v: 30 }, online: { t: "pct", v: 40 } } }),
+  sell:  MF.line(box, { label: "판매비", sub: "카드·배달·마켓 수수료, 배달·택배비", link: "B02", imported: G.sell, onChange: render,
+           def: { store: { t: "pct", v: 5 }, online: { t: "pct", v: 15 } } }),
+  ad:    MF.line(box, { label: "광고비", link: "B03", imported: G.ad, onChange: () => { if(L.ad.mode() === "pct") $("#adv").checked = true; render(); },
+           def: { store: { t: "amt", v: 300000 }, online: { t: "pct", v: 10 } } }),
+  labor: MF.line(box, { label: "인건비", sub: "급여 + 4대보험", link: "B04", imported: G.labor, onChange: render,
+           def: { store: { t: "amt", v: 4000000 }, online: { t: "amt", v: 0 } } }),
+  opex:  MF.line(box, { label: "운영비", sub: "월세·공과금·감가상각 등", link: "B05", imported: G.opex, onChange: render,
+           def: { store: { t: "amt", v: 3000000 }, online: { t: "amt", v: 500000 } } })
+};
+L.ad.el.insertAdjacentHTML("beforeend", `<label class="check"><input type="checkbox" id="adv"> 매출에 따라 늘어나는 광고 <small>(켜면 변동비)</small></label>`);
+L.opex.el.insertAdjacentHTML("beforeend", `<div class="field mf-sub"><label for="dep">그중 시설 감가상각 <small>통장에서 나가지 않는 비용</small></label>
+  <div class="input-wrap"><input id="dep" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div><div class="hint" id="depHint"></div></div>`);
+const dep = moneyInput($("#dep"), $("#depHint"), render);
+$("#adv").addEventListener("change", render);
+$("#onlineBox").addEventListener("toggle", postHeight);
+
+/* 탭 기본값. 앞 단계에서 받은 값(G)이 있으면 탭을 바꿔도 그 값을 유지 */
+function setDefaults(m){
+  const sv = G.sales ?? DEF.sales[m], dv = G.dep ?? DEF.dep[m];
+  $("#sales").value = sv ? won(sv) : "";
+  $("#dep").value = dv ? won(dv) : "";
+  Object.values(L).forEach(l => l.setDefault(m));
+  /* M06에서 받은 메뉴 원가율(matp)·판매비율(sellp): 그 줄을 매출 % 모드로 */
+  if(G.matp != null && G.mat == null) L.mat.setPct(G.matp, '<span class="mf-from">메뉴 원가율을 가게 전체 원가율로 넣었어요. 메뉴마다 다르면 고쳐 주세요</span>');
+  if(G.sellp != null && G.sell == null) L.sell.setPct(G.sellp, MF.FROM);
+  $("#adv").checked = G.ad != null && G.adv != null ? G.adv === 1 : L.ad.mode() === "pct" ? true : DEF.adv[m];
+  $("#onlineBox").hidden = m !== "store";
+  $("#salesFrom").innerHTML = G.sales != null ? MF.FROM : "";
+  ["#sales", "#dep"].forEach(s => $(s).dispatchEvent(new Event("input")));   // 억·만 읽기 표시 갱신 + 다시 계산
+}
+MF.tabs($("#mfTabs"), m => setDefaults(m));
+setDefaults(MF.mode);
+
+function calc(){
+  const s = sales.value;
+  const c = { mat: L.mat.amount(s), sell: L.sell.amount(s), ad: L.ad.amount(s), labor: L.labor.amount(s), opex: L.opex.amount(s) };
+  const adVar = $("#adv").checked;
+  const variable = c.mat + c.sell + (adVar ? c.ad : 0);
+  const fixed = c.labor + c.opex + (adVar ? 0 : c.ad);
+  const d = Math.min(dep.value, c.opex);                         // 감가상각은 운영비 안의 금액
+  const extra = MF.mode === "store" ? online.value : 0;
+  const after = s - variable - fixed + extra;
+  const before = after + d;
+  const vr = s ? variable / s : 0;
+  const bep = vr < 1 ? fixed / (1 - vr) : null;
+  return { s, c, adVar, variable, fixed, d, extra, after, before, vr, bep, year: after * 12 };
+}
+
+function render(){
+  const r = calc();
+  if(!r.s){ $("#result").innerHTML = '<p class="empty">월 매출을 넣으면 바로 계산돼요</p>'; MF.pass({}); postHeight(); return; }
+  const loss = r.after < 0;
+  const pct = v => r.s ? ` <small>${num(v / r.s * 100, 1)}%</small>` : "";
+  const bepTip = r.bep == null
+    ? `<p class="tip warn">변동비가 매출의 ${num(r.vr * 100, 1)}%라 팔수록 손해예요. 원가·수수료를 먼저 줄여야 해요.</p>`
+    : r.s >= r.bep
+      ? `<p class="tip">매출이 <b>${won(r.bep)}원</b>(손익분기 매출)보다 적으면 적자예요. 지금은 손익분기보다 <b>${num((r.s / r.bep - 1) * 100, 1)}%</b> 많이 팔고 있어요.</p>`
+      : `<p class="tip warn">매출이 손익분기 매출 <b>${won(r.bep)}원</b>보다 <b>${won(r.bep - r.s)}원</b>(${num((1 - r.s / r.bep) * 100, 1)}%) 부족해요.</p>`;
+  const q = MF.pass({ sales: r.s, mat: r.c.mat, sell: r.c.sell, ad: r.c.ad, adv: r.adVar ? 1 : 0, labor: r.c.labor, opex: r.c.opex, dep: r.d,
+    profit: Math.max(r.before, 0), fixed: r.fixed, vr: r.vr * 100 });
+  const taxQ = new URLSearchParams({ income: Math.max(Math.round(r.year), 0), isales: Math.round(r.s * 12) }).toString();
+  const payQ = new URLSearchParams({ m: MF.mode, profit: Math.max(Math.round(r.before), 0), fixed: Math.round(r.fixed), vr: String(Math.round(r.vr * 1000) / 10) }).toString();
+
+  $("#result").innerHTML = `
+    <p class="lead">${loss ? `한 달에 ${won(-r.after)}원 적자예요` : "한 달에 남는 돈은"}</p>
+    <p class="big">${loss ? "−" : ""}${won(Math.abs(r.after))}<small>원</small></p>
+    <div id="chart"></div>
+    <div class="rows">
+      <div class="row"><span>월 매출</span><b>${won(r.s)}원</b></div>
+      <div class="row"><span>원가<small>변동비</small></span><b>${won(r.c.mat)}원${pct(r.c.mat)}</b></div>
+      <div class="row"><span>판매비<small>변동비</small></span><b>${won(r.c.sell)}원${pct(r.c.sell)}</b></div>
+      <div class="row"><span>광고비<small>${r.adVar ? "변동비 (매출 비례)" : "고정비"}</small></span><b>${won(r.c.ad)}원${pct(r.c.ad)}</b></div>
+      <div class="row"><span>인건비<small>고정비</small></span><b>${won(r.c.labor)}원${pct(r.c.labor)}</b></div>
+      <div class="row"><span>운영비<small>고정비${r.d ? ` · 그중 감가상각 ${won(r.d)}원` : ""}</small></span><b>${won(r.c.opex)}원${pct(r.c.opex)}</b></div>
+      ${r.extra ? `<div class="row"><span>온라인 월 이익</span><b>+ ${won(r.extra)}원</b></div>` : ""}
+      <div class="row total"><span>한 달 이익 (감가상각 후)<small>이익률 ${num(r.after / r.s * 100, 1)}%</small></span><b>${loss ? "−" : ""}${won(Math.abs(r.after))}원</b></div>
+      <div class="row"><span>통장에 남는 돈 (감가상각 전)</span><b>${r.before < 0 ? "−" : ""}${won(Math.abs(r.before))}원</b></div>
+      <div class="row"><span>손익분기 매출<small>고정비 ${won(r.fixed)}원 ÷ (1 − 변동비율 ${num(r.vr * 100, 1)}%)</small></span><b>${r.bep == null ? "없음" : won(r.bep) + "원"}</b></div>
+      <div class="row"><span>1년이면 약</span><b>${r.year < 0 ? "−" : ""}${won(Math.abs(r.year))}원</b></div>
+    </div>
+    ${bepTip}
+    <p class="tip">사장님 본인 인건비를 넣지 않았다면, 남는 돈이 곧 사장님 몫이에요.</p>
+    ${MF.from === "E03" ? `<p class="tip">여기 이익은 부가세를 빼기 전 금액이에요. 상품 손익(E03)은 1개 이익에서 부가세를 이미 빼서, 여기 이익이 그만큼 더 커 보여요.</p>` : ""}
+    <div class="mf-btns">
+      <a href="${keepEmbed("o05-tax.html?" + taxQ)}" target="_self">1년 이익으로 세금 계산 →</a>
+      <a href="${keepEmbed("b08-payback.html?" + payQ)}" target="_self">투자회수 계산 →</a>
+    </div>
+    ${ACTIONS}`;
+  Eltin.donut($("#chart"), [
+    { label: "원가", value: r.c.mat }, { label: "판매비", value: r.c.sell }, { label: "광고비", value: r.c.ad },
+    { label: "인건비", value: r.c.labor }, { label: "운영비", value: r.c.opex }, { label: "이익", value: r.after }
+  ], { big: `${num(r.after / r.s * 100, 1)}%`, small: "이익률" },
+     loss ? { loss: `비용이 매출보다 ${won(-r.after)}원 많아요` } : { profitLast: true });
+  bindActions(`[월 손익 계산] ${MF.mode === "store" ? "매장" : "온라인"} · 월 매출 ${won(r.s)}원 − 원가 ${won(r.c.mat)}원 − 판매비 ${won(r.c.sell)}원 − 광고비 ${won(r.c.ad)}원 − 인건비 ${won(r.c.labor)}원 − 운영비 ${won(r.c.opex)}원${r.extra ? ` + 온라인 이익 ${won(r.extra)}원` : ""} = 한 달 이익 ${loss ? "−" : ""}${won(Math.abs(r.after))}원 (감가상각 전 ${won(r.before)}원, 손익분기 매출 ${r.bep == null ? "없음" : won(r.bep) + "원"}, 1년 약 ${won(r.year)}원)`);
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${MF.COMMON_NOTE}<br>
+  시설비는 사용 기간으로 나눈 감가상각비로 넣어요. 통장에 남는 돈은 감가상각을 빼기 전 금액이에요.<br>
+  1년 환산은 한 달 이익 × 12예요. 성수기·비수기가 있으면 평균 월 매출로 넣으세요.<br>
+  세금(부가세·소득세)은 빼기 전 금액이에요. 세금은 세금 계산기에서 1년 이익으로 확인하세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>

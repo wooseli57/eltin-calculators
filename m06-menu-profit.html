@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="06">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M06 메뉴 손익 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.dbox{margin-top:12px;padding:12px;border-radius:var(--radius-sm);background:var(--brand-faint)}
+.dbox .field:first-child{margin-top:0}
+.dbox-title{font-size:13px;font-weight:700;color:var(--brand-dark);margin-bottom:8px}
+.row b small{display:block;font-size:12px;font-weight:400;color:var(--ink-3);text-align:right}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>메뉴 손익 계산기</h1>
+      <p>이 메뉴를 한 달에 몇 개 파는지 넣으면 한 달에 남기는 돈과 월 고정비를 얼마나 감당하는지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="menuName">메뉴 이름 <small>비워도 돼요</small></label>
+      <div class="input-wrap"><input id="menuName" type="text" autocomplete="off" maxlength="30" placeholder="예: 아메리카노" style="text-align:left"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <div class="mf-head"><label for="margin">1개 마진 <small>매장</small></label></div>
+        <div class="input-wrap sm"><input id="margin" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="marginHint"></div>
+      </div>
+      <div class="field">
+        <label for="price">판매가 <small>매장</small></label>
+        <div class="input-wrap sm"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+    </div>
+    <div class="mf-head"><span id="fromNote"></span><span class="mf-link"><a id="m05Link" href="m05-menu-margin.html" target="_self">자세히 계산 (M05) →</a></span></div>
+    <div class="field">
+      <label for="qty">월 판매량 <small>매장</small></label>
+      <div class="input-wrap"><input id="qty" type="text" inputmode="numeric" autocomplete="off" value="900"><span class="unit">개</span></div>
+      <div class="hint" id="qtyHint"></div>
+    </div>
+    <div class="dbox" id="dBox" hidden>
+      <p class="dbox-title">배달 판매</p>
+      <div class="field-row">
+        <div class="field"><label for="dmargin">배달 1개 마진</label>
+          <div class="input-wrap sm"><input id="dmargin" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div></div>
+        <div class="field"><label for="dprice">배달 판매가</label>
+          <div class="input-wrap sm"><input id="dprice" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div></div>
+      </div>
+      <div class="field">
+        <label for="dqty">월 배달 판매량</label>
+        <div class="input-wrap"><input id="dqty" type="text" inputmode="numeric" autocomplete="off" value="200"><span class="unit">개</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="mf-head"><label for="fixed">월 고정비 <small>인건비 + 운영비</small></label><span class="mf-link" id="b07Link"></span></div>
+      <div class="input-wrap"><input id="fixed" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="fixedHint"></div>
+      <p class="hint" style="text-align:left">월 손익 계산기(B07)의 고정비와 같은 값이에요.</p>
+    </div>
+    <div class="field">
+      <label for="days">월 영업일</label>
+      <div class="input-wrap"><input id="days" type="text" inputmode="numeric" autocomplete="off" value="26"><span class="unit">일</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== M06 메뉴 손익 계산기 — 사양: docs/specs/M05-M06-E03.md =====
+   월 공헌이익 = 매장 마진 × 월 판매량 + 배달 마진 × 월 배달 판매량 (고정비 빼기 전)
+   고정비 감당 비율 = 공헌이익 ÷ 월 고정비, 이 메뉴만으로 손익분기 판매량 = 월 고정비 ÷ 매장 마진 (판매량은 항상 올림) */
+const CONFIG = { defaults: { margin: 2891, price: 4500, fixed: 7300000 } };
+const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc, keepEmbed } = Eltin;
+
+/* M05에서 받은 값: name, price, margin, costrate, (배달) dprice, dmargin */
+const P = { name: paramText("name"), price: param("price"), margin: param("margin"), costrate: param("costrate"), dprice: param("dprice"), dmargin: param("dmargin") };
+const hasD = P.dmargin != null;
+$("#menuName").value = P.name;
+$("#margin").value = won(P.margin ?? CONFIG.defaults.margin);
+$("#price").value = won(P.price ?? CONFIG.defaults.price);
+$("#fixed").value = won(CONFIG.defaults.fixed);
+if(hasD){ $("#dmargin").value = won(P.dmargin); $("#dprice").value = won(P.dprice ?? 0); }
+$("#dBox").hidden = !hasD;
+if(P.margin != null) $("#fromNote").innerHTML = '<span class="mf-from">앞 단계(M05)에서 가져온 값이에요</span>';
+
+const menuRaw = () => $("#menuName").value.trim(), menuName = () => esc(menuRaw());
+const margin = moneyInput($("#margin"), $("#marginHint"), render), price = moneyInput($("#price"), $("#priceHint"), render);
+const dmargin = moneyInput($("#dmargin"), null, render), dprice = moneyInput($("#dprice"), null, render);
+const fixed = moneyInput($("#fixed"), $("#fixedHint"), render);
+const qty = numInput($("#qty"), render), dqty = numInput($("#dqty"), render), days = numInput($("#days"), render);
+$("#menuName").addEventListener("input", render);
+$("#m05Link").href = keepEmbed("m05-menu-margin.html");
+
+function render(){
+  const m = margin.value, q = qty.value, d = days.value || 26, F = fixed.value;
+  const dm = hasD ? dmargin.value : 0, dq = hasD ? dqty.value : 0;
+  $("#qtyHint").textContent = q ? `하루 약 ${num(q / d, 1)}개 (월 ${num(d, 0)}일)` : "";
+  /* 월 손익(B07)으로: 매장 탭, 메뉴 원가율을 원가 줄의 매출 %로 (matp) */
+  Eltin.setFlow({ query: new URLSearchParams({ m: "store", ...(P.costrate != null ? { matp: String(P.costrate) } : {}) }).toString(), shortcut: "B07" });
+  const b07 = Eltin.ready("B07");
+  $("#b07Link").innerHTML = b07 ? `<a href="${keepEmbed("b07-monthly-profit.html?m=store")}" target="_self">자세히 계산 (B07) →</a>` : "";
+  if(!m || !q){ $("#result").innerHTML = '<p class="empty">1개 마진과 월 판매량을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+
+  const contrib = m * q + dm * dq;
+  const sales = price.value * q + (hasD ? dprice.value * dq : 0);
+  const cover = F ? contrib / F * 100 : null;
+  const bep = F ? Math.ceil(F / m) : null, bepDay = bep != null ? Math.ceil(bep / d) : null;
+  const nm = menuName() || "이 메뉴";
+
+  $("#result").innerHTML = `
+    <p class="lead">${Eltin.ro(nm)} 한 달에 버는 돈은 <small>(고정비 빼기 전)</small></p>
+    <p class="big">${won(contrib)}<small>원</small></p>
+    ${F ? '<div id="chart"></div>' : ""}
+    <div class="rows">
+      <div class="row"><span>월 판매량 (매장)<small>하루 약 ${num(q / d, 1)}개</small></span><b>${won(q)}개</b></div>
+      ${hasD ? `<div class="row"><span>월 배달 판매량<small>하루 약 ${num(dq / d, 1)}개</small></span><b>${won(dq)}개</b></div>` : ""}
+      <div class="row"><span>이 메뉴의 월 매출</span><b>${won(sales)}원</b></div>
+      <div class="row total"><span>월 공헌이익<small>${won(m)}원 × ${won(q)}개${hasD ? ` + ${won(dm)}원 × ${won(dq)}개` : ""}</small></span><b>${won(contrib)}원</b></div>
+      ${F ? `<div class="row"><span>고정비 감당 비율<small>월 고정비 ${won(F)}원 중</small></span><b>${num(cover, 1)}%</b></div>
+      <div class="row"><span>이 메뉴만으로 고정비를 다 감당하려면</span><b>하루 ${won(bepDay)}개<small>한 달 ${won(bep)}개</small></b></div>` : ""}
+    </div>
+    ${F && contrib >= F ? `<p class="tip">이 메뉴만으로 월 고정비를 다 감당하고 <b>${won(contrib - F)}원</b>이 남아요.</p>` : ""}
+    <p class="tip">다른 메뉴까지 더한 가게 전체 이익은 월 손익 계산기에서 확인하세요.</p>
+    ${ACTIONS}`;
+  if(F) Eltin.bars($("#chart"), [{ label: "월 고정비", value: F }, { label: `${menuRaw() || "이 메뉴"} 공헌이익`, value: contrib, highlight: true }]);
+  bindActions(`[메뉴 손익] ${menuRaw() ? menuRaw() + ": " : ""}1개 마진 ${won(m)}원 × 월 ${won(q)}개${hasD ? ` + 배달 ${won(dm)}원 × ${won(dq)}개` : ""} = 월 공헌이익 ${won(contrib)}원 (월 매출 ${won(sales)}원${F ? `, 고정비 ${won(F)}원의 ${num(cover, 1)}%, 이 메뉴만으로 본전은 하루 ${won(bepDay)}개` : ""})`);
+  postHeight();
+}
+window.addEventListener("eltin:calcs", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · 월 공헌이익 = 1개 마진 × 월 판매량 (배달은 배달 1개 마진 × 월 배달 판매량을 더함). 고정비를 빼기 전, 이 메뉴가 버는 돈이에요.<br>
+  이 메뉴만으로 고정비를 감당하는 판매량 = 월 고정비 ÷ 1개 마진이고, 판매량은 올림해요. 하루 판매량은 월 영업일로 나눠요.<br>
+  1개 마진은 부가세를 뺀 금액이에요 (메뉴 마진 계산기 M05 기준).`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>

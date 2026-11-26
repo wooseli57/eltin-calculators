@@ -75,6 +75,9 @@ function render(){
     { label: "기타비용", value: m.etcAmt }, { label: "부가세", value: m.vat }, { label: "소득세", value: m.tax },
     { label: "세후 순이익", value: m.net }
   ], { big: pct(m.netRate), small: "세후 순이익률" }, { loss: loss ? `비용이 납품가보다 ${won(-m.net)}원 많아요` : "" });
+  /* 다음 단계(E03 상품 손익)로 넘기는 값 — docs/specs/M05-M06-E03.md. 세후가 아닌 세전 이익(ebt)을 넘김 */
+  Eltin.setFlow({ query: new URLSearchParams({ type: "rocket", price: Math.round(x.price), base: Math.round(m.base), ebt: Math.round(m.ebt),
+    buy: Math.round(x.buy), fee: 0, pack: Math.round(x.pack), ad: Math.round(m.adAmt), etc: Math.round(m.etcAmt), vat: Math.round(m.vat) }).toString() });
   bindActions(`[로켓배송 마진] 쿠팡 판매가 ${won(x.price)}원, 수수료 ${pct(x.fee)} → 납품가 ${won(m.base)}원, 매입가 ${won(x.buy)}원 → 세후 순이익 ${won(m.net)}원 (납품가 기준 ${pct(m.netRate)}), 최대광고비 ${won(m.maxAd)}원(판매가의 ${pct(m.maxAdRateSale)})`,
     () => form.reset());
   postHeight();

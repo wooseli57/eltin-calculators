@@ -78,7 +78,7 @@ const loss = numInput($("#loss"), render);
 function render(){
   $$("#lossChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === loss.value && $("#loss").value !== ""));
   const i = ing.value, p = pack.value, d = deliv.value, l = loss.value;
-  if(!i && !p){ $("#result").innerHTML = '<p class="empty">재료비나 포장비를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(!i && !p){ $("#result").innerHTML = '<p class="empty">재료비나 포장비를 넣으면 바로 계산돼요</p>'; Eltin.setFlow({ query: menuRaw() ? new URLSearchParams({ name: menuRaw() }).toString() : "" }); postHeight(); return; }
   if(l >= 100){ $("#result").innerHTML = '<p class="empty">손실률은 100% 미만으로 넣어주세요</p>'; postHeight(); return; }
 
   const ingReal = i / (1 - l / 100);
@@ -99,6 +99,8 @@ function render(){
     <p class="tip">이 금액을 판매가 계산기(S01)·메뉴 마진 비교 계산기(S04)·손익분기점 계산기(S05)에 넣어 보세요.</p>
     ${ACTIONS}`;
   Eltin.donut($("#chart"), [{ label: "원료 (재료비)", value: i }, { label: "자재 (포장비)", value: p }, { label: "배달", value: d }, { label: "손실", value: ingReal - i }], { big: `${Eltin.shortWon(d ? delivery : store)}원`, small: d ? "배달 판매 원가" : "메뉴 원가" }, { profitLast: false });
+  /* 다음 단계(M05 메뉴 마진)로 넘기는 값: name 메뉴 이름, cost 매장 판매 원가, dcost 배달 1건당 비용(넣었을 때만) */
+  Eltin.setFlow({ query: new URLSearchParams({ ...(menuRaw() ? { name: menuRaw() } : {}), cost: Math.round(store), ...(d ? { dcost: Math.round(d) } : {}) }).toString() });
   bindActions(`[메뉴별 원가 합계] ${menuRaw() ? menuRaw() + ": " : ""}재료비 ${won(i)}원(손실 ${num(l, 1)}% 반영 ${won(ingReal)}원) + 포장비 ${won(p)}원 = 매장 원가 ${won(store)}원${d ? `, 배달 원가 ${won(delivery)}원` : ""}`,
     () => { ing.set(0); pack.set(0); deliv.set(0); loss.set(0); $("#ing").focus(); });
   postHeight();

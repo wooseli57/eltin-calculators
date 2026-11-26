@@ -327,6 +327,15 @@ $("#note").innerHTML = `<b>계산 기준</b> · ${RV.useYear}년 기준 — 부�
 Eltin.yearNotice(RV, "", { cardCreditRate: "카드매출 공제" },
   `${RV.useYear}년 기준이에요. 세율, 간이과세 기준, 카드매출 공제율은 세법 개정으로 자주 바뀌어요. 이 계산은 대략적인 예상치이고, 실제 세액은 공제·감면에 따라 달라져요. 정확한 금액은 홈택스나 세무사에게 확인하세요.`);
 
+/* 월 손익(B07)에서 넘어오면: income 1년 이익, isales 1년 매출 → 종합소득세 탭의 1년 매출·1년 경비(매출 − 이익)를 채움 */
+(() => {
+  const inc = Eltin.param("income"), isales = Eltin.param("isales");
+  if(inc == null) return;
+  $('#tabSeg [data-tab="inc"]').click();
+  const s = isales != null && isales >= inc ? isales : inc;
+  incSales.set(s); incCost.set(s - inc);
+})();
+
 Eltin.init();
 render();
 </script>

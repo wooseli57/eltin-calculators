@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="E" data-no="03">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E03 상품 손익 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>상품 손익 계산기</h1>
+      <p>이 상품을 한 달에 몇 개 파는지 넣으면 한 달에 남는 돈을 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="itemName">상품 이름 <small>비워도 돼요</small></label>
+      <div class="input-wrap"><input id="itemName" type="text" autocomplete="off" maxlength="30" placeholder="예: 바닐라 익스트랙 60ml" style="text-align:left"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="ebt">1개 세전 이익</label>
+        <div class="input-wrap sm"><input id="ebt" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="ebtHint"></div>
+      </div>
+      <div class="field">
+        <label for="price">판매가</label>
+        <div class="input-wrap sm"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="priceHint"></div>
+      </div>
+    </div>
+    <div class="mf-head"><span id="fromNote"></span><span class="mf-link"><a id="eLink" href="e01-online-margin.html" target="_self">자세히 계산 (E01) →</a></span></div>
+    <div class="field">
+      <label for="qty">월 판매량</label>
+      <div class="input-wrap"><input id="qty" type="text" inputmode="numeric" autocomplete="off" value="300"><span class="unit">개</span></div>
+      <div class="hint" id="qtyHint"></div>
+    </div>
+    <div class="field">
+      <div class="mf-head"><label for="fixed">월 고정비 <small>창고·솔루션 등</small></label><span class="mf-link" id="b05Link"></span></div>
+      <div class="input-wrap"><input id="fixed" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="fixedHint"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== E03 상품 손익 계산기 — 사양: docs/specs/M05-M06-E03.md =====
+   월 이익 = 1개 세전 이익 × 월 판매량 − 월 고정비, 손익분기 판매량 = 월 고정비 ÷ 1개 세전 이익 (올림)
+   세전 이익(소득세 빼기 전)을 쓰는 이유: 소득세는 1년 이익으로 세금 계산기에서 계산하므로 여기서 빼면 두 번 빠짐 */
+const CONFIG = { defaults: { ebt: 2000, price: 20000, fixed: 500000 }, daysPerMonth: 30 };
+const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc, keepEmbed } = Eltin;
+
+/* E01·E02에서 받은 값 (1개 기준): type direct|rocket, price, base 정산 기준가, ebt 세전 이익,
+   buy 매입가, fee 마켓 수수료(직접 판매만), pack 포장비, ad 광고비, etc 기타비용, vat 부가세 */
+const P = { name: paramText("name"), type: paramText("type") === "rocket" ? "rocket" : "direct",
+  price: param("price"), base: param("base"), ebt: param("ebt", { neg: true }),
+  buy: param("buy"), fee: param("fee"), pack: param("pack"), ad: param("ad"), etc: param("etc"), vat: param("vat") };
+const rocket = P.type === "rocket";
+$("#itemName").value = P.name;
+$("#ebt").value = won(P.ebt != null ? Math.max(P.ebt, 0) : CONFIG.defaults.ebt);
+$("#price").value = won(P.price ?? CONFIG.defaults.price);
+$("#fixed").value = won(CONFIG.defaults.fixed);
+if(P.ebt != null) $("#fromNote").innerHTML = `<span class="mf-from">앞 단계(${rocket ? "E02" : "E01"})에서 가져온 값이에요</span>`;
+$("#eLink").href = keepEmbed(rocket ? "e02-rocket-margin.html" : "e01-online-margin.html");
+$("#eLink").textContent = `자세히 계산 (${rocket ? "E02" : "E01"}) →`;
+
+const nameRaw = () => $("#itemName").value.trim(), nameH = () => esc(nameRaw());
+const ebt = moneyInput($("#ebt"), $("#ebtHint"), render), price = moneyInput($("#price"), $("#priceHint"), render);
+const fixed = moneyInput($("#fixed"), $("#fixedHint"), render);
+const qty = numInput($("#qty"), render);
+$("#itemName").addEventListener("input", render);
+
+function render(){
+  const e = ebt.value, q = qty.value, F = fixed.value, d = CONFIG.daysPerMonth;
+  $("#qtyHint").textContent = q ? `하루 약 ${num(q / d, 1)}개 (월 ${d}일 기준)` : "";
+  $("#b05Link").innerHTML = Eltin.ready("B05") ? `<a href="${keepEmbed("b05-monthly-opex.html?m=online")}" target="_self">자세히 계산 (B05) →</a>` : "";
+  const negNote = P.ebt != null && P.ebt < 0 ? `<p class="tip warn">앞 단계에서 1개 세전 이익이 <b>−${won(-P.ebt)}원</b>(손해)으로 나왔어요. 판매가나 비용을 먼저 고쳐 보세요.</p>` : "";
+  if(!e || !q){ $("#result").innerHTML = `${negNote}<p class="empty">1개 세전 이익과 월 판매량을 넣으면 바로 계산돼요</p>`; Eltin.setFlow({ query: "m=online", shortcut: "B07" }); postHeight(); return; }
+
+  const gain = e * q, profit = gain - F;
+  const sales = price.value * q, settle = rocket && P.base != null ? P.base * q : null;
+  const bep = F ? Math.ceil(F / e) : 0, bepDay = Math.ceil(bep / d);
+  const loss = profit < 0, nm = nameH() || "이 상품";
+
+  /* 월 손익(B07, 온라인 탭)으로: 1개 값 × 월 판매량. 부가세(vat)는 B07이 부가세 빼기 전 기준이라 넘기지 않음 */
+  const eng = P.buy != null;
+  const fq = new URLSearchParams({ m: "online", sales: Math.round(settle ?? sales), opex: Math.round(F), from: "E03" });
+  if(eng){
+    fq.set("mat", Math.round(P.buy * q));
+    fq.set("sell", Math.round(((rocket ? 0 : P.fee || 0) + (P.pack || 0) + (P.etc || 0)) * q));
+    fq.set("ad", Math.round((P.ad || 0) * q)); fq.set("adv", "1");
+  }
+  Eltin.setFlow({ query: fq.toString(), shortcut: "B07" });
+
+  $("#result").innerHTML = `${negNote}
+    <p class="lead">${loss ? `${Eltin.ro(nm)} 한 달에 ${won(-profit)}원 손해예요` : `${Eltin.ro(nm)} 한 달에 남는 돈은`}</p>
+    <p class="big">${loss ? "−" : ""}${won(Math.abs(profit))}<small>원</small></p>
+    <div class="rows">
+      <div class="row"><span>월 판매량<small>하루 약 ${num(q / d, 1)}개</small></span><b>${won(q)}개</b></div>
+      <div class="row"><span>월 매출<small>판매가 ${won(price.value)}원 × ${won(q)}개</small></span><b>${won(sales)}원</b></div>
+      ${settle != null ? `<div class="row"><span>정산 매출 (납품가 기준)<small>납품가 ${won(P.base)}원 × ${won(q)}개</small></span><b>${won(settle)}원</b></div>` : ""}
+      <div class="row"><span>1개 세전 이익 × 판매량<small>${won(e)}원 × ${won(q)}개</small></span><b>${won(gain)}원</b></div>
+      <div class="row"><span>월 고정비</span><b>− ${won(F)}원</b></div>
+      <div class="row total"><span>월 이익</span><b>${loss ? "−" : ""}${won(Math.abs(profit))}원</b></div>
+      ${F ? `<div class="row"><span>손익분기 판매량<small>하루 약 ${won(bepDay)}개</small></span><b>한 달 ${won(bep)}개</b></div>` : ""}
+    </div>
+    <p class="tip">부가세는 1개 이익에서 이미 뺐고, 소득세는 빼기 전이에요. 1년 이익으로 세금 계산기(O05)에서 확인하세요.</p>
+    ${ACTIONS}`;
+  bindActions(`[상품 손익] ${nameRaw() ? nameRaw() + ": " : ""}1개 세전 이익 ${won(e)}원 × 월 ${won(q)}개 − 월 고정비 ${won(F)}원 = 월 이익 ${loss ? "−" : ""}${won(Math.abs(profit))}원 (월 매출 ${won(sales)}원${F ? `, 손익분기 한 달 ${won(bep)}개` : ""})`);
+  postHeight();
+}
+window.addEventListener("eltin:calcs", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · 월 이익 = 1개 세전 이익 × 월 판매량 − 월 고정비. 손익분기 판매량 = 월 고정비 ÷ 1개 세전 이익이고, 판매량은 올림해요. 하루 판매량은 월 ${CONFIG.daysPerMonth}일 기준이에요.<br>
+  1개 세전 이익은 마진계산기(E01·E02)에서 매입가·수수료·포장비·광고비·기타비용·부가세를 뺀 금액이에요. 소득세는 1년 이익으로 세금 계산기에서 계산하므로 여기서는 빼지 않아요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>

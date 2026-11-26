@@ -109,6 +109,9 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
 .next-step b{font-size:18px;font-weight:800}
 .next-step .soon{background:var(--line);color:var(--ink-3);cursor:not-allowed}
 .next-step .soon b{font-size:12px;font-weight:700;border:1px solid var(--ink-3);border-radius:999px;padding:1px 8px}
+.next-step{display:flex;flex-direction:column;gap:8px}
+.next-step a.ns-skip{background:var(--card);color:var(--brand-dark);border:1px solid var(--brand);font-size:14px;font-weight:700;justify-content:center;padding:10px 16px}
+.next-step a.ns-skip b{font-size:15px}
 .tip{font-size:13px;color:var(--ink-2);background:#fff;border-radius:var(--radius-sm);padding:10px 14px;margin-top:8px}
 .actions{display:flex;gap:8px;margin-top:12px}
 .btn{flex:1;border:0;font:inherit;font-size:14px;font-weight:700;border-radius:var(--radius-sm);padding:12px;cursor:pointer}
@@ -237,3 +240,16 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
 .edited{font-size:12px;font-weight:500;color:var(--brand-dark);margin-left:4px}
 .help{font-size:12px;color:var(--ink-3);margin-top:6px}
 .sel-wrap select{flex:1;border:0;outline:0;font:inherit;font-size:15px;font-weight:700;padding:12px 0;background:transparent;color:var(--ink);min-width:0}
+
+/* 월 마진 연결 계산(B01~B08) 입력 줄 — assets/monthly-flow.js */
+.mf-tabs{margin-bottom:16px}
+.mf-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mf-link a{font-size:12px;font-weight:700;color:var(--brand-dark);text-decoration:none;white-space:nowrap}
+.mf-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+.mf-mode{margin:0;padding:3px}
+.mf-mode button{font-size:12px;padding:9px 2px;letter-spacing:-.3px}
+.mf-imp .input-wrap{background:var(--brand-faint)}
+.mf-from{display:inline-block;font-size:12px;font-weight:700;color:var(--brand-dark);margin-top:4px}
+.mf-sub{margin-top:8px;font-size:13px}
+.mf-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.mf-btns a{display:block;text-align:center;text-decoration:none;font-size:13px;font-weight:700;color:var(--brand-dark);background:var(--card);border:1px solid var(--brand);border-radius:var(--radius-sm);padding:10px 6px}

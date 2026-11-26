@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="M" data-no="05">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M05 메뉴 마진 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-top:16px}
+.check input{width:20px;height:20px;accent-color:var(--brand-dark);flex:none}
+.help{font-size:12px;color:var(--ink-3);margin:4px 0 0 30px}
+.dbox{margin-top:12px;padding:12px;border-radius:var(--radius-sm);background:var(--brand-faint)}
+.dbox .field:first-child{margin-top:0}
+.row.sec span:first-child{font-weight:700;color:var(--ink)}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>메뉴 마진 계산기</h1>
+      <p>판매가를 넣으면 메뉴 1개를 팔 때 남는 돈과 마진율을 알려줘요. 배달로 팔 때 남는 돈도 함께 보여줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label for="menuName">메뉴 이름 <small>비워도 돼요</small></label>
+      <div class="input-wrap"><input id="menuName" type="text" autocomplete="off" maxlength="30" placeholder="예: 아메리카노" style="text-align:left"></div>
+    </div>
+    <div class="field">
+      <div class="mf-head"><label for="cost">메뉴 원가 <small>매장 판매 1개</small></label><span class="mf-link"><a id="m04Link" href="m04-menu-cost.html" target="_self">자세히 계산 (M04) →</a></span></div>
+      <div class="input-wrap"><input id="cost" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="costHint"></div>
+      <div id="costFrom"></div>
+    </div>
+    <div class="field">
+      <label for="price">매장 판매가 <small>부가세 포함 가격</small></label>
+      <div class="input-wrap"><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="priceHint"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="vat" checked> 부가세 빼고 계산</label>
+    <p class="help">일반과세자 기준(판매가 ÷ 1.1)이에요. 간이과세자는 끄고 보세요(대략).</p>
+    <label class="check"><input type="checkbox" id="dOn"> 배달로도 팔아요</label>
+    <div class="dbox" id="dBox" hidden>
+      <div class="field">
+        <label for="dprice">배달 판매가</label>
+        <div class="input-wrap"><input id="dprice" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="dpriceHint"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="broker">중개수수료율</label>
+          <div class="input-wrap sm"><input id="broker" type="text" inputmode="decimal" autocomplete="off" value="7.8"><span class="unit">%</span></div></div>
+        <div class="field"><label for="pay">결제수수료율</label>
+          <div class="input-wrap sm"><input id="pay" type="text" inputmode="decimal" autocomplete="off" value="3"><span class="unit">%</span></div></div>
+      </div>
+      <div class="chips" id="brokerChips"></div>
+      <div class="field-row">
+        <div class="field"><label for="dfee">사장님 부담 배달비 <small>1건</small></label>
+          <div class="input-wrap sm"><input id="dfee" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+          <div class="hint" id="dfeeHint"></div></div>
+        <div class="field"><label for="perOrder">1건당 메뉴 수</label>
+          <div class="input-wrap sm"><input id="perOrder" type="text" inputmode="decimal" autocomplete="off" value="2"><span class="unit">개</span></div></div>
+      </div>
+      <p class="help" style="margin-left:0">예시값이에요. 내 가게 정산서의 실제 요율과 배달비로 바꿔주세요.</p>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script>
+/* ===== M05 메뉴 마진 계산기 — 사양: docs/specs/M05-M06-E03.md =====
+   공급가 = 판매가 ÷ 1.1 (부가세 빼기 켜짐) 또는 판매가, 1개 마진 = 공급가 − 원가
+   배달 1개 마진 = 배달 공급가 − 원가 − 배달 판매가 × (중개 + 결제)% − 배달비 ÷ 1건당 메뉴 수 */
+const CONFIG = {
+  vatRate: 1.1,
+  defaults: { cost: 1200, price: 4500, dprice: 5000, dfee: 2900 },
+  delivery: { brokerRate: 7.8, payRate: 3.0, brokerChips: [2.0, 6.8, 7.8] },   // 예시값 (S03과 같은 근거, 확인 2026-11-23)
+  costRateWarn: 35                                                              // 원가율 안내 기준 (참고용)
+};
+const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc } = Eltin;
+
+/* M04에서 받은 값: name, cost, dcost */
+const P = { name: paramText("name"), cost: param("cost"), dcost: param("dcost") };
+$("#menuName").value = P.name;
+$("#cost").value = won(P.cost ?? CONFIG.defaults.cost);
+$("#price").value = won(CONFIG.defaults.price);
+$("#dprice").value = won(CONFIG.defaults.dprice);
+$("#dfee").value = won(P.dcost ?? CONFIG.defaults.dfee);
+if(P.cost != null) $("#costFrom").innerHTML = '<span class="mf-from">앞 단계(M04)에서 가져온 값이에요</span>';
+if(P.dcost != null) $("#dOn").checked = true;
+
+const menuRaw = () => $("#menuName").value.trim(), menuName = () => esc(menuRaw());
+const cost = moneyInput($("#cost"), $("#costHint"), render);
+const price = moneyInput($("#price"), $("#priceHint"), render);
+const dprice = moneyInput($("#dprice"), $("#dpriceHint"), render);
+const dfee = moneyInput($("#dfee"), $("#dfeeHint"), render);
+const broker = numInput($("#broker"), render), pay = numInput($("#pay"), render), perOrder = numInput($("#perOrder"), render);
+$("#menuName").addEventListener("input", render);
+["#vat", "#dOn"].forEach(s => $(s).addEventListener("change", render));
+$("#brokerChips").innerHTML = CONFIG.delivery.brokerChips.map(v => `<button class="chip" type="button" data-v="${v}">중개 ${num(v, 1)}%</button>`).join("");
+$$("#brokerChips .chip").forEach(b => b.addEventListener("click", () => broker.set(b.dataset.v)));
+
+function calc(){
+  const v = $("#vat").checked ? CONFIG.vatRate : 1;
+  const c = cost.value, p = price.value;
+  const supply = p / v, margin = supply - c;
+  const r = { v, c, p, supply, vat: p - supply, margin, mRate: supply ? margin / supply * 100 : 0, cRate: supply ? c / supply * 100 : 0 };
+  r.dOn = $("#dOn").checked;
+  if(r.dOn){
+    const dp = dprice.value, f = (broker.value + pay.value) / 100, n = perOrder.value || 1;
+    r.dp = dp; r.dSupply = dp / v; r.dFee = dp * f; r.dPer = dfee.value / n;
+    r.dMargin = r.dSupply - c - r.dFee - r.dPer;
+    r.dRate = r.dSupply ? r.dMargin / r.dSupply * 100 : 0;
+    /* 매장만큼 남기는 배달 판매가: P/v − c − P·f − 1개당 배달비 = 매장 마진 → P = (마진 + c + 배달비) ÷ (1/v − f), 100원 단위 올림 */
+    const k = 1 / v - f;
+    r.dEven = k > 0 ? Math.ceil((margin + c + r.dPer) / k / 100) * 100 : null;
+  }
+  return r;
+}
+
+function render(){
+  const r = calc(), nm = menuName() || "메뉴";
+  $$("#brokerChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === broker.value));
+  $("#dBox").hidden = !r.dOn;
+  $("#m04Link").href = Eltin.keepEmbed("m04-menu-cost.html");
+  if(!r.p){ $("#result").innerHTML = '<p class="empty">매장 판매가를 넣으면 바로 계산돼요</p>'; Eltin.setFlow({ query: "" }); postHeight(); return; }
+  const loss = r.margin < 0, m = Math.round(r.margin);
+  const dLess = r.dOn && r.dMargin < r.margin;
+  $("#result").innerHTML = `
+    <p class="lead">${loss ? `${nm} 1개 팔 때마다 손해예요` : `${nm} 1개 팔면 남는 돈은`}</p>
+    <p class="big">${loss ? "−" : ""}${won(Math.abs(r.margin))}<small>원</small></p>
+    <div id="chart"></div>
+    <div class="rows">
+      <div class="row"><span>판매가</span><b>${won(r.p)}원</b></div>
+      ${r.v > 1 ? `<div class="row"><span>부가세<small>판매가 ÷ 11</small></span><b>− ${won(r.vat)}원</b></div>` : ""}
+      <div class="row"><span>원가</span><b>− ${won(r.c)}원</b></div>
+      <div class="row total"><span>1개 마진${r.v > 1 ? "<small>부가세 뺀 판매가(공급가액) − 원가</small>" : ""}</span><b>${loss ? "−" : ""}${won(Math.abs(r.margin))}원</b></div>
+      <div class="row"><span>마진율</span><b>${num(r.mRate, 1)}%</b></div>
+      <div class="row"><span>원가율</span><b>${num(r.cRate, 1)}%</b></div>
+      ${r.dOn ? `<div class="row sec"><span>배달로 팔 때</span><b></b></div>
+      <div class="row"><span>배달 판매가</span><b>${won(r.dp)}원</b></div>
+      ${r.v > 1 ? `<div class="row"><span>부가세</span><b>− ${won(r.dp - r.dSupply)}원</b></div>` : ""}
+      <div class="row"><span>원가</span><b>− ${won(r.c)}원</b></div>
+      <div class="row"><span>배달앱 수수료<small>${num(broker.value, 1)}% + ${num(pay.value, 1)}%</small></span><b>− ${won(r.dFee)}원</b></div>
+      <div class="row"><span>1개당 배달비<small>${won(dfee.value)}원 ÷ ${num(perOrder.value || 1, 1)}개</small></span><b>− ${won(r.dPer)}원</b></div>
+      <div class="row total"><span>배달 1개 마진</span><b>${r.dMargin < 0 ? "−" : ""}${won(Math.abs(r.dMargin))}원</b></div>
+      <div class="row"><span>배달 마진율</span><b>${num(r.dRate, 1)}%</b></div>` : ""}
+    </div>
+    ${r.cRate > CONFIG.costRateWarn ? `<p class="tip">원가율이 <b>${num(r.cRate, 1)}%</b>예요. 판매가 계산기(S01)로 목표 원가율에 맞는 가격을 확인해 보세요.</p>` : ""}
+    ${dLess ? `<p class="tip">배달로 팔면 1개에 <b>${won(r.margin - r.dMargin)}원</b> 덜 남아요.${r.dEven ? ` 매장만큼 남기려면 배달 판매가는 약 <b>${won(r.dEven)}원</b>이에요(배달 판매가 계산기 S02).` : ""}</p>` : ""}
+    ${ACTIONS}`;
+  Eltin.donut($("#chart"), [{ label: "원가", value: r.c }, { label: "부가세", value: r.v > 1 ? r.vat : 0 }, { label: "남는 돈", value: r.margin }],
+    { big: `${num(r.mRate, 1)}%`, small: "마진율" }, loss ? { loss: `원가가 판매가보다 ${won(-r.margin)}원 많아요` } : {});
+
+  /* 다음 단계(M06 메뉴 손익)로 넘기는 값 */
+  Eltin.setFlow({ query: new URLSearchParams({ ...(menuRaw() ? { name: menuRaw() } : {}), price: Math.round(r.p), margin: Math.max(m, 0), costrate: String(Math.round(r.cRate * 10) / 10),
+    ...(r.dOn ? { dprice: Math.round(r.dp), dmargin: Math.max(Math.round(r.dMargin), 0) } : {}) }).toString() });
+  bindActions(`[메뉴 마진] ${menuRaw() ? menuRaw() + ": " : ""}판매가 ${won(r.p)}원, 원가 ${won(r.c)}원 → 1개 마진 ${won(r.margin)}원 (마진율 ${num(r.mRate, 1)}%, 원가율 ${num(r.cRate, 1)}%)${r.dOn ? `, 배달 판매가 ${won(r.dp)}원 → 배달 1개 마진 ${won(r.dMargin)}원` : ""}`);
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · 1개 마진 = 부가세 뺀 판매가(판매가 ÷ 1.1) − 원가. 부가세 빼기를 끄면 판매가에서 원가만 빼요. 금액은 원 단위 반올림이에요.<br>
+  배달 수수료는 배달 판매가 × (중개 + 결제 수수료율), 배달비는 1건 금액을 1건당 메뉴 수로 나눠요. 광고비·쿠폰 부담분은 빠져 있어요.<br>
+  원가율 ${CONFIG.costRateWarn}%는 참고용 기준이에요. 메뉴와 가게마다 알맞은 원가율은 달라요.<br>
+  기본값은 예시예요. 배달앱 수수료와 배달비는 앱마다 다르고, 가게의 매출 구간, 가게와 손님 사이의 거리, 앱의 정책에 따라 수시로 바뀌어요. 참고용으로 사용하시고, 정확한 금액은 각 앱의 정산서와 공지를 확인하세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>

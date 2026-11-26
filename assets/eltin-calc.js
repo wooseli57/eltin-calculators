@@ -458,23 +458,46 @@
   /* 연결 계산: 결과 아래 "다음 단계 →" 버튼 (같은 분류에서 단계 번호가 다음인 계산기, 준비 중이면 회색).
      값 넘기기(주소 파라미터)는 계산기마다 사양에서 정함 */
   const stepNo = s => { const m = /(\d+)\s*\/\s*\d+/.exec(s || ""); return m ? Number(m[1]) : 0; };
+  /* 계산기가 Eltin.setFlow({ query, shortcut })로 넘길 값을 알려 주면 버튼 주소에 붙임.
+     query: "m=store&sales=…" (다음 단계로 넘길 주소 파라미터), shortcut: 건너뛰어 갈 계산기 태그(예: "B07") */
+  let FLOW = { query: "", shortcut: "" }, NEXT = null;
+  const withQ = (file, q) => keepEmbed(file + (q ? "?" + q : ""));
+  function drawNext(){
+    const nav = $(".next-step"); if(!nav || !CALCS) return;
+    const label = c => `<span class="ns-k">다음 단계 · ${c.step}</span><span class="ns-n">${c.tag} ${c.name}</span>`;
+    let html = NEXT ? (NEXT.status === "완료"
+      ? `<a href="${withQ(NEXT.file, FLOW.query)}" target="_self">${label(NEXT)}<b aria-hidden="true">→</b></a>`
+      : `<span class="soon" aria-disabled="true">${label(NEXT)}<b>준비 중</b></span>`) : "";
+    const sc = FLOW.shortcut && CALCS.calculators.find(x => x.tag === FLOW.shortcut);
+    const self = (document.documentElement.dataset.cat || "") + (document.documentElement.dataset.no || "");
+    if(sc && sc !== NEXT && sc.tag !== self && sc.status === "완료")
+      html += `<a class="ns-skip" href="${withQ(sc.file, FLOW.query)}" target="_self">${sc.name.replace(/ 계산기$/, "")}으로 바로 가기 <b aria-hidden="true">→</b></a>`;
+    nav.innerHTML = html; nav.hidden = !html;
+    postHeight();
+  }
+  function setFlow(f){ FLOW = { ...FLOW, ...f }; drawNext(); }
   function nextStep(d, c){
     const g = d.categories.find(x => x.cat === c.cat);
     if(!g || g.group !== "연결" || !c.step) return;
     const here = stepNo(c.step);
-    const next = d.calculators.filter(x => x.cat === c.cat && stepNo(x.step) > here).sort((a, b) => stepNo(a.step) - stepNo(b.step))[0];
+    NEXT = d.calculators.filter(x => x.cat === c.cat && stepNo(x.step) > here).sort((a, b) => stepNo(a.step) - stepNo(b.step))[0] || null;
     const res = document.getElementById("result");
-    if(!next || !res || $(".next-step")) return;
+    if(!res || $(".next-step")) return;
     const nav = document.createElement("nav");
     nav.className = "next-step"; nav.setAttribute("aria-label", "다음 단계");
-    const label = `<span class="ns-k">다음 단계 · ${next.step}</span><span class="ns-n">${next.tag} ${next.name}</span>`;
-    nav.innerHTML = next.status === "완료"
-      ? `<a href="${keepEmbed(next.file)}" target="_self">${label}<b aria-hidden="true">→</b></a>`
-      : `<span class="soon" aria-disabled="true">${label}<b>준비 중</b></span>`;
     res.after(nav);
+    drawNext();
   }
   /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을 이어 붙임 */
   const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" : href;
+  /* 앞 단계에서 주소로 받은 값 (저장하지 않음). 숫자가 아니면 null → 계산기는 기본값을 씀 */
+  const QS = new URLSearchParams(location.search);
+  function param(k, opt = {}){
+    const v = (QS.get(k) || "").trim();
+    if(!(opt.neg ? /^-?\d+(\.\d+)?$/ : /^\d+(\.\d+)?$/).test(v)) return null;
+    return Number(v);
+  }
+  const paramText = (k, max = 30) => (QS.get(k) || "").trim().slice(0, max);
 
   function init(){
     setTag();
@@ -508,5 +531,5 @@
     postHeight();
   }
 
-  window.Eltin = { esc, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { esc, setFlow, param, paramText, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();

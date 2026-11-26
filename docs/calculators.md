@@ -18,8 +18,8 @@
 | M02 | m02-packaging-cost.html | 메뉴별 자재비용 계산기 | 컵·뚜껑·빨대·박스 등 메뉴 1개에 드는 포장비를 계산해요 | 완료 | 원가 2/6 |  | 메뉴 이름 칸 추가 예정 |
 | M03 | m03-loss-cost.html | 메뉴별 손실비용 계산기 | 버리거나 반품되는 양을 반영해서 실제 원가와 한 달 손실액을 보여줘요 | 완료 | 원가 3/6 |  | 메뉴 이름 칸 추가 예정 |
 | M04 | m04-menu-cost.html | 메뉴별 원가 합계 | 원료·자재·손실비(M01~M03)를 합쳐서 메뉴 1개의 진짜 원가를 알려줘요. 배달로도 판다면 배달비까지 더해요 | 완료 | 원가 4/6 |  | 매장 원가 기본, 배달은 접는 칸(S03 링크). 메뉴 이름 칸 추가 예정 |
-| M05 | m05-menu-margin.html | 메뉴 마진 계산기 | 판매가를 넣으면 메뉴 1개를 팔 때 남는 돈과 마진율을 알려줘요. 배달로 팔 때 남는 돈도 함께 보여줘요 | 사양 확정 | 마진 5/6 |  | 사양: docs/specs/M05-M06-E03.md. 신규. |
-| M06 | m06-menu-profit.html | 메뉴 손익 계산기 | 이 메뉴를 한 달에 몇 개 파는지 넣으면 한 달에 남기는 돈과 월 고정비를 얼마나 감당하는지 알려줘요 | 사양 확정 | 손익 6/6 |  | 사양: docs/specs/M05-M06-E03.md. 신규. 결과를 월 손익(B07) 가져오기로 연결. |
+| M05 | m05-menu-margin.html | 메뉴 마진 계산기 | 판매가를 넣으면 메뉴 1개를 팔 때 남는 돈과 마진율을 알려줘요. 배달로 팔 때 남는 돈도 함께 보여줘요 | 완료 | 마진 5/6 |  | 사양: docs/specs/M05-M06-E03.md. 신규. |
+| M06 | m06-menu-profit.html | 메뉴 손익 계산기 | 이 메뉴를 한 달에 몇 개 파는지 넣으면 한 달에 남기는 돈과 월 고정비를 얼마나 감당하는지 알려줘요 | 완료 | 손익 6/6 |  | 사양: docs/specs/M05-M06-E03.md. 신규. 결과를 월 손익(B07) 가져오기로 연결. |
 
 ## E. 온라인 상품 마진 [연결] (상품 1개 기준)
 
@@ -27,7 +27,7 @@
 |---|---|---|---|---|---|---|---|
 | E01 | e01-online-margin.html | 온라인쇼핑몰 마진계산기 | 스마트스토어·자사몰처럼 직접 파는 상품의 판매가, 매입·제조원가, 마켓수수료, 포장비, 광고비, 기타비용, 부가세·소득세를 넣으면 세후 순이익과 순이익률이 나와요 | 완료 | 마진 1/2 |  | 사양: docs/specs/M06.md (공통 엔진 assets/margin-engine.js는 M06 사양 0절) |
 | E02 | e02-rocket-margin.html | 로켓배송 마진계산기 | 쿠팡 로켓배송처럼 납품해서 파는 상품을, 판매가에서 수수료를 뺀 납품가 기준으로 순이익과 순이익률을 계산해요 | 완료 | 마진 1/2 |  | 사양: docs/specs/M07.md (공통 엔진 assets/margin-engine.js는 M06 사양 0절) |
-| E03 | e03-product-profit.html | 상품 손익 계산기 | 이 상품을 한 달에 몇 개 파는지 넣으면 한 달에 남는 돈을 알려줘요 | 사양 확정 | 손익 2/2 |  | 사양: docs/specs/M05-M06-E03.md. 신규. 결과를 월 손익(B07, 온라인 탭)으로 연결. |
+| E03 | e03-product-profit.html | 상품 손익 계산기 | 이 상품을 한 달에 몇 개 파는지 넣으면 한 달에 남는 돈을 알려줘요 | 완료 | 손익 2/2 |  | 사양: docs/specs/M05-M06-E03.md. 신규. 결과를 월 손익(B07, 온라인 탭)으로 연결. |
 
 ## B. 월 마진 [연결] (매장·온라인 탭, 한 달 기준)
 
@@ -39,7 +39,7 @@
 | B04 | b04-monthly-labor.html | 월 인건비 계산기 | 직원별로 시급·근무시간이나 월급을 넣거나 전체 인건비를 한 번에 넣으면 4대보험까지 포함한 한 달 인건비를 알려줘요 | 사양 확정 | 비용 4/8 | L01 | 사양: docs/specs/B-monthly.md. 신규. L01 계산식 재사용. |
 | B05 | b05-monthly-opex.html | 월 운영비 계산기 | 월세·공과금·POS·보험 등 매달 나가는 돈과 시설 감가상각비, 잘 모르는 기타 비용까지 모아서 합해요 | 완료 | 비용 5/8 | O01·O03 | 사양: docs/specs/B-monthly.md. 옛 O04 기타 운영비를 개편 예정(시설 감가상각·기타(대략) 줄 추가). 개편 전까지 옛 화면 유지 |
 | B06 | b06-monthly-sales.html | 월 매출 계산기 | 객단가·손님 수·영업일(온라인은 판매량·판매가)로 예상 매출을 구하거나, 목표 이익에 필요한 매출을 거꾸로 알려줘요 | 완료 | 매출 6/8 |  | 사양: docs/specs/B-monthly.md. 옛 S09 목표매출을 양방향으로 개편 예정. 개편 전까지 옛 화면 유지 |
-| B07 | b07-monthly-profit.html | 월 손익 계산기 | 원가·판매비·광고비·인건비·운영비를 가져오거나 직접 넣으면 한 달에 남는 돈, 손익분기 매출, 1년 환산 이익을 알려줘요 | 사양 확정 | 손익 7/8 |  | 사양: docs/specs/B-monthly.md. 신규 중심 계산기. docs/restructure-2026-11.md 3절. |
+| B07 | b07-monthly-profit.html | 월 손익 계산기 | 원가·판매비·광고비·인건비·운영비를 가져오거나 직접 넣으면 한 달에 남는 돈, 손익분기 매출, 1년 환산 이익을 알려줘요 | 완료 | 손익 7/8 |  | 사양: docs/specs/B-monthly.md. 신규 중심 계산기. docs/restructure-2026-11.md 3절. |
 | B08 | b08-payback.html | 투자회수 계산기 | 창업에 들인 돈을 몇 개월 만에 되찾을 수 있는지, 목표 기간 안에 회수하려면 매출이 얼마나 필요한지 알려줘요 | 완료 | 손익 8/8 |  | 사양: docs/specs/B-monthly.md. 옛 M05. 감가상각 전 이익 기준·목표 기간 필요 매출 추가 예정 |
 
 ## L. 인건비 계산기 [1회성]
@@ -162,8 +162,8 @@
 | M02 | m02-break-even.html | S05 | s05-break-even.html |
 | M03 | m03-tax.html | O05 | o05-tax.html |
 | M04 | m04-settlement.html | O06 | o06-settlement.html |
-| M05 | m05-payback.html | B08 | b08-payback.html |
-| M06 | m06-online-margin.html | E01 | e01-online-margin.html |
+| M05 | m05-payback.html | B08 | b08-payback.html | 완료 
+| M06 | m06-online-margin.html | E01 | e01-online-margin.html | 완료 
 | M07 | m07-rocket-margin.html | E02 | e02-rocket-margin.html |
 | O04 | o04-other-opex.html | B05 | b05-monthly-opex.html |
 | S03 | s03-discount-profit.html | S08 | s08-discount-profit.html |

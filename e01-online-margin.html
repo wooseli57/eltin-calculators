@@ -72,6 +72,9 @@ function render(){
     { label: "광고비", value: m.adAmt }, { label: "기타비용", value: m.etcAmt }, { label: "부가세", value: m.vat },
     { label: "소득세", value: m.tax }, { label: "세후 순이익", value: m.net }
   ], { big: pct(m.netRate), small: "세후 순이익률" }, { loss: loss ? `비용이 판매가보다 ${won(-m.net)}원 많아요` : "" });
+  /* 다음 단계(E03 상품 손익)로 넘기는 값 — docs/specs/M05-M06-E03.md. 세후가 아닌 세전 이익(ebt)을 넘김 */
+  Eltin.setFlow({ query: new URLSearchParams({ type: "direct", price: Math.round(x.price), base: Math.round(m.base), ebt: Math.round(m.ebt),
+    buy: Math.round(x.buy), fee: Math.round(m.feeAmt), pack: Math.round(x.pack), ad: Math.round(m.adAmt), etc: Math.round(m.etcAmt), vat: Math.round(m.vat) }).toString() });
   bindActions(`[온라인 마진] ${form.market()}, 판매가 ${won(x.price)}원, 매입가 ${won(x.buy)}원, 수수료 ${pct(x.fee)} → 세후 순이익 ${won(m.net)}원 (${pct(m.netRate)}), 최대광고비 ${won(m.maxAd)}원`,
     () => form.reset());
   postHeight();
