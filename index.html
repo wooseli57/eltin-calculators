@@ -83,9 +83,9 @@ const ROWS = [
 const item = (c, step) => {
   const member = c.access === "member";
   const head = `<span class="t"><span class="code">${c.tag}</span><b>${esc(c.name)}</b>${step && c.step ? `<span class="step">${esc(c.step)}</span>` : ""}${member ? `<span class="member" title="엘틴 쇼핑몰 회원 전용 (회원가입 무료)">🔒 회원</span>` : ""}`;
-  const href = member ? Eltin.memberHref(c.tag) : keepEmbed(c.file);
+  const ln = Eltin.calcLink(c);                                        // 회원 모드가 아니면 회원 전용은 아임웹 회원 페이지(_top)
   return c.status === "완료"
-    ? `<a class="calc-item" data-cat="${c.cat}" href="${esc(href)}"${member ? ' target="_top"' : ""}>${head}</span><p>${esc(c.desc)}</p></a>`
+    ? `<a class="calc-item" data-cat="${c.cat}" href="${esc(ln.href)}" target="${ln.target}">${head}</span><p>${esc(c.desc)}</p></a>`
     : `<div class="calc-item soon" aria-disabled="true">${head}<span class="badge">준비 중</span></span><p>${esc(c.desc)}</p></div>`;
 };
 const stepNo = s => { const m = /(\d+)\s*\/\s*\d+/.exec(s || ""); return m ? Number(m[1]) : 0; };
@@ -130,14 +130,30 @@ function draw(d){
     postHeight();
   });
   /* 주소 끝 #M 처럼 분류를 붙이면 그 분류만 보여줌 (블로그·아임웹 메뉴 연결용) */
-  const start = (location.hash || "").replace("#", "").toUpperCase();
+  /* 주소의 ?open=S (아임웹 페이지 주소 #S를 아임웹 코드가 넘김) 또는 #S */
+  const start = (new URLSearchParams(location.search).get("open") || location.hash || "").replace("#", "").toUpperCase();
   const sb = start && document.querySelector(`#jump button[data-f="${start}"]`);
   if(sb) sb.click();
   postHeight();
 }
 
 Eltin.init();
+/* 회원 모드(회원 전용 아임웹 페이지 안)에서는 안내 문구를 바꿈 */
+if(Eltin.memberMode()) $(".member-note").textContent = "🔒 표시는 엘틴 쇼핑몰 회원 전용이에요. 회원 전용 계산기를 모두 쓸 수 있어요.";
+
+/* ?open=M05 (계산기 태그): 완료된 계산기면 그 계산기로 바로 이동 (embed·member 유지).
+   회원 전용인데 회원 모드가 아니면 같은 iframe에서 그 계산기를 열어 안내 카드를 보여줌 (iframe에서 바깥 페이지로는 보낼 수 없음) */
+function openCalc(d){
+  const tag = (new URLSearchParams(location.search).get("open") || "").toUpperCase();
+  if(!/^[A-Z]\d\d$/.test(tag)) return false;
+  const c = d.calculators.find(x => x.tag === tag && x.status === "완료");
+  if(!c) return false;
+  location.replace(keepEmbed(c.file));
+  return true;
+}
+
 Eltin.loadCalcs().then(d => {
+  if(d && openCalc(d)) return;
   if(d) draw(d);
   else { $("#cats").innerHTML = '<section class="card"><p class="empty">계산기 목록을 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p></section>'; postHeight(); }
 });

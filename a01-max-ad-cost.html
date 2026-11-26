@@ -51,7 +51,9 @@ function render(){
       <p class="lead">1개 팔 때 광고에 쓸 수 있는 돈이</p>
       <p class="big">0<small>원</small></p>
       <p class="tip warn">지금 조건으로는 광고비를 쓸 여유가 없어요. 판매가·매입가를 먼저 점검하세요.
-        <a href="${rocket ? "e02-rocket-margin.html" : "e01-online-margin.html"}" target="_blank" rel="noopener">${rocket ? "로켓배송 마진계산기(E02)" : "온라인쇼핑몰 마진계산기(E01)"}</a> <span class="lock" title="엘틴 쇼핑몰 회원 전용 (회원가입 무료)">🔒 회원</span></p>`;
+        ${(() => { /* E01·E02는 회원 전용: 회원 모드가 아니면 아임웹 회원 페이지로(_top) + 🔒 */
+          const ln = Eltin.calcLink(rocket ? { tag: "E02", file: "e02-rocket-margin.html", access: "member" } : { tag: "E01", file: "e01-online-margin.html", access: "member" });
+          return `<a href="${ln.href}" target="${ln.target}">${rocket ? "로켓배송 마진계산기(E02)" : "온라인쇼핑몰 마진계산기(E01)"}</a> ${ln.lock ? Eltin.LOCK : ""}`; })()}</p>`;
     postHeight(); return;
   }
   const otherCost = m.cost - m.adAmt + m.tax;          // 광고 외 비용 (매입가·수수료·포장비·기타비용·부가세·소득세)

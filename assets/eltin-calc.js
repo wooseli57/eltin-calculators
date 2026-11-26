@@ -14,12 +14,14 @@
     blog: { label:"블로그", href:"https://blog.naver.com/" },             // 엘틴 네이버 블로그 주소로 교체
     /* 회원 전용 계산기 (docs/specs/access.md). 진짜 잠금은 아임웹 페이지 접근 권한("로그인한 회원만")이 하고,
        여기서는 아임웹 iframe 밖에서 열렸을 때 안내 화면을 보여줌.
-       memberPage: 회원 전용 계산기를 넣은 아임웹 페이지 — "{tag}"를 넣으면 계산기 태그로 바뀜 (계산기마다 페이지를 만들 때)
-       signup: 아임웹 회원가입 페이지. 두 주소 모두 확정 전이라 쇼핑몰 첫 화면으로 둠 (docs/questions.md) */
-    memberPage: "https://eltin.imweb.me/",
-    signup: "https://eltin.imweb.me/",
+       아임웹 페이지 구성: 목록 1페이지(누구나) + 회원 전용 1페이지 (docs/specs/imweb-embed.md)
+       memberPage: 회원 전용 페이지 — "{tag}"는 계산기 태그로 바뀌고, 아임웹 코드가 #M05를 iframe의 &open=M05로 넘김
+       signup: 아임웹 회원가입 페이지, listPage: 누구나 목록 페이지 (임베드 밖에서 "계산기 목록"이 여기로) */
+    memberPage: "https://eltin.imweb.me/calculators-member#{tag}",
+    signup: "https://eltin.imweb.me/site_join_type_choice",
+    listPage: "https://eltin.imweb.me/calculators",
     memberHosts: ["eltin.imweb.me"],                                      // 이 주소의 iframe 안에서만 회원 전용 계산기를 보여줌
-    devPreview: true    // 디자인 확인용 테마 미리보기 (배포 시 false)
+    devPreview: false    // 디자인 확인용 테마 미리보기 (배포 시 false)
   };
 
   /* ---------- 계산기 목록 data/calculators.json (원본 docs/calculators.md → tools/build-calculators.py) ----------
@@ -62,9 +64,17 @@
   function postHeight(){                        // 아임웹 iframe 높이 자동 맞춤
     try{ parent.postMessage({ type:"eltin-calc-height", height: document.documentElement.scrollHeight }, "*"); }catch(e){}
   }
+  /* 결과 복사: 클립보드 API → 안 되면(아임웹 iframe 권한·옛 브라우저) 숨긴 글상자 + execCommand("copy") */
+  function copyFallback(text){
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:-9999px;opacity:0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false; try{ ok = document.execCommand("copy"); }catch(e){}
+    ta.remove(); return ok;
+  }
   async function copy(text){
-    try{ await navigator.clipboard.writeText(text); toast("결과를 복사했어요"); }
-    catch(e){ toast("복사가 안 되는 환경이에요"); }
+    try{ await navigator.clipboard.writeText(text); toast("결과를 복사했어요"); return; }catch(e){}
+    toast(copyFallback(text) ? "결과를 복사했어요" : "복사가 안 되는 환경이에요");
   }
   /* 금액 입력칸: 쉼표 자동, 억·만 읽기 표시, 빠른 입력 버튼 연결 */
   function moneyInput(input, hint, onChange){
@@ -468,17 +478,17 @@
   /* 계산기가 Eltin.setFlow({ query, shortcut })로 넘길 값을 알려 주면 버튼 주소에 붙임.
      query: "m=store&sales=…" (다음 단계로 넘길 주소 파라미터), shortcut: 건너뛰어 갈 계산기 태그(예: "B07") */
   let FLOW = { query: "", shortcut: "" }, NEXT = null;
-  const withQ = (file, q) => keepEmbed(file + (q ? "?" + q : ""));
   function drawNext(){
     const nav = $(".next-step"); if(!nav || !CALCS) return;
     const label = c => `<span class="ns-k">다음 단계 · ${c.step}</span><span class="ns-n">${c.tag} ${c.name}</span>`;
+    const L = c => calcLink(c, FLOW.query);
     let html = NEXT ? (NEXT.status === "완료"
-      ? `<a href="${withQ(NEXT.file, FLOW.query)}" target="_self">${label(NEXT)}<b aria-hidden="true">→</b></a>`
+      ? `<a href="${L(NEXT).href}" target="${L(NEXT).target}">${label(NEXT)}${L(NEXT).lock ? LOCK : ""}<b aria-hidden="true">→</b></a>`
       : `<span class="soon" aria-disabled="true">${label(NEXT)}<b>준비 중</b></span>`) : "";
     const sc = FLOW.shortcut && CALCS.calculators.find(x => x.tag === FLOW.shortcut);
     const self = (document.documentElement.dataset.cat || "") + (document.documentElement.dataset.no || "");
     if(sc && sc !== NEXT && sc.tag !== self && sc.status === "완료")
-      html += `<a class="ns-skip" href="${withQ(sc.file, FLOW.query)}" target="_self">${sc.name.replace(/ 계산기$/, "")}으로 바로 가기 <b aria-hidden="true">→</b></a>`;
+      html += `<a class="ns-skip" href="${L(sc).href}" target="${L(sc).target}">${sc.name.replace(/ 계산기$/, "")}으로 바로 가기 ${L(sc).lock ? LOCK : ""}<b aria-hidden="true">→</b></a>`;
     nav.innerHTML = html; nav.hidden = !html;
     postHeight();
   }
@@ -495,8 +505,8 @@
     res.after(nav);
     drawNext();
   }
-  /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을 이어 붙임 */
-  const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" : href;
+  /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을, 회원 모드면 &member=1도 이어 붙임 */
+  const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" + (memberMode() ? "&member=1" : "") : href;
   /* ---------- 회원 전용 계산기 (docs/specs/access.md) ----------
      아임웹 iframe 안(?embed=1 + 부모 페이지가 memberHosts)에서만 계산 화면을 보여줌.
      부모 주소: location.ancestorOrigins(크롬 등)가 있으면 그것으로, 없으면(사파리 등) document.referrer로 판단.
@@ -510,6 +520,22 @@
     return isMemberHost(rh) || (!!rh && rh === hostOf(ctx.origin));
   }
   const memberHref = tag => SITE.memberPage.replace("{tag}", tag || "");
+  /* 회원 모드 = 임베드 + 주소에 member=1 + 아임웹 iframe 안 (docs/specs/imweb-embed.md).
+     iframe 안에서는 부모가 eltin.imweb.me라는 것만 알고 어느 페이지인지는 몰라서, 회원 전용 페이지에서만 붙는 member=1을 함께 봄 */
+  let MEMBER_MODE = null;
+  function memberMode(){
+    if(MEMBER_MODE !== null) return MEMBER_MODE;
+    let framed = true; try{ framed = window.top !== window; }catch(e){}
+    MEMBER_MODE = isEmbed && new URLSearchParams(location.search).get("member") === "1"
+      && memberFrameOK({ embed: isEmbed, framed, ancestors: location.ancestorOrigins ? [...location.ancestorOrigins] : null, referrer: document.referrer, origin: location.href });
+    return MEMBER_MODE;
+  }
+  /* 계산기로 가는 링크: 회원 전용인데 회원 모드가 아니면 아임웹 회원 페이지로(iframe 밖, _top) + 🔒 */
+  function calcLink(c, q){
+    if(c.access === "member" && !memberMode()) return { href: memberHref(c.tag), target: "_top", lock: true };
+    return { href: keepEmbed(c.file + (q ? "?" + q : "")), target: "_self", lock: false };
+  }
+  const LOCK = `<span class="lock" title="엘틴 쇼핑몰 회원 전용 (회원가입 무료)">🔒 회원</span>`;
   function memberGate(){
     if(document.documentElement.dataset.access !== "member") return;
     const head = $(".calc-head"); if(!head) return;
@@ -517,8 +543,7 @@
       head.insertAdjacentHTML("afterend", `<p class="member-dev">🔒 회원 전용 (개발 미리보기) · 배포하면 아임웹 회원 페이지 밖에서는 안내 화면이 보여요</p>`);
       return;
     }
-    let framed = true; try{ framed = window.top !== window; }catch(e){}
-    if(memberFrameOK({ embed: isEmbed, framed, ancestors: location.ancestorOrigins ? [...location.ancestorOrigins] : null, referrer: document.referrer, origin: location.href })) return;
+    if(memberMode()) return;
     document.documentElement.classList.add("member-locked");
     const tag = (document.documentElement.dataset.cat || "") + (document.documentElement.dataset.no || "");
     head.insertAdjacentHTML("afterend", `<section class="card member-lock" aria-label="회원 전용 안내">
@@ -526,8 +551,8 @@
       <h2>엘틴 쇼핑몰 회원 전용 계산기예요</h2>
       <p>회원가입은 무료예요. 가입하면 메뉴 마진·월 마진·레시피 계산기 <span class="ml-count">30</span>개를 모두 쓸 수 있어요</p>
       <div class="ml-btns">
-        <a class="btn btn-primary" href="${memberHref(tag)}" target="_blank" rel="noopener">회원 전용 계산기 열기</a>
-        <a class="btn btn-ghost" href="${SITE.signup}" target="_blank" rel="noopener">무료 회원가입</a>
+        <a class="btn btn-primary" href="${memberHref(tag)}" target="_top">회원 전용 계산기 열기</a>
+        <a class="btn btn-ghost" href="${SITE.signup}" target="_top">무료 회원가입</a>
       </div></section>`);
     loadCalcs().then(d => { const n = d && d.calculators.filter(c => c.access === "member").length; if(n) $(".ml-count").textContent = n; postHeight(); });
   }
@@ -558,7 +583,11 @@
     const here = location.pathname.split("/").pop() || "index.html";
     if(cta) cta.innerHTML = SITE.links
       .filter(l => !(l.internal && l.href === here))                 // 목록 페이지에서는 자기 자신 링크를 빼요
-      .map(l => `<a href="${l.internal ? keepEmbed(l.href) : l.href}" ${l.internal ? 'target="_self"' : 'target="_blank" rel="noopener"'}><div><span>${l.label}</span>${l.title}</div></a>`).join("");
+      .map(l => {
+        const inside = l.internal && isEmbed;                        // 임베드 안: 같은 iframe의 index.html
+        const href = l.internal ? (isEmbed ? keepEmbed(l.href) : SITE.listPage) : l.href;   // 임베드 밖: 아임웹 목록 페이지
+        return `<a href="${href}" ${inside ? 'target="_self"' : 'target="_blank" rel="noopener"'}><div><span>${l.label}</span>${l.title}</div></a>`;
+      }).join("");
 
     if(SITE.devPreview && !isEmbed && $("#dev")){
       const dev = $("#dev"); dev.hidden = false;
@@ -574,5 +603,5 @@
     postHeight();
   }
 
-  window.Eltin = { esc, setFlow, param, paramText, memberHref, memberFrameOK, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { esc, setFlow, param, paramText, memberHref, memberFrameOK, memberMode, calcLink, LOCK, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
 })();
