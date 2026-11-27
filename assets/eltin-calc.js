@@ -498,7 +498,17 @@
 
   function setTag(){
     const cat = document.documentElement.dataset.cat, no = document.documentElement.dataset.no || "01";
-    const tag = $(".tag"); if(tag && CATEGORIES[cat]) tag.textContent = `${cat}${no} · ${CATEGORIES[cat].name}`;
+    let tag = $(".calc-head .tag"); if(!tag || !CATEGORIES[cat]) return;
+    /* 분류 태그 = 그 분류 목록 링크. 아임웹 안: 같은 iframe의 index.html#M (회원 모드 유지), 밖: 아임웹 목록 페이지#M */
+    if(tag.tagName !== "A"){
+      const a = document.createElement("a");
+      a.className = tag.className + " tag-link";
+      a.target = inImweb ? "_self" : "_blank"; if(!inImweb) a.rel = "noopener";
+      tag.replaceWith(a); tag = a;
+    }
+    tag.href = inImweb ? keepMember("index.html") + "#" + cat : SITE.listPage + "#" + cat;
+    tag.title = `${CATEGORIES[cat].name} 계산기 목록 보기`;
+    tag.textContent = `${cat}${no} · ${CATEGORIES[cat].name}`;
   }
 
   /* 머리말을 목록 값으로: 태그·이름(h1)·설명(p)·<title> */
@@ -506,7 +516,7 @@
     const cat = document.documentElement.dataset.cat, no = document.documentElement.dataset.no;
     const c = d && cat && no && d.calculators.find(x => x.cat === cat && x.no === no);
     if(!c) return;
-    const h1 = $(".calc-head h1"), p = $(".calc-head p"), tag = $(".tag");
+    const h1 = $(".calc-head h1"), p = $(".calc-head p"), tag = $(".calc-head .tag");
     if(h1) h1.textContent = c.name;
     if(p) p.textContent = c.desc;
     if(tag) tag.textContent = `${c.tag} · ${c.step || c.category}`;   // 연결 계산은 단계 표시 (M03 · 원가 3/6)

@@ -49,6 +49,9 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
 .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--brand-dark);
   background:var(--brand-soft);border-radius:999px;padding:3px 10px;margin-bottom:8px}
 .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--brand)}
+a.tag-link{text-decoration:none;cursor:pointer;transition:background .15s}
+a.tag-link::after{content:"›";font-size:14px;line-height:1;margin-left:-1px}
+a.tag-link:hover,a.tag-link:focus-visible{background:color-mix(in srgb,var(--brand-soft) 70%,var(--brand) 30%);text-decoration:underline;text-underline-offset:2px}
 .calc-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
 .calc-head p{font-size:14px;color:var(--ink-2);margin-top:4px}
 .head-side{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px}  /* 로고를 블로그 버튼 가운데에 정렬 */

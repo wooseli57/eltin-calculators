@@ -94,11 +94,12 @@ function draw(d){
   const done = d.calculators.filter(c => c.status === "완료").length;
   const byCat = Object.fromEntries(d.categories.map(g => [g.cat, g]));
   /* 분류 버튼 = 필터 (아임웹 iframe 안에서는 #앵커로 스크롤이 안 되므로 해당 분류만 보여주는 방식) */
-  $("#jump").innerHTML = `<button type="button" class="all on" data-f="">전체</button>`
+  const cnt = k => d.calculators.filter(c => c.cat === k).length;     // 분류별 계산기 수 (준비 중 포함)
+  $("#jump").innerHTML = `<button type="button" class="all on" data-f="">전체 (${d.calculators.length})</button>`
     + ROWS.map(row => {
       const cats = [...row.cats].filter(k => byCat[k]);
       return `${row.label ? `<p class="jump-label">${row.label}</p>` : ""}<div class="jump-row" style="grid-template-columns:repeat(${cats.length},minmax(0,1fr))">${
-        cats.map(k => `<button type="button" data-cat="${k}" data-f="${k}">${esc(byCat[k].name)}</button>`).join("")}</div>`;
+        cats.map(k => `<button type="button" data-cat="${k}" data-f="${k}">${esc(byCat[k].name)} (${cnt(k)})</button>`).join("")}</div>`;
     }).join("");
 
   $("#cats").innerHTML = d.categories.map(g => {
