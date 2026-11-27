@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="G" data-no="07" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G07 물 색 배합 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);cursor:pointer;margin-top:10px}
+.check input{width:18px;height:18px;accent-color:var(--brand-dark);flex:none}
+.links .btn{display:block;width:100%;margin-top:10px;padding:11px;text-align:center;text-decoration:none}
+.btn.soon{background:var(--line);color:var(--ink-3);cursor:not-allowed}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>물 색 배합</h1>
+      <p>원하는 색이나 인기 색을 고르면 물에 풀어 쓸 엘틴 색소 조합과 비율을 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>원하는 색</label>
+      <div id="target"></div>
+    </div>
+    <div class="field">
+      <label>가진 색소 <small>기본 8색</small></label>
+      <div id="dots"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">측정 자료를 불러오는 중이에요</p></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/eltin-color.js"></script>
+<script>
+/* ===== G07 물 색 배합 — 사양: docs/specs/G-color.md 4절 (G02와 같은 구조) =====
+   측정된 물 칩(기본 8색 2색 각 1~9, 3색 각 1~3) 중 원하는 색과 색차(CIEDE2000)가 작은 3개. 가진 색소로만 된 배합만.
+   물 데이터는 1/100로 묽혀 종이에 말린 색이라 결과는 비율로만 (내 양 계산 없음) */
+const BASE = "water";
+const { $, won, num, numInput, ACTIONS, bindActions, postHeight, esc, param } = Eltin;
+const C = EltinColor;
+let target = null, owned = [];
+
+C.load().then(D => {
+  const dots = C.dots($("#dots"), { max: 8, value: D.basic.slice(), onChange: v => { owned = v; render(); } });
+  owned = dots.value;
+  target = C.targetPicker($("#target"), () => render());
+}).catch(() => { $("#result").innerHTML = '<p class="empty">측정 자료를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p>'; postHeight(); });
+
+function render(){
+  if(!target || !C.data) return;
+  const hex = target.value;
+  const colors = owned;
+  if(!colors.length){ $("#result").innerHTML = '<p class="empty">가진 색소를 하나 이상 골라주세요</p>'; postHeight(); return; }
+  const list = C.nearest(BASE, hex, { colors, limit: 3 });
+  if(!list.length){ $("#result").innerHTML = '<p class="empty">가진 색소로 만든 측정 배합이 없어요. 색소를 더 골라주세요</p>'; postHeight(); return; }
+  const name = target.presetName();
+  $("#result").innerHTML = `
+    <p class="lead">${name ? esc(name) + "에 " : ""}가장 가까운 엘틴 배합이에요</p>
+    ${list.map((c, i) => {
+      return `<div class="cg-result">
+        <p class="cg-rank">${i + 1}위 · ${C.deltaWord(c.dE)} (색차 ${num(c.dE, 1)})</p>
+        ${C.compare(hex, c.hex)}
+        <div class="rows">
+          <div class="row"><span>섞는 비율<small>측정값</small></span><b>${esc(C.ratioText(c.mix))}</b></div>
+        </div>
+      </div>`;
+    }).join("")}
+    ${ACTIONS}`;
+  const top = list[0];
+  bindActions(`엘틴 조색 · 물 · 원하는 색 ${hex} · ${C.ratioText(top.mix)} 비율 · 예상 색 ${top.hex.toLowerCase()} (색차 ${num(top.dE, 1)})`);
+  postHeight();
+}
+window.addEventListener("eltin:calcs", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${C.METHOD.water}`;
+
+Eltin.init();
+</script>
+</body>
+</html>
