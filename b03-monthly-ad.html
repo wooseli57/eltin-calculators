@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="B" data-no="03" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B03 월 광고비 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.ad-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ad-links a{font-size:12px;font-weight:700;color:var(--brand-dark);text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>월 광고비 계산기</h1>
+      <p>한 달에 쓰는 광고비를 종류별로 모아요. 매출에 따라 늘어나는 광고인지도 고를 수 있어요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="mfTabs"></div>
+    <div class="field">
+      <label for="sales">월 매출 <small>매출의 % 광고 계산용</small></label>
+      <div class="input-wrap"><input id="sales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="salesHint"></div>
+      <div id="salesFrom"></div>
+    </div>
+    <div class="field">
+      <label>광고 <small>월 금액 또는 매출의 %</small></label>
+      <div id="items"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/monthly-flow.js"></script>
+<script>
+/* ===== B03 월 광고비 계산기 (비용 3/8) — 사양: docs/specs/B-monthly.md B03 =====
+   광고마다 [월 금액] 또는 [매출의 %]. 월 금액 줄은 고정비, % 줄은 매출에 따라 늘어나는 변동비로 나눠 합계.
+   다음 단계 B04로 ad(합계), adv(매출 비례분이 더 크면 1 — B07이 광고비를 변동비로 봄) */
+const { $, won, num, moneyInput, rowList, ACTIONS, bindActions, postHeight, esc, keepMember } = Eltin;
+const G = MF.got;
+const DEF = {
+  store:  { sales: 15000000, rows: [{ name: "지역광고", way: "amt", v: 200000 }, { name: "체험단·쿠폰", way: "amt", v: 100000 }] },
+  online: { sales: 10000000, rows: [{ name: "마켓 광고", way: "pct", v: 8 }, { name: "SNS 광고", way: "amt", v: 200000 }] }
+};
+const sales = moneyInput($("#sales"), $("#salesHint"), render);
+const lineVal = (r, s) => r.way === "pct" ? Math.round(s * r.v / 100) : Math.round(r.v);
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name", label: "광고 이름", type: "text", ph: "광고 이름" },
+    { key: "way", label: "방식", type: "select", options: [["amt", "월 금액"], ["pct", "매출의 %"]] },
+    { key: "v", label: "금액 또는 %", type: "num", ph: "0" }
+  ],
+  cols: "minmax(0,1fr) minmax(0,1fr)",
+  note: r => r.v > 0 ? (r.way === "pct" ? `매출의 ${num(r.v, 1)}% · 매출에 따라 늘어나요` : `한 달 ${won(r.v)}원 · 고정비`) : "",
+  rows: DEF[MF.mode].rows, addLabel: "광고 추가", blank: () => ({ name: "", way: "amt", v: "" }), onChange: render
+});
+
+function setDefaults(m){
+  const sv = G.sales ?? DEF[m].sales;
+  $("#sales").value = sv ? won(sv) : ""; $("#salesFrom").innerHTML = G.sales != null ? MF.FROM : "";
+  items.set(DEF[m].rows);
+  $("#sales").dispatchEvent(new Event("input"));
+}
+MF.tabs($("#mfTabs"), setDefaults);
+setDefaults(MF.mode);
+
+/* 1회성 광고 계산기 (A01~A06) 링크 — 완료된 것만 */
+function adLinks(){
+  const d = window.__eltinCalcs; if(!d) return "";
+  const list = d.calculators.filter(c => c.cat === "A" && c.status === "완료");
+  return list.length ? `<p class="tip">광고 하나하나가 남는지 따져 보려면<span class="ad-links">${list.map(c => `<a href="${keepMember(c.file)}" target="_self">${c.tag} ${esc(c.name.replace(/ 계산기$/, ""))}</a>`).join("")}</span></p>` : "";
+}
+
+function render(){
+  const s = sales.value;
+  const rows = items.rows().filter(r => r.v > 0).map((r, i) => ({ ...r, name: r.name || `광고 ${i + 1}`, value: lineVal(r, s) }));
+  const fixed = rows.filter(r => r.way !== "pct").reduce((a, r) => a + r.value, 0);
+  const vari = rows.filter(r => r.way === "pct").reduce((a, r) => a + r.value, 0);
+  const total = fixed + vari;
+  if(!total){ $("#result").innerHTML = '<p class="empty">광고비를 넣으면 바로 계산돼요</p>'; MF.pass({ sales: s || null }); postHeight(); return; }
+  MF.pass({ sales: s || null, ad: total, adv: vari > fixed ? 1 : 0 });
+  $("#result").innerHTML = `
+    <p class="lead">한 달 광고비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    <div class="rows">
+      ${rows.map(r => `<div class="row"><span>${esc(r.name)}<small>${r.way === "pct" ? `매출의 ${num(r.v, 1)}% · 매출에 따라 늘어나요` : "월 금액 · 고정비"}</small></span><b>${won(r.value)}원</b></div>`).join("")}
+      <div class="row total"><span>한 달 광고비 합계<small>고정 ${won(fixed)}원 + 매출 비례 ${won(vari)}원</small></span><b>${won(total)}원</b></div>
+      ${s ? `<div class="row"><span>매출 대비</span><b>${num(total / s * 100, 1)}%</b></div>` : ""}
+    </div>
+    ${vari ? `<p class="tip">매출에 따라 늘어나는 광고가 ${vari > fixed ? "더 커서 월 손익에서 <b>변동비</b>" : "있지만 고정 광고가 더 커서 월 손익에서 <b>고정비</b>"}로 계산해요. 월 손익 계산기에서 바꿀 수 있어요.</p>` : ""}
+    ${adLinks()}
+    ${ACTIONS}`;
+  bindActions(`[월 광고비] ${MF.mode === "store" ? "매장" : "온라인"} · ${rows.map(r => `${r.name} ${won(r.value)}원`).join(" + ")} = ${won(total)}원 (고정 ${won(fixed)}원 + 매출 비례 ${won(vari)}원${s ? `, 매출의 ${num(total / s * 100, 1)}%` : ""})`);
+  postHeight();
+}
+window.addEventListener("eltin:calcs", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${MF.COMMON_NOTE}<br>
+  월 금액으로 넣은 광고는 매출과 상관없이 나가는 고정비, 매출의 %로 넣은 광고(마켓 광고 등)는 매출에 따라 늘어나는 변동비로 봐요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
