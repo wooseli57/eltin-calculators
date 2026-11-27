@@ -167,6 +167,7 @@ function render(){
   if(ownerPay) lines.push({ name: "사장님 급여", burden: ownerPay, sub: "사장님 본인" });
   const total = lines.reduce((a, l) => a + l.burden, 0);
   const pays = lines.reduce((a, l) => a + (l.pay ?? 0), 0), ins = lines.reduce((a, l) => a + (l.insSum || 0), 0);
+  const split = way === "staff" && lines.some(l => l.pay != null);   // 직원별 입력이면 급여·4대보험 두 줄 (3.3%만 있으면 4대보험 0원)
   MF.pass({ labor: total });
   if(!total){ $("#result").innerHTML = '<p class="empty">직원 급여나 인건비 총액을 넣으면 바로 계산돼요 (직원이 없으면 0원으로 다음 단계에 넘어가요)</p>'; postHeight(); return; }
   const low = lines.some(l => l.low);
@@ -176,14 +177,15 @@ function render(){
     ${lines.length > 1 ? '<div id="chart"></div>' : ""}
     <div class="rows">
       ${lines.map(l => `<div class="row"><span>${esc(l.name)}<small>${esc(l.sub)}</small></span><b>${won(l.burden)}원</b></div>`).join("")}
-      ${way === "staff" && ins ? `<div class="row"><span>그중 급여 / 사장님 부담 4대보험</span><b>${won(pays)}원 / ${won(ins)}원</b></div>` : ""}
+      ${split ? `<div class="row"><span>직원 급여 합계<small>세전, 주휴 포함</small></span><b>${won(pays)}원</b></div>
+      <div class="row"><span>사장님 부담 4대보험<small>월급과 별도로 사장님이 더 내는 몫</small></span><b>${won(ins)}원</b></div>` : ""}
       <div class="row total"><span>한 달 인건비 합계</span><b>${won(total)}원</b></div>
       ${G.sales ? `<div class="row"><span>매출 대비<small>월 매출 ${won(G.sales)}원 (앞 단계)</small></span><b>${num(total / G.sales * 100, 1)}%</b></div>` : ""}
     </div>
     ${!ownerPay ? '<p class="tip">사장님 본인 급여를 넣지 않았어요. 월 손익에서 남는 돈이 곧 사장님 몫이에요.</p>' : ""}
     ${ACTIONS}`;
   if(lines.length > 1) Eltin.donut($("#chart"), lines.map(l => ({ label: l.name, value: l.burden })), { big: `${Eltin.shortWon(total)}원`, small: "한 달 인건비" }, { profitLast: false });
-  bindActions(`[월 인건비] ${lines.map(l => `${l.name} ${won(l.burden)}원`).join(" + ")} = 한 달 ${won(total)}원 (${R.useYear}년 기준)`);
+  bindActions(`[월 인건비] ${lines.map(l => `${l.name} ${won(l.burden)}원`).join(" + ")} = 한 달 ${won(total)}원${split ? ` (직원 급여 합계 ${won(pays)}원, 사장님 부담 4대보험 ${won(ins)}원)` : ""} (${R.useYear}년 기준)`);
   postHeight();
 }
 
