@@ -39,10 +39,10 @@ body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothi
   color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;padding:16px}
 .calc{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 
-/* 임베드 모드 (?embed=1 또는 #embed): 배경 투명, 머리말·하단 문구 숨김 */
+/* 아임웹 모드 (아임웹 iframe 안이면 공통 JS가 자동으로 붙임): 배경 투명, 여백 축소, 하단 작은 문구 숨김. 머리말은 보임 */
 .embed,.embed body{background:transparent}
 .embed body{padding:4px 2px}
-.embed .calc-head,.embed .brand-foot{display:none}
+.embed .brand-foot{display:none}
 
 /* 1. 머리말: 왼쪽 태그·이름·설명, 오른쪽 로고 + 블로그 버튼 */
 .calc-head{padding:4px 4px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}

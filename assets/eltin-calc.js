@@ -5,7 +5,7 @@
 (function(){
   const SITE = {
     links: [   // 하단 연결 박스
-      // 계산기 목록: 지금은 이 저장소의 index.html (internal: 같은 창에서 열고 ?embed=1을 이어 붙임).
+      // 계산기 목록: 아임웹 안에서는 이 저장소의 index.html(같은 iframe), 밖에서는 SITE.listPage (internal 표시).
       // 아임웹 계산기 목록 페이지 주소가 정해지면 href를 그 주소(예: "https://eltin.imweb.me/calculators")로 바꾸고 internal 줄을 지우세요.
       { label:"계산기 목록", title:"다른 무료 계산기 보기", href:"index.html", internal:true },
       { label:"엘틴 쇼핑몰", title:"식용색소·향료 보러가기", href:"https://eltin.imweb.me/shop" }
@@ -61,8 +61,13 @@
     return [eok?won(eok)+"억":"", man?won(man)+"만":"", rest?won(rest):""].filter(Boolean).join(" ")+"원";
   }
   function toast(msg){ const t=$("#toast"); if(!t) return; t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1600); }
-  function postHeight(){                        // 아임웹 iframe 높이 자동 맞춤
-    try{ parent.postMessage({ type:"eltin-calc-height", height: document.documentElement.scrollHeight }, "*"); }catch(e){}
+  /* 아임웹 iframe 높이 자동 맞춤. documentElement.scrollHeight는 iframe의 지금 높이보다 작아지지 않아서
+     (긴 목록 → 짧은 계산기로 이동하면 아래가 텅 빔) 실제 내용(body) 높이를 잼 */
+  function postHeight(){
+    try{
+      const h = Math.ceil(document.body ? document.body.getBoundingClientRect().height : document.documentElement.scrollHeight);
+      parent.postMessage({ type:"eltin-calc-height", height: h }, "*");
+    }catch(e){}
   }
   /* 결과 복사: 클립보드 API → 안 되면(아임웹 iframe 권한·옛 브라우저) 숨긴 글상자 + execCommand("copy") */
   function copyFallback(text){
@@ -449,9 +454,23 @@
     return { rows: () => [...body.querySelectorAll(".item")].map(read), add, set };
   }
 
-  /* ---------- 공통 화면 구성 ---------- */
-  const isEmbed = new URLSearchParams(location.search).get("embed") === "1" || location.hash === "#embed";
-  if(isEmbed) document.documentElement.classList.add("embed");
+  /* ---------- 아임웹 모드 (docs/specs/imweb-embed.md 2026-11-27 변경) ----------
+     주소의 embed=1 대신 자동 판단: iframe 안이고 부모가 SITE.memberHosts(아임웹)이면 아임웹 모드.
+     부모 주소: location.ancestorOrigins(크롬 등)가 있으면 그것으로, 없으면(사파리 등) document.referrer로 판단.
+     iframe 안에서 계산기끼리 이동한 경우(referrer가 같은 사이트)도 허용. 예전 주소의 embed=1·#embed는 무시 */
+  const hostOf = u => { try{ return new URL(u).hostname; }catch(e){ return ""; } };
+  const isMemberHost = h => !!h && SITE.memberHosts.some(m => h === m || h.endsWith("." + m));
+  function imwebFrameOK(ctx){
+    if(!ctx.framed) return false;
+    if(ctx.ancestors && ctx.ancestors.length) return ctx.ancestors.some(a => isMemberHost(hostOf(a)));
+    const rh = hostOf(ctx.referrer);
+    return isMemberHost(rh) || (!!rh && rh === hostOf(ctx.origin));
+  }
+  const inImweb = (() => {
+    let framed = true; try{ framed = window.top !== window; }catch(e){}
+    return imwebFrameOK({ framed, ancestors: location.ancestorOrigins ? [...location.ancestorOrigins] : null, referrer: document.referrer, origin: location.href });
+  })();
+  if(inImweb) document.documentElement.classList.add("embed");       // 배경 투명·여백 축소·하단 문구 숨김 (머리말은 보임)
 
   function setTag(){
     const cat = document.documentElement.dataset.cat, no = document.documentElement.dataset.no || "01";
@@ -505,35 +524,19 @@
     res.after(nav);
     drawNext();
   }
-  /* 같은 사이트 안 링크(목록 페이지 등): 임베드 모드면 ?embed=1을, 회원 모드면 &member=1도 이어 붙임 */
-  const keepEmbed = href => isEmbed ? href + (href.includes("?") ? "&" : "?") + "embed=1" + (memberMode() ? "&member=1" : "") : href;
   /* ---------- 회원 전용 계산기 (docs/specs/access.md) ----------
-     아임웹 iframe 안(?embed=1 + 부모 페이지가 memberHosts)에서만 계산 화면을 보여줌.
-     부모 주소: location.ancestorOrigins(크롬 등)가 있으면 그것으로, 없으면(사파리 등) document.referrer로 판단.
-     iframe 안에서 계산기끼리 이동한 경우(referrer가 같은 사이트)도 허용. 개발 지식으로 일부러 우회하는 것까지는 못 막음 */
-  const hostOf = u => { try{ return new URL(u).hostname; }catch(e){ return ""; } };
-  const isMemberHost = h => !!h && SITE.memberHosts.some(m => h === m || h.endsWith("." + m));
-  function memberFrameOK(ctx){
-    if(!ctx.embed || !ctx.framed) return false;
-    if(ctx.ancestors && ctx.ancestors.length) return ctx.ancestors.some(a => isMemberHost(hostOf(a)));
-    const rh = hostOf(ctx.referrer);
-    return isMemberHost(rh) || (!!rh && rh === hostOf(ctx.origin));
-  }
+     회원 모드 = 아임웹 모드 + 주소에 member=1 (docs/specs/imweb-embed.md).
+     iframe 안에서는 부모가 eltin.imweb.me라는 것만 알고 어느 페이지인지는 몰라서, 회원 전용 페이지에서만 붙는 member=1을 함께 봄.
+     개발 지식으로 일부러 우회하는 것까지는 못 막음 */
   const memberHref = tag => SITE.memberPage.replace("{tag}", tag || "");
-  /* 회원 모드 = 임베드 + 주소에 member=1 + 아임웹 iframe 안 (docs/specs/imweb-embed.md).
-     iframe 안에서는 부모가 eltin.imweb.me라는 것만 알고 어느 페이지인지는 몰라서, 회원 전용 페이지에서만 붙는 member=1을 함께 봄 */
-  let MEMBER_MODE = null;
-  function memberMode(){
-    if(MEMBER_MODE !== null) return MEMBER_MODE;
-    let framed = true; try{ framed = window.top !== window; }catch(e){}
-    MEMBER_MODE = isEmbed && new URLSearchParams(location.search).get("member") === "1"
-      && memberFrameOK({ embed: isEmbed, framed, ancestors: location.ancestorOrigins ? [...location.ancestorOrigins] : null, referrer: document.referrer, origin: location.href });
-    return MEMBER_MODE;
-  }
+  const MEMBER_MODE = inImweb && new URLSearchParams(location.search).get("member") === "1";
+  const memberMode = () => MEMBER_MODE;
+  /* 같은 사이트 안 링크(계산기끼리, 목록): 회원 모드면 member=1을 이어 붙여 다음 화면에서도 회원 모드 유지 */
+  const keepMember = href => MEMBER_MODE ? href + (href.includes("?") ? "&" : "?") + "member=1" : href;
   /* 계산기로 가는 링크: 회원 전용인데 회원 모드가 아니면 아임웹 회원 페이지로(iframe 밖, _top) + 🔒 */
   function calcLink(c, q){
     if(c.access === "member" && !memberMode()) return { href: memberHref(c.tag), target: "_top", lock: true };
-    return { href: keepEmbed(c.file + (q ? "?" + q : "")), target: "_self", lock: false };
+    return { href: keepMember(c.file + (q ? "?" + q : "")), target: "_self", lock: false };
   }
   const LOCK = `<span class="lock" title="엘틴 쇼핑몰 회원 전용 (회원가입 무료)">🔒 회원</span>`;
   function memberGate(){
@@ -575,7 +578,8 @@
     const side = $(".head-side");
     if(side){
       const wordmark = `<span class="wordmark"><b>e</b><b>l</b><b>t</b><b>i</b><b>n</b></span>`;
-      side.innerHTML = `<a class="logo" href="${SITE.logo.href}" target="_blank" rel="noopener" aria-label="엘틴 쇼핑몰"><img src="${SITE.logo.src}" alt="eltin"></a>
+      /* 로고: 아임웹 안에서는 같은 창(바깥 쇼핑몰 페이지)으로, 밖에서는 새 창. 블로그는 항상 새 창 */
+      side.innerHTML = `<a class="logo" href="${SITE.logo.href}" ${inImweb ? 'target="_top"' : 'target="_blank" rel="noopener"'} aria-label="엘틴 쇼핑몰"><img src="${SITE.logo.src}" alt="eltin"></a>
         <a class="blog-btn" href="${SITE.blog.href}" target="_blank" rel="noopener">${SITE.blog.label}</a>`;
       const img = side.querySelector("img"); img.onerror = () => { img.parentNode.innerHTML = wordmark; };
     }
@@ -584,12 +588,12 @@
     if(cta) cta.innerHTML = SITE.links
       .filter(l => !(l.internal && l.href === here))                 // 목록 페이지에서는 자기 자신 링크를 빼요
       .map(l => {
-        const inside = l.internal && isEmbed;                        // 임베드 안: 같은 iframe의 index.html
-        const href = l.internal ? (isEmbed ? keepEmbed(l.href) : SITE.listPage) : l.href;   // 임베드 밖: 아임웹 목록 페이지
+        const inside = l.internal && inImweb;                        // 아임웹 안: 같은 iframe의 index.html
+        const href = l.internal ? (inImweb ? keepMember(l.href) : SITE.listPage) : l.href;  // 밖: 아임웹 목록 페이지
         return `<a href="${href}" ${inside ? 'target="_self"' : 'target="_blank" rel="noopener"'}><div><span>${l.label}</span>${l.title}</div></a>`;
       }).join("");
 
-    if(SITE.devPreview && !isEmbed && $("#dev")){
+    if(SITE.devPreview && !inImweb && $("#dev")){
       const dev = $("#dev"); dev.hidden = false;
       dev.innerHTML = `<p>디자인 확인용 · 분류별 테마색 미리보기 (배포 시 삭제)</p><div class="sw">${
         Object.entries(CATEGORIES).map(([k,c]) => `<button type="button" data-c="${k}" style="background:${c.color};color:${c.color}"><span style="color:#fff">${k} ${c.name}</span></button>`).join("")}</div>`;
@@ -603,5 +607,5 @@
     postHeight();
   }
 
-  window.Eltin = { esc, setFlow, param, paramText, memberHref, memberFrameOK, memberMode, calcLink, LOCK, ready, loadCalcs, keepEmbed, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, isEmbed };
+  window.Eltin = { esc, setFlow, param, paramText, memberHref, imwebFrameOK, memberMode, calcLink, LOCK, ready, loadCalcs, keepMember, resetAll, $, $$, won, num, ro, eun, yearRates, yearNotice, cardTiers, taxTables, pans, donut, bars, line, funnel, shortWon, toNum, koreanUnit, toast, copy, postHeight, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, init, CATEGORIES, inImweb };
 })();

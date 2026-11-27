@@ -187,7 +187,7 @@ function selectRecipe(id, push){
   $("#baseSel").innerHTML = numeric().map(({ g, i }) => `<option value="${i}">${g.name} (${num(g.amount, 1)}${g.unit})</option>`).join("");
   $("#baseAmt").value = ""; syncBaseUnit();
   mode = "main";
-  if(push){ try{ history.replaceState(null, "", `?r=${recipe.id}${Eltin.isEmbed ? "&embed=1" : ""}`); }catch(e){} }
+  if(push){ try{ history.replaceState(null, "", Eltin.keepMember(`?r=${recipe.id}`)); }catch(e){} }
   render();
 }
 
@@ -219,7 +219,7 @@ function linkBox(kind, f){
     ? `원하는 색을 내려면 <b>${L.where}</b> 넣어요. 바탕은 ${BASE_NAMES[L.base] || L.base}, 색 입힐 양은 약 <b>${num(v, 0)}${L.unit}</b>${L.unit === "ml" ? "예요" : "이에요"}${L.note ? ` (${L.note})` : ""}.`
     : `다른 향(${L.label})으로 바꾸려면 <b>${L.where}</b> 넣어요. 향 입힐 양은 약 <b>${num(v, 0)}${L.unit}</b>${L.unit === "ml" ? "예요" : "이에요"}.`;
   return `<div class="links">${body}
-    ${ok ? `<a class="btn btn-primary" href="${href}" target="_top">${label}</a>`
+    ${ok ? `<a class="btn btn-primary" href="${Eltin.keepMember(href)}" target="_self">${label}</a>`
          : `<span class="btn soon" aria-disabled="true">${label} · 준비 중</span>`}</div>`;
 }
 
@@ -262,7 +262,7 @@ function takeToR04(f){
   });
   const cnt = recipe.base.mode === "count" ? Math.round(recipe.base.amount * f * 10) / 10 : null;
   try{ sessionStorage.setItem("eltin-r04-import", JSON.stringify({ from: `r01:${recipe.id}`, rows, count: cnt })); }catch(e){}
-  window.open(`r04-my-recipe.html?from=r01${Eltin.isEmbed ? "&embed=1" : ""}`, "_top");
+  location.href = Eltin.keepMember("r04-my-recipe.html?from=r01");   // 같은 iframe 안에서 (회원 모드 유지)
 }
 
 /* ---------- 입력 연결 ---------- */

@@ -69,8 +69,8 @@ a.calc-item::after{content:"›";position:absolute;right:13px;top:50%;transform:
 <script>
 /* ===== 계산기 목록 페이지 =====
    data/calculators.json(원본 docs/calculators.md)으로 분류별 목록을 그림.
-   상태가 "완료"인 계산기만 링크, 나머지는 회색 "준비 중". ?embed=1이면 계산기로 넘어갈 때도 embed 유지 */
-const { $, postHeight, keepEmbed, isEmbed } = Eltin;
+   상태가 "완료"인 계산기만 링크, 나머지는 회색 "준비 중". 회원 모드면 계산기로 넘어갈 때도 member=1 유지 */
+const { $, postHeight, keepMember } = Eltin;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 /* 분류 버튼 줄 (docs/restructure-worklist.md 5절). 분류 순서·이름은 docs/calculators.md 그대로 */
@@ -148,7 +148,7 @@ function openCalc(d){
   if(!/^[A-Z]\d\d$/.test(tag)) return false;
   const c = d.calculators.find(x => x.tag === tag && x.status === "완료");
   if(!c) return false;
-  location.replace(keepEmbed(c.file));
+  location.replace(keepMember(c.file));
   return true;
 }
 

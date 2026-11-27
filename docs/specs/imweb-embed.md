@@ -23,7 +23,7 @@ iframe 안에서는 부모가 eltin.imweb.me라는 것(origin)만 알 수 있고
 2. 회원 모드 판단
    - `isMemberMode = 임베드 && 주소에 member=1 && memberFrameOK(...)`
    - `memberGate()`는 `memberFrameOK` 대신 `isMemberMode`로 판단
-   - `keepEmbed(href)`가 `embed=1`과 함께 `member=1`도 이어 붙임 (회원 페이지 안에서 계산기끼리 이동해도 유지)
+   - `keepEmbed(href)`가 `embed=1`과 함께 `member=1`도 이어 붙임 (회원 페이지 안에서 계산기끼리 이동해도 유지) → 2026-11-27 변경 후 `keepMember(href)`: 회원 모드일 때 `member=1`만
 3. 회원 전용 계산기로 가는 모든 링크 (index.html 카드, 다음 단계·함께 쓰면 좋은 계산기 버튼)
    - 회원 모드면: 지금처럼 같은 iframe 안에서 이동
    - 아니면: `href = memberHref(tag)`, `target="_top"` (iframe 밖 아임웹 회원 페이지로 이동 → 로그인 안 했으면 아임웹이 로그인/가입 창)
@@ -41,6 +41,8 @@ iframe 안에서는 부모가 eltin.imweb.me라는 것(origin)만 알 수 있고
 7. 배포 전: `SITE.devPreview = false`, `SITE.blog`를 엘틴 네이버 블로그 주소로 (사용자에게 받기)
 
 ## 아임웹 코드 (두 페이지 모두 코드 위젯 하나, MEMBER만 다름)
+
+> 2026-11-27부터 `embed=1`은 필요 없어요(iframe 안이면 자동으로 아임웹 모드). 이미 `index.html?embed=1…`로 넣어 둔 위젯은 고치지 않아도 그대로 동작해요.
 ```html
 <iframe id="eltin-calc" title="엘틴 무료 계산기" allow="clipboard-write"
   style="width:100%;border:0;min-height:720px"></iframe>
@@ -51,7 +53,7 @@ iframe 안에서는 부모가 eltin.imweb.me라는 것(origin)만 알 수 있고
   var f = document.getElementById("eltin-calc");
   function load(){
     var h = (location.hash || "").replace("#", "").toUpperCase();
-    f.src = BASE + "index.html?embed=1" + (MEMBER ? "&member=1" : "")
+    f.src = BASE + "index.html?" + (MEMBER ? "member=1" : "")
           + (/^[A-Z](\d{2})?$/.test(h) ? "&open=" + h : "");
   }
   var first = true;
@@ -72,3 +74,19 @@ iframe 안에서는 부모가 eltin.imweb.me라는 것(origin)만 알 수 있고
 ## 블로그 링크 (채팅 탭이 바꿈)
 - 누구나 계산기: `https://eltin.imweb.me/calculators#S01`
 - 회원 전용 계산기: `https://eltin.imweb.me/calculators-member#M05`
+
+## 변경: embed=1 없애고 "iframe 안이면 아임웹 모드" + 머리말 보이기 (2026-11-27 대표 결정)
+배경: 아임웹 안에서 머리말이 숨겨져 지금 쓰는 계산기가 무엇인지 알기 어려움. 검토해 보니 `?embed=1`은 "아임웹 iframe 안인가"를 주소로 알려 주는 표시인데, 회원 잠금은 이미 iframe·부모 주소를 직접 확인하고 있어 중복.
+
+결정
+1. 머리말(분류 태그·단계 표시, 이름, 설명, 로고, 블로그 버튼)은 아임웹 안에서도 보임. 로고가 아임웹 머리글과 겹치는 것은 감수. 하단 작은 문구(`.brand-foot`)는 아임웹 안에서 계속 숨김
+2. 주소의 `embed=1` 대신 코드가 자동 판단: `framed = window.top !== window` (예외 시 true) 이고 부모가 `SITE.memberHosts`(memberFrameOK의 부모 확인과 같은 방식)이면 **아임웹 모드**
+3. 아임웹 모드에서 유지하는 것: 배경 투명·여백 축소, 회원 모드 판단(아임웹 모드 + member=1), 계산기끼리 이동 시 `member=1` 유지, "계산기 목록" 버튼은 같은 iframe의 index.html, 로고 링크는 `target="_top"`
+4. 아임웹 모드가 아닐 때(GitHub 주소 직접 열기 등): 지금의 비임베드 동작 그대로 (목록 버튼은 `SITE.listPage`, 회원 계산기는 안내 카드)
+5. 하위 호환: 아임웹 코드 위젯의 `index.html?embed=1`은 고치지 않아도 됨. `embed` 파라미터·`#embed`는 무시
+6. 문서: CLAUDE.md 1·2·10장의 "?embed=1" 설명, 이 문서의 아임웹 코드 예시에서 `embed=1` 제거
+
+### 반영 (2026-11-27)
+- `assets/eltin-calc.js`: `inImweb`(iframe 안 + 부모가 아임웹) 자동 판단, `imwebFrameOK`, 회원 모드 = `inImweb` + `member=1`, `keepEmbed` → `keepMember`, 로고는 아임웹 안에서 `_top`
+- `assets/eltin-calc.css`: 아임웹 모드에서 머리말 숨김 제거 (하단 작은 문구 숨김·투명 배경·여백은 유지)
+- R01의 R02·R03·R04 이동 버튼이 `_top`이라 아임웹 밖 GitHub 주소로 나가던 것을 같은 iframe 안 이동으로 (회원 모드 유지)

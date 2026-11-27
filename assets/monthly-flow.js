@@ -97,7 +97,7 @@
     const d = window.__eltinCalcs;
     document.querySelectorAll(".mf-link[data-tag]").forEach(s => {
       const c = d && d.calculators.find(x => x.tag === s.dataset.tag);
-      s.innerHTML = c && c.status === "완료" ? `<a href="${Eltin.keepEmbed(c.file + "?" + query)}" target="_self">자세히 계산 (${c.tag}) →</a>` : "";
+      s.innerHTML = c && c.status === "완료" ? `<a href="${Eltin.keepMember(c.file + "?" + query)}" target="_self">자세히 계산 (${c.tag}) →</a>` : "";
     });
   }
   window.addEventListener("eltin:calcs", e => { window.__eltinCalcs = e.detail; links(lastQ); });

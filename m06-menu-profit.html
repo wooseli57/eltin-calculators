@@ -87,7 +87,7 @@
    월 공헌이익 = 매장 마진 × 월 판매량 + 배달 마진 × 월 배달 판매량 (고정비 빼기 전)
    고정비 감당 비율 = 공헌이익 ÷ 월 고정비, 이 메뉴만으로 손익분기 판매량 = 월 고정비 ÷ 매장 마진 (판매량은 항상 올림) */
 const CONFIG = { defaults: { margin: 2891, price: 4500, fixed: 7300000 } };
-const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc, keepEmbed } = Eltin;
+const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc, keepMember } = Eltin;
 
 /* M05에서 받은 값: name, price, margin, costrate, (배달) dprice, dmargin */
 const P = { name: paramText("name"), price: param("price"), margin: param("margin"), costrate: param("costrate"), dprice: param("dprice"), dmargin: param("dmargin") };
@@ -106,7 +106,7 @@ const dmargin = moneyInput($("#dmargin"), null, render), dprice = moneyInput($("
 const fixed = moneyInput($("#fixed"), $("#fixedHint"), render);
 const qty = numInput($("#qty"), render), dqty = numInput($("#dqty"), render), days = numInput($("#days"), render);
 $("#menuName").addEventListener("input", render);
-$("#m05Link").href = keepEmbed("m05-menu-margin.html");
+$("#m05Link").href = keepMember("m05-menu-margin.html");
 
 function render(){
   const m = margin.value, q = qty.value, d = days.value || 26, F = fixed.value;
@@ -115,7 +115,7 @@ function render(){
   /* 월 손익(B07)으로: 매장 탭, 메뉴 원가율을 원가 줄의 매출 %로 (matp) */
   Eltin.setFlow({ query: new URLSearchParams({ m: "store", ...(P.costrate != null ? { matp: String(P.costrate) } : {}) }).toString(), shortcut: "B07" });
   const b07 = Eltin.ready("B07");
-  $("#b07Link").innerHTML = b07 ? `<a href="${keepEmbed("b07-monthly-profit.html?m=store")}" target="_self">자세히 계산 (B07) →</a>` : "";
+  $("#b07Link").innerHTML = b07 ? `<a href="${keepMember("b07-monthly-profit.html?m=store")}" target="_self">자세히 계산 (B07) →</a>` : "";
   if(!m || !q){ $("#result").innerHTML = '<p class="empty">1개 마진과 월 판매량을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
 
   const contrib = m * q + dm * dq;

@@ -63,7 +63,7 @@
    월 이익 = 1개 세전 이익 × 월 판매량 − 월 고정비, 손익분기 판매량 = 월 고정비 ÷ 1개 세전 이익 (올림)
    세전 이익(소득세 빼기 전)을 쓰는 이유: 소득세는 1년 이익으로 세금 계산기에서 계산하므로 여기서 빼면 두 번 빠짐 */
 const CONFIG = { defaults: { ebt: 2000, price: 20000, fixed: 500000 }, daysPerMonth: 30 };
-const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc, keepEmbed } = Eltin;
+const { $, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight, param, paramText, esc, keepMember } = Eltin;
 
 /* E01·E02에서 받은 값 (1개 기준): type direct|rocket, price, base 정산 기준가, ebt 세전 이익,
    buy 매입가, fee 마켓 수수료(직접 판매만), pack 포장비, ad 광고비, etc 기타비용, vat 부가세 */
@@ -76,7 +76,7 @@ $("#ebt").value = won(P.ebt != null ? Math.max(P.ebt, 0) : CONFIG.defaults.ebt);
 $("#price").value = won(P.price ?? CONFIG.defaults.price);
 $("#fixed").value = won(CONFIG.defaults.fixed);
 if(P.ebt != null) $("#fromNote").innerHTML = `<span class="mf-from">앞 단계(${rocket ? "E02" : "E01"})에서 가져온 값이에요</span>`;
-$("#eLink").href = keepEmbed(rocket ? "e02-rocket-margin.html" : "e01-online-margin.html");
+$("#eLink").href = keepMember(rocket ? "e02-rocket-margin.html" : "e01-online-margin.html");
 $("#eLink").textContent = `자세히 계산 (${rocket ? "E02" : "E01"}) →`;
 
 const nameRaw = () => $("#itemName").value.trim(), nameH = () => esc(nameRaw());
@@ -88,7 +88,7 @@ $("#itemName").addEventListener("input", render);
 function render(){
   const e = ebt.value, q = qty.value, F = fixed.value, d = CONFIG.daysPerMonth;
   $("#qtyHint").textContent = q ? `하루 약 ${num(q / d, 1)}개 (월 ${d}일 기준)` : "";
-  $("#b05Link").innerHTML = Eltin.ready("B05") ? `<a href="${keepEmbed("b05-monthly-opex.html?m=online")}" target="_self">자세히 계산 (B05) →</a>` : "";
+  $("#b05Link").innerHTML = Eltin.ready("B05") ? `<a href="${keepMember("b05-monthly-opex.html?m=online")}" target="_self">자세히 계산 (B05) →</a>` : "";
   const negNote = P.ebt != null && P.ebt < 0 ? `<p class="tip warn">앞 단계에서 1개 세전 이익이 <b>−${won(-P.ebt)}원</b>(손해)으로 나왔어요. 판매가나 비용을 먼저 고쳐 보세요.</p>` : "";
   if(!e || !q){ $("#result").innerHTML = `${negNote}<p class="empty">1개 세전 이익과 월 판매량을 넣으면 바로 계산돼요</p>`; Eltin.setFlow({ query: "m=online", shortcut: "B07" }); postHeight(); return; }
 

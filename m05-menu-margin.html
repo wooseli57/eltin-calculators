@@ -137,7 +137,7 @@ function render(){
   const r = calc(), nm = menuName() || "메뉴";
   $$("#brokerChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === broker.value));
   $("#dBox").hidden = !r.dOn;
-  $("#m04Link").href = Eltin.keepEmbed("m04-menu-cost.html");
+  $("#m04Link").href = Eltin.keepMember("m04-menu-cost.html");
   if(!r.p){ $("#result").innerHTML = '<p class="empty">매장 판매가를 넣으면 바로 계산돼요</p>'; Eltin.setFlow({ query: "" }); postHeight(); return; }
   const loss = r.margin < 0, m = Math.round(r.margin);
   const dLess = r.dOn && r.dMargin < r.margin;

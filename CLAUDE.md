@@ -6,7 +6,7 @@
 ## 1. 목적과 사용 환경
 
 - **주 사용자**: 카페·베이커리를 운영하는 소상공인. 일부 계산기(레시피·조색)는 홈베이킹하는 30대 엄마도 사용.
-- **사용 위치**: 아임웹 쇼핑몰(https://eltin.imweb.me/)에 iframe 위젯으로 넣어 사용. 주소 뒤에 `?embed=1`을 붙여 임베드 모드로 표시.
+- **사용 위치**: 아임웹 쇼핑몰(https://eltin.imweb.me/)에 iframe 위젯으로 넣어 사용. 목록 페이지 `calculators`(누구나)와 `calculators-member`(회원) 두 곳에 `index.html`을 넣음. 아임웹 iframe 안이면 공통 JS가 자동으로 "아임웹 모드"(배경 투명, 하단 작은 문구 숨김, 머리말은 보임)로 표시해요 — 주소에 `embed=1`을 붙이지 않아요 (사양: `docs/specs/imweb-embed.md`).
 - **네이버 블로그**: 스크립트·iframe이 안 되므로 계산기를 직접 넣지 않음. 계산기 1개당 블로그 글 1개로 사용법을 설명하고 아임웹으로 안내.
 - **배포**: GitHub Pages. 서버·DB 없이 브라우저 안에서만 계산하며, 사용자가 넣은 값은 어디에도 저장하지 않음.
 
@@ -21,7 +21,7 @@ data/calculators.json     계산기 목록 데이터 (docs/calculators.md에서 
 tools/build-calculators.py  docs/calculators.md → data/calculators.json 변환 + 검사
 index.html                계산기 목록 페이지 (data/calculators.json으로 분류별 목록)
 assets/eltin-calc.css     공통 디자인 (테마색 포함)
-assets/eltin-calc.js      공통 기능 (머리말 로고·블로그 버튼, 하단 연결, 임베드 모드, 높이 자동 맞춤, 입력 도구)
+assets/eltin-calc.js      공통 기능 (머리말 로고·블로그 버튼, 하단 연결, 아임웹 모드 자동 판단, 회원 전용 잠금, 높이 자동 맞춤, 입력 도구)
 assets/eltin-logo.svg     엘틴 로고 (eltin 글자만)
 t01-vat.html              기준 샘플 1 (단순형)
 s01-price.html            기준 샘플 2 (입력 여러 개 + 비교표)
@@ -177,16 +177,11 @@ s01-price.html            기준 샘플 2 (입력 여러 개 + 비교표)
 
 - `assets/eltin-calc.js`의 `SITE.devPreview`를 `false`로.
 - `SITE.links`의 계산기 목록 주소, `SITE.blog`의 블로그 주소가 실제 주소인지 확인. (계산기 목록은 지금 이 저장소의 `index.html`. 아임웹 목록 페이지를 쓰기로 하면 그 주소로 바꾸고 `internal` 표시를 지움)
-- 아임웹 넣기용 코드 (계산기마다 주소만 바꿈):
+- 아임웹 넣기용 코드: 목록 페이지 2곳(누구나·회원)의 코드 위젯은 `docs/specs/imweb-embed.md`의 "아임웹 코드"를 씀. 아임웹 iframe 안인지는 코드가 자동으로 판단하므로 주소에 `embed=1`이 필요 없어요 (이미 `embed=1`을 붙여 둔 위젯도 그대로 동작)
 
-```html
-<iframe id="eltin-calc" src="https://<깃허브아이디>.github.io/<저장소>/t01-vat.html?embed=1"
-  title="부가세 계산기" style="width:100%;border:0;min-height:720px"></iframe>
-<script>
-window.addEventListener("message", function(e){
-  if(e.data && e.data.type === "eltin-calc-height"){
-    document.getElementById("eltin-calc").style.height = e.data.height + "px";
-  }
-});
-</script>
-```
+## 11. 블로그 작업 나누기 (2026-11-27)
+
+- **계산기 사용법 블로그 글**(`docs/blog/`, 공개 저장소 제외)은 이 세션이 맡아요. 월·수·목 발행, "네이버 올리기 도우미"(https://claude.ai/artifact/3KYfivXene8nkMcEPCPYgU)로 올려요.
+- **향료·색소·시즌 글(연간 소재 104편)**은 마케팅 세션이 `../marketing/`에서 맡아요(화·금 발행). 표현 규칙은 `../CLAUDE.md`·`../marketing/shared/checklist.md`를 따라요.
+- 마케팅 쪽에서 승인된 글(`../marketing/approved/`)은 이 세션이 도우미에 추가해요. marketing 폴더의 원본은 고치지 않아요.
+- 전체 일정·역할: `../marketing/briefs/261127_블로그_활동계획.md`, 원본 문서 https://claude.ai/artifact/BbtSFykYXbvTRop45qoQv7
