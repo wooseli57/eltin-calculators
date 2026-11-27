@@ -405,6 +405,9 @@
   /* 여러 줄 입력 (재료·항목 목록)
      fields: [{key, label, type:"text"|"money"|"num"|"select", unit, ph, options:[[값,표시]]}]
      text 칸은 줄 맨 위 이름칸, 나머지는 아래 칸으로 나란히 놓임 */
+  /* 줄 목록 입력. 필드 옵션: type text|money|num|select, unit, ph,
+     moneyIf(row): 같은 줄 값에 따라 금액(쉼표·원·억만 읽기)/숫자(numUnit, 기본 %)로 바뀌는 칸 (예: B03 "월 금액 | 매출의 %"),
+     hint: true면 금액 칸 아래 "20만원" 같은 읽기 표시 */
   function rowList(box, opt){
     const fields = opt.fields, nameF = fields.find(f => f.type === "text"), others = fields.filter(f => f.type !== "text");
     const min = opt.min ?? 1;
@@ -413,7 +416,25 @@
     const body = box.querySelector(".items-body");
     const fieldHtml = f => f.type === "select"
       ? `<label><span>${f.label}</span><div class="mini-wrap"><select data-k="${f.key}">${f.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div></label>`
-      : `<label><span>${f.label}</span><div class="mini-wrap"><input data-k="${f.key}" data-t="${f.type}" type="text" inputmode="${f.type === "money" ? "numeric" : "decimal"}" autocomplete="off" placeholder="${f.ph ?? 0}">${f.unit ? `<em>${f.unit}</em>` : ""}</div></label>`;
+      : `<label><span>${f.label}</span><div class="mini-wrap"><input data-k="${f.key}" data-t="${f.type}" type="text" inputmode="${f.type === "money" ? "numeric" : "decimal"}" autocomplete="off" placeholder="${f.ph ?? 0}">${f.unit || f.moneyIf ? `<em>${f.unit || ""}</em>` : ""}</div>${f.hint || f.moneyIf ? `<small class="mini-hint" data-hint="${f.key}"></small>` : ""}</label>`;
+    const dyn = fields.filter(f => f.moneyIf || f.hint);
+    /* 금액/숫자 바뀌는 칸·읽기 표시 맞추기 (줄 추가, 값 넣기, 방식 바꾸기 때마다) */
+    function syncDyn(el, byUser){
+      dyn.forEach(f => {
+        const i = el.querySelector(`[data-k="${f.key}"]`); if(!i) return;
+        if(f.moneyIf){
+          const money = !!f.moneyIf(read(el)), t = money ? "money" : "num";
+          if(i.dataset.t !== t){
+            const n = toNum(i.value);
+            i.dataset.t = t; i.inputMode = money ? "numeric" : "decimal";
+            i.value = n && !byUser ? (money ? won(n) : String(n)) : "";   // 사용자가 방식을 바꾸면 비움 (20만원 → 200000% 방지)
+          }
+          const em = i.parentNode.querySelector("em"); if(em) em.textContent = money ? (f.moneyUnit || "원") : (f.numUnit || "%");
+        }
+        const h = el.querySelector(`[data-hint="${f.key}"]`);
+        if(h) h.textContent = i.dataset.t === "money" ? koreanUnit(toNum(i.value)) : "";
+      });
+    }
     function read(el){
       const o = {};
       el.querySelectorAll("[data-k]").forEach(i => { o[i.dataset.k] = (i.dataset.t === "money" || i.dataset.t === "num") ? toNum(i.value) : i.value; });
@@ -435,12 +456,15 @@
         i.addEventListener(i.tagName === "SELECT" ? "change" : "input", () => {
           if(i.dataset.t === "money"){ const n = toNum(i.value); i.value = n ? won(n) : ""; }
           else if(i.dataset.t === "num"){ const c = cleanNum(i.value); if(c !== i.value) i.value = c; }
+          if(dyn.length) syncDyn(el, i.tagName === "SELECT");
           changed();
         });
       });
+      if(dyn.length) syncDyn(el);
       el.querySelector(".item-del").addEventListener("click", () => {
         if(body.children.length > min) el.remove();
         else el.querySelectorAll("input").forEach(i => i.value = "");
+        if(dyn.length) syncDyn(el);
         changed();
       });
       body.appendChild(el);

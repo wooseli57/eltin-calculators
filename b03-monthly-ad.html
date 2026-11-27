@@ -63,7 +63,7 @@ const items = rowList($("#items"), {
   fields: [
     { key: "name", label: "광고 이름", type: "text", ph: "광고 이름" },
     { key: "way", label: "방식", type: "select", options: [["amt", "월 금액"], ["pct", "매출의 %"]] },
-    { key: "v", label: "금액 또는 %", type: "num", ph: "0" }
+    { key: "v", label: "금액 또는 %", type: "num", ph: "0", moneyIf: r => r.way !== "pct", numUnit: "%" }   // 월 금액이면 쉼표·원·읽기 표시
   ],
   cols: "minmax(0,1fr) minmax(0,1fr)",
   note: r => r.v > 0 ? (r.way === "pct" ? `매출의 ${num(r.v, 1)}% · 매출에 따라 늘어나요` : `한 달 ${won(r.v)}원 · 고정비`) : "",
