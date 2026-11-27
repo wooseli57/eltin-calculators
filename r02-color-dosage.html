@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="R" data-no="02" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R02 색소 사용량 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.sel-wrap select{flex:1;border:0;outline:0;font:inherit;font-size:16px;font-weight:700;padding:12px 0;background:transparent;color:var(--ink);min-width:0}
+.grp-title{font-size:12px;font-weight:700;color:var(--ink-3);margin:10px 0 6px}
+.lv{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.lv button{border:1px solid var(--line);background:#fff;border-radius:var(--radius-sm);padding:4px 2px 6px;font:inherit;font-size:12px;color:var(--ink-2);cursor:pointer}
+.lv button i{display:block;height:34px;border-radius:6px;margin-bottom:4px;border:1px solid rgba(0,0,0,.08)}
+.lv button[aria-pressed="true"]{border-color:var(--brand-dark);box-shadow:0 0 0 2px var(--brand-soft);color:var(--brand-dark);font-weight:700}
+.mixbox{background:var(--brand-faint);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px}
+.mixbox button{margin-top:8px;border:0;background:none;color:var(--brand-dark);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0}
+.links .btn{display:block;width:100%;margin-top:8px;padding:11px;text-align:center;text-decoration:none}
+.back{font-size:13px;text-align:center;margin-top:10px}
+.back a{color:var(--brand-dark);font-weight:700}
+.conv-row{display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:8px}
+.conv-out{font-size:15px;font-weight:700;color:var(--brand-dark);margin-top:8px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>색소 사용량 계산기</h1>
+      <p>반죽·크림 양과 원하는 색 농도를 넣으면 엘틴 색소를 얼마나 넣을지(g, 방울)와 비용을 알려줘요. 엘틴 레시피에서 바로 이어져요. 다른 레시피에 적힌 방울·g도 서로 바꿔줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="fromBox"></div>
+    <div class="field-row">
+      <div class="field"><label for="base">재료</label>
+        <div class="input-wrap sm sel-wrap"><select id="base"></select></div></div>
+      <div class="field"><label for="qty">양</label>
+        <div class="input-wrap sm"><input id="qty" type="text" inputmode="decimal" autocomplete="off" value="300"><span class="unit" id="qtyUnit">g</span></div></div>
+    </div>
+    <div class="field">
+      <label id="colorLabel">색</label>
+      <div id="colorBox"></div>
+    </div>
+    <div class="field" id="levelField">
+      <label id="levelLabel">원하는 진하기 <small>생크림 10g당 방울</small></label>
+      <div id="levelBox"></div>
+    </div>
+    <div class="field">
+      <label>색소 용량 <small>비용 계산</small></label>
+      <div class="seg" role="group" aria-label="색소 용량" id="sizeSeg" style="margin-bottom:0"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">측정 자료를 불러오는 중이에요</p></section>
+
+  <section class="card" aria-label="방울 g 바꾸기">
+    <label for="cv" style="font-size:14px;font-weight:700">다른 레시피에 적힌 양 바꾸기</label>
+    <div class="conv-row" style="margin-top:8px">
+      <div class="input-wrap"><input id="cv" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+      <div class="input-wrap sel-wrap"><select id="cvUnit" aria-label="단위"><option value="drop">방울</option><option value="g">g</option></select></div>
+    </div>
+    <p class="conv-out" id="cvOut"></p>
+  </section>
+
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/eltin-color.js"></script>
+<script>
+/* ===== R02 색소 사용량 계산기 — 사양: docs/specs/R02.md =====
+   생크림 기준: 생크림 측정표(data/color-chips.json, 10g당 1·2·4·6·8·10방울)에서 진하기를 고르면 내 양 방울 = 10g당 방울 × 양 ÷ 10.
+   음료·젤리(물 기준): 색소 총량 ml = 양 ÷ 100 (측정 희석 비율 1/100), 배합은 비율대로 나눔, 방울 = ml ÷ 0.04, g = ml × 1.05.
+   g = 방울 × 0.04 × 1.05 (소수 둘째 자리), 방울 정수 반올림, 비용 = g × (용량 가격 ÷ 용량 g) 원 단위 반올림.
+   생크림이 아닌 재료는 생크림 측정 기준이라는 안내를, 음료·젤리는 물 측정 기준 안내를 견본 아래에 표시 */
+const WATER = ["drink", "jelly"], CREAM = "whipped-cream";
+const { $, $$, won, num, numInput, pick, ACTIONS, bindActions, postHeight, esc, param, paramText, keepMember } = Eltin;
+const C = EltinColor;
+const fg = v => (Math.round(v * 100) / 100).toFixed(2);              // g는 소수 둘째 자리까지 (8.40g)
+/* 계산 기준: 재료에 맞는 색 추출 방법만 (docs/specs/R02.md 5절) */
+const METHOD = {
+  water: "정수에 색소를 1/100로 묽혀 정한 비율로 섞고, 0.015ml 한 방울을 Kodak 고광택 인화지에 떨어뜨려 말린 뒤 스캔(600dpi)해 RGB를 추출했어요 (엘틴 자료실).",
+  cream: "생크림 10g에 엘틴푸드칼라를 떨어뜨려 완전히 섞은 뒤 가장 비슷한 색의 RGB를 기록했어요 (엘틴 컬러칩북)."
+};
+const getJSON = u => fetch(u).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
+let BASES = [], SIZES = [], base = CREAM, color = "YE", level = 4, mix = null, scale = 1, sizeIdx = 0;
+const qty = numInput($("#qty"), render), cv = numInput($("#cv"), convert);
+$("#cvUnit").addEventListener("change", convert);
+
+/* 주소 파라미터 (잘못되면 기본값) */
+const from = paramText("from").match(/^r01:(\w+)$/);
+function parseMix(s){
+  if(!s) return null;
+  const o = {};
+  for(const part of s.split(",")){
+    const m = part.trim().match(/^([A-Z]{2}):(\d+(?:\.\d+)?)$/);
+    if(!m || !C.data.colors[m[1]] || !(Number(m[2]) > 0)) return null;
+    o[m[1]] = Number(m[2]);
+  }
+  return Object.keys(o).length && Object.keys(o).length <= 3 ? o : null;
+}
+
+Promise.all([C.load(), getJSON("data/color-bases.json"), getJSON("data/eltin-colors.json")]).then(([D, b, p]) => {
+  BASES = b.bases.filter(x => x.use === "food" && x.id !== "chocolate");          // 초콜릿은 목록에서 뺌 (대표 결정 2026-11-27)
+  SIZES = (p.products || []).slice().sort((a, c) => a.size - c.size);
+  const qb = paramText("base");
+  base = BASES.some(x => x.id === qb) ? qb : CREAM;
+  const q = param("g") ?? param("ml"); if(q > 0) $("#qty").value = String(q);
+  const qc = paramText("color", 2).toUpperCase(); if(D.colors[qc]) color = qc;
+  const ql = param("level"); if(ql >= 1 && ql <= 10 && Number.isInteger(ql)) level = ql;
+  mix = parseMix(paramText("mix", 40));
+  $("#base").innerHTML = BASES.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+  $("#base").value = base;
+  $("#base").addEventListener("change", () => { base = $("#base").value; render(); });
+  $("#sizeSeg").innerHTML = SIZES.map((s, i) => `<button type="button" data-i="${i}" aria-pressed="${i === 0}">${s.size >= 1000 ? `${s.size / 1000}kg` : `${s.size}g`}</button>`).join("");
+  pick($$("#sizeSeg button"), x => { sizeIdx = Number(x.dataset.i); render(); });
+  if(from) $("#fromBox").innerHTML = `<p class="mixbox" style="margin-bottom:12px">엘틴 레시피에서 넘어왔어요. 재료와 색 입힐 양을 채웠어요.</p>`;
+  render();
+}).catch(() => { $("#result").innerHTML = '<p class="empty">엘틴 데이터를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p>'; postHeight(); });
+
+const isWater = () => WATER.includes(base);
+const baseName = () => (BASES.find(x => x.id === base) || {}).name || "생크림";
+
+/* 색 고르기: 배합을 받았으면 배합 + [다른 색 고르기], 아니면 그룹별 색 점 (물 기준은 기본 8색만) */
+function drawColor(){
+  const D = C.data;
+  if(mix){
+    $("#colorLabel").textContent = "배합";
+    $("#colorBox").innerHTML = `<div class="mixbox">${esc(isWater() ? C.ratioText(mix) + " 비율" : "생크림 10g당 " + C.mixText(mix))}<br><button type="button" id="pickOne">다른 색 고르기 →</button></div>`;
+    $("#pickOne").onclick = () => { mix = null; scale = 1; color = Object.keys(D.colors).includes(color) ? color : "YE"; render(); };
+    return;
+  }
+  $("#colorLabel").textContent = "색";
+  const list = isWater() ? D.basic : Object.keys(D.colors);
+  if(!list.includes(color)) color = "YE";
+  const groups = {};
+  list.forEach(ab => { const g = D.colors[ab].group.startsWith("계절") ? "계절 스페셜" : D.colors[ab].group; (groups[g] = groups[g] || []).push(ab); });
+  $("#colorBox").innerHTML = Object.entries(groups).map(([g, abs]) => `<p class="grp-title">${esc(g)}</p><div class="cg-dots">${abs.map(ab =>
+    `<button type="button" data-ab="${ab}" aria-pressed="${ab === color}"><i style="background:${D.colors[ab].hex}"></i>${esc(D.colors[ab].name)}</button>`).join("")}</div>`).join("");
+  $$("#colorBox .cg-dots button").forEach(b => b.addEventListener("click", () => { color = b.dataset.ab; render(); }));
+}
+/* 진하기: 단색은 생크림 측정 견본 6칸, 배합은 절반·그대로·2배, 물 기준은 숨김 */
+function drawLevel(){
+  $("#levelField").hidden = isWater();
+  if(isWater()) return;
+  const B = C.data.bases.cream;
+  if(mix){
+    $("#levelLabel").innerHTML = "진하기 <small>받은 배합 기준</small>";
+    $("#levelBox").innerHTML = `<div class="seg" role="group" aria-label="진하기" style="margin-bottom:0">${[[0.5, "절반"], [1, "그대로"], [2, "2배"]].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${scale === v}">${t}</button>`).join("")}</div>`;
+    $$("#levelBox button").forEach(b => b.addEventListener("click", () => { scale = Number(b.dataset.v); render(); }));
+    return;
+  }
+  $("#levelLabel").innerHTML = "원하는 진하기 <small>생크림 10g당 방울</small>";
+  $("#levelBox").innerHTML = `<div class="lv">${B.levels.map((lv, i) => `<button type="button" data-v="${lv}" aria-pressed="${lv === level}"><i style="background:${B.single[color][i]}"></i>${lv}방울</button>`).join("")}</div>`
+    + (B.levels.includes(level) ? "" : `<p class="hint" style="text-align:left">지금 진하기: 10g당 ${level}방울 (측정 사이 중간값)</p>`);
+  $$("#levelBox button").forEach(b => b.addEventListener("click", () => { level = Number(b.dataset.v); render(); }));
+}
+
+/* 색별 양 계산 */
+function compute(){
+  const q = qty.value, s = SIZES[sizeIdx], per = s ? s.price / s.size : 0;
+  const cost = g => Math.round(g * per);
+  if(isWater()){
+    const parts = mix || { [color]: 1 }, sum = Object.values(parts).reduce((a, v) => a + v, 0);
+    const total = q / 100;                                                      // 색소 총량 ml = 양 ÷ 100
+    return Object.entries(parts).map(([ab, v]) => { const ml = total * v / sum; const g = Math.round(ml * C.data.density * 100) / 100; return { ab, drops: Math.round(ml / C.data.dropMl), g, cost: cost(g) }; });
+  }
+  const per10 = mix ? Object.fromEntries(Object.entries(mix).map(([ab, d]) => [ab, d * scale])) : { [color]: level };
+  return Object.entries(per10).map(([ab, d]) => { const drops = Math.round(d * q / 10); const g = C.dropsToG(drops); return { ab, per10: d, drops, g, cost: cost(g) }; });
+}
+/* 예상 색 */
+function preview(){
+  if(isWater()){
+    if(mix){ const c = C.lookup("water", mix); return c ? { hex: c.hex, label: "정수에 묽혔을 때 색", sub: "물 측정 칩" } : null; }
+    return { hex: C.data.colors[color].hex, label: "정수에 묽혔을 때 색", sub: "색소 대표색" };
+  }
+  if(mix){
+    const m = Object.fromEntries(Object.entries(mix).map(([ab, d]) => [ab, d * scale]));
+    const ok = Object.values(m).every(v => Number.isInteger(v));
+    const c = ok ? (Object.keys(m).length === 1 ? C.creamSingle(Object.keys(m)[0], m[Object.keys(m)[0]]) : C.lookup("cream", m)) : null;
+    return c ? { hex: c.hex, label: "생크림에 섞었을 때 색", sub: c.measured ? (c.no ? `엘틴 컬러칩 ${c.no}` : "측정값") : "측정 사이 중간값" } : null;
+  }
+  const c = C.creamSingle(color, level);
+  return { hex: c.hex, label: "생크림에 섞었을 때 색", sub: c.measured ? `${C.colorName(color)} ${level}방울 측정값` : "측정 사이 중간값" };
+}
+
+function render(){
+  if(!C.data || !SIZES.length) return;
+  $("#qtyUnit").textContent = base === "drink" ? "ml" : "g";
+  drawColor(); drawLevel();
+  const q = qty.value;
+  if(!q){ $("#result").innerHTML = '<p class="empty">양을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const list = compute(), pv = preview(), s = SIZES[sizeIdx];
+  const totG = Math.round(list.reduce((a, x) => a + x.g, 0) * 100) / 100, totDrops = list.reduce((a, x) => a + x.drops, 0), totCost = list.reduce((a, x) => a + x.cost, 0);
+  const unit = base === "drink" ? "ml" : "g";
+  const lead = list.length === 1 ? `${esc(C.colorName(list[0].ab))} ${won(list[0].drops)}방울(${fg(list[0].g)}g)을 넣으세요` : `색소 ${list.length}가지를 이만큼 넣으세요`;
+  const sizeTxt = s.size >= 1000 ? `${s.size / 1000}kg` : `${s.size}g`;
+  const g03 = !isWater() && base === CREAM && Eltin.ready("G03");
+  const per10mix = list.filter(x => x.per10 != null).map(x => `${x.ab}:${+x.per10.toFixed(2)}`).join(",");
+  $("#result").innerHTML = `
+    <p class="lead">${lead}</p>
+    <p class="big">${fg(totG)}<small>g · ${won(totDrops)}방울</small></p>
+    ${pv ? C.swatch(pv.hex, pv.label, pv.sub) : '<p class="tip">측정 자료가 없는 진하기라 예상 색은 보여주지 않아요.</p>'}
+    ${isWater() ? '<p class="tip">정수에 색소를 1/100로 묽혀 측정한 색을 기준으로 계산했어요. 묽힌 액 0.015ml를 고광택 인화지에 떨어뜨려 말린 뒤 스캔해 색을 뽑았어요. 음료·젤리 재료에 따라 색이 다르게 나올 수 있어요.</p>'
+      : base !== CREAM ? `<p class="tip">생크림에 섞어 측정한 색을 기준으로 계산했어요. ${esc(baseName())}에서는 재료 색과 성질 때문에 색이 다르게 나올 수 있어요.</p>` : ""}
+    <div class="rows">
+      ${list.map(x => `<div class="row"><span>${esc(C.colorName(x.ab))}<small>${isWater() ? `${baseName()} ${num(q, 1)}${unit} ÷ 100${list.length > 1 ? " 중 비율만큼" : ""}` : `10g당 ${num(x.per10, 2)}방울 × ${num(q, 1)}g ÷ 10`}</small></span><b>${won(x.drops)}방울 <small>${fg(x.g)}g · 약 ${won(x.cost)}원</small></b></div>`).join("")}
+      <div class="row total"><span>색소 비용<small>엘틴푸드칼라 진한 단품 ${sizeTxt} ${won(s.price)}원 기준</small></span><b>약 ${won(totCost)}원</b></div>
+    </div>
+    ${g03 ? `<div class="links"><a class="btn btn-ghost" href="${keepMember("g03-color-strength.html?mix=" + per10mix + "&g=" + q)}" target="_self">색이 생각보다 연하거나 진한가요? 농도 조절 →</a></div>` : ""}
+    ${from ? `<p class="back"><a href="${keepMember("r01-eltin-recipe.html?r=" + from[1])}">← 레시피로 돌아가기</a></p>` : ""}
+    ${ACTIONS}`;
+  bindActions(`엘틴 색소 · ${baseName()} ${num(q, 1)}${unit} · ${list.map(x => `${C.colorName(x.ab)} ${won(x.drops)}방울(${fg(x.g)}g)`).join(" + ")} · 약 ${won(totCost)}원`);
+  $("#note").innerHTML = `<b>계산 기준</b> · ${isWater() ? METHOD.water : METHOD.cream}<br>
+    1방울은 ${C.data.dropMl}ml로 계산했어요 (색소 1방울 약 ${num(C.data.dropMl * C.data.density, 3)}g). 병 입구 모양, 온도, 병을 기울이는 각도, 남은 양에 따라 방울 크기가 달라질 수 있으니 참고용으로 쓰시고, 정확하게 하려면 저울로 g을 재 주세요.<br>
+    비용은 엘틴 쇼핑몰 진한 단품 가격(${SIZES.map(x => `${x.size >= 1000 ? x.size / 1000 + "kg" : x.size + "g"} ${won(x.price)}원`).join(" · ")}, ${SIZES[0].checked} 확인) 기준이에요.`;
+  postHeight();
+}
+
+/* 방울 ↔ g 바꾸기 (같은 dropMl·density) */
+function convert(){
+  if(!C.data) return;
+  const v = cv.value, u = $("#cvUnit").value, per = C.data.dropMl * C.data.density;
+  $("#cvOut").textContent = !v ? "" : u === "drop" ? `${num(v, 1)}방울 = ${fg(C.dropsToG(v))}g` : `${num(v, 2)}g = 약 ${won(Math.round(v / per))}방울`;
+  postHeight();
+}
+
+window.addEventListener("eltin:calcs", render);                       // 목록을 다 읽으면 G03 버튼(준비 여부)을 다시 그림
+Eltin.init();
+</script>
+</body>
+</html>

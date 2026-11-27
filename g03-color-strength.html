@@ -62,13 +62,26 @@ const C = EltinColor;
 const FACT = { 0.5: { f: 0.5, label: "절반으로 연하게" }, 0.6667: { f: 2 / 3, label: "조금 연하게 (2/3)" }, 1.5: { f: 1.5, label: "조금 진하게 (1.5배)" }, 2: { f: 2, label: "2배 진하게" } };
 let fKey = "1.5", items = null;
 const cream = numInput($("#cream"), render);
+const QG = Eltin.param("g"); if(QG > 0) $("#cream").value = String(QG);
 pick($$("#fSeg button"), b => { fKey = b.dataset.f; render(); });
+
+/* ?mix=YE:1,OR:3 (생크림 10g당 방울) → 지금 생크림 양에 넣은 방울 수 = 10g당 × 생크림 g ÷ 10 */
+function fromMix(D){
+  const s = Eltin.paramText("mix", 40); if(!s) return null;
+  const g = cream.value || 300, rows = [];
+  for(const part of s.split(",")){
+    const m = part.trim().match(/^([A-Z]{2}):(\d+(?:\.\d+)?)$/);
+    if(!m || !D.colors[m[1]]) return null;
+    rows.push({ ab: m[1], drops: Math.round(Number(m[2]) * g / 10) });
+  }
+  return rows.length && rows.length <= 3 ? rows : null;
+}
 
 C.load().then(D => {
   const opts = Object.entries(D.colors).map(([ab, c]) => [ab, `${c.name} (${ab})`]);
   items = rowList($("#items"), {
     fields: [{ key: "ab", label: "색", type: "select", options: opts }, { key: "drops", label: "방울 수", type: "num", unit: "방울", ph: "0" }],
-    rows: [{ ab: "YE", drops: 30 }], addLabel: "색 추가", cols: "minmax(0,1.6fr) minmax(0,1fr)",
+    rows: fromMix(D) || [{ ab: "YE", drops: 30 }], addLabel: "색 추가", cols: "minmax(0,1.6fr) minmax(0,1fr)",
     blank: () => ({ ab: "OR", drops: "" }), onChange: render
   });
   render();

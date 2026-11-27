@@ -91,7 +91,7 @@ function render(){
         </div>
       </div>`;
     }).join("")}
-    <div class="links">${r02 ? `<a class="btn btn-primary" href="${Eltin.keepMember("r02-color-dosage.html")}" target="_self">이 배합으로 양 계산 →</a>`
+    <div class="links">${r02 ? `<a class="btn btn-primary" href="${Eltin.keepMember("r02-color-dosage.html?mix=" + Object.entries(list[0].mix).map(([ab, d]) => ab + ":" + d).join(",") + (g ? "&g=" + g : ""))}" target="_self">이 배합으로 양 계산 →</a>`
       : '<span class="btn soon" aria-disabled="true">이 배합으로 양 계산 · 준비 중</span>'}</div>
     ${ACTIONS}`;
   const top = list[0], mine = g > 0 ? C.scale(BASE, top.mix, g) : [];

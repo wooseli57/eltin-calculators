@@ -1,20 +1,42 @@
 {
-  "_about": "엘틴 색소 제품 데이터 (R02·G01~G05 공용). 사양: docs/specs/color-flavor-links.md 2·3절",
-  "_status": "형식만 있는 빈 틀 — 제품 목록은 엘틴 자료를 받으면 채워요. 목록이 비어 있으면 화면에 '엘틴 데이터 준비 중이에요'를 표시해요. dropMl·defaultDensity는 지금 확정된 값이에요.",
+  "_about": "엘틴 색소 제품 데이터 (R02 색소 사용량 비용 계산). 사양: docs/specs/R02.md 7절. 색 목록·견본은 data/color-chips.json에서만 관리해요",
+  "_status": "엘틴푸드칼라 진한 단품 3가지 용량을 채웠어요 (아임웹 상품 기본가, 2026-11-27 채팅 확인). 옵션별 가격이 다르면 사용자에게 확인해요",
   "dropMl": 0.04,
   "_dropMl": "1방울 부피(ml). 사용자 결정 2026-11-24 — 약전 표준 방울 0.05ml보다 작게 잡음(병 입구·알코올 성분 고려). 엘틴이 실측하면 이 값만 바꿔요",
   "defaultDensity": 1.05,
   "_defaultDensity": "엘틴 색소 밀도(g/ml), 엘틴 제공. 제품에 density가 없으면 이 값을 씀 (1방울 = 0.04ml × 1.05 = 0.042g)",
   "_fields": {
-    "id": "제품 id (주소 파라미터 color에 씀)",
+    "id": "제품 id",
     "name": "제품 이름",
-    "color": "표시 색 코드 (#RRGGBB)",
-    "density": "밀도(g/ml). 비우면 defaultDensity. 엘틴 색소는 모두 액상이에요",
-    "size": "용량 (색소는 g 단위)",
+    "size": "용량 (g, 엘틴 색소는 액상이지만 용량은 g 단위)",
     "price": "가격 (원)",
-    "bases": "쓸 수 있는 바탕 id 목록 (data/color-bases.json). 초콜릿처럼 물이 들어가면 안 되는 바탕은 빼요",
-    "dosage": "권장 사용량: 바탕 100g당 g, 농도 단계별 { \"1\": 연하게, \"2\": 보통, \"3\": 진하게 }",
-    "url": "쇼핑몰 상품 주소"
+    "url": "쇼핑몰 상품 주소",
+    "checked": "가격 확인 날짜"
   },
-  "products": []
+  "products": [
+    {
+      "id": "single-20",
+      "name": "엘틴푸드칼라 진한 단품 20g",
+      "size": 20,
+      "price": 3400,
+      "url": "https://eltin.imweb.me/shop_view/?idx=95",
+      "checked": "2026-11-27"
+    },
+    {
+      "id": "single-50",
+      "name": "엘틴푸드칼라 진한 단품 50g",
+      "size": 50,
+      "price": 7900,
+      "url": "https://eltin.imweb.me/shop_view/?idx=96",
+      "checked": "2026-11-27"
+    },
+    {
+      "id": "single-1000",
+      "name": "엘틴푸드칼라 진한 단품 1kg",
+      "size": 1000,
+      "price": 99000,
+      "url": "https://eltin.imweb.me/shop_view/?idx=97",
+      "checked": "2026-11-27"
+    }
+  ]
 }

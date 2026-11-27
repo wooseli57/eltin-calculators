@@ -209,6 +209,7 @@ function flavorParams(f){
 
 function linkBox(kind, f){
   const L = recipe[kind]; if(!L || !L.grams) return "";
+  if(kind === "color" && L.base === "chocolate") return "";          // 초콜릿 바탕은 R02 재료에 없음 (docs/specs/R02.md 6절)
   const v = Math.round(L.grams * f), unitParam = L.unit === "ml" ? "ml" : "g";
   const tag = kind === "color" ? "R02" : "R03", ok = Eltin.ready(tag);
   const href = kind === "color"
