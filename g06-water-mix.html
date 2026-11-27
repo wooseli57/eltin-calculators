@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="G" data-no="06" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G06 물 혼색 예측 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.dr-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.dr-row > span{min-width:44px;font-size:13px;font-weight:700;color:var(--ink-2)}
+.dr-row .chips{margin-top:0}
+.dr-row .chip{min-width:38px;text-align:center}
+.links .btn{display:block;width:100%;margin-top:10px;padding:11px;text-align:center;text-decoration:none}
+.btn.soon{background:var(--line);color:var(--ink-3);cursor:not-allowed}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>물 혼색 예측</h1>
+      <p>색소를 물에 풀어 섞을 때 어떤 비율이면 어떤 색이 되는지 미리 보여줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="섞는 색 개수" id="nSeg">
+      <button type="button" data-n="2" aria-pressed="true">2색</button>
+      <button type="button" data-n="3" aria-pressed="false">3색</button>
+    </div>
+    <div class="field">
+      <label id="dotsLabel">기본 8색 중 2개</label>
+      <div id="dots"></div>
+    </div>
+    <div class="field">
+      <label id="drLabel">섞는 비율 (방울 수)</label>
+      <div id="drops"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">측정 자료를 불러오는 중이에요</p></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/eltin-color.js"></script>
+<script>
+/* ===== G06 물 혼색 예측 — 사양: docs/specs/G-color.md 4절 =====
+   측정된 물 칩(기본 8색 2색 각 1~9, 3색 각 1~3)만 보여줌. 1색은 측정 자료가 없어 선택지에 없음.
+   물 데이터는 색소를 1/100로 묽혀 종이에 떨어뜨려 말린 색이라 색의 비율(색감)만 알려주고, 내 양에 넣을 방울 수는 계산하지 않음 */
+const BASE = "water", MATCH = "g07-water-match.html", MATCH_TAG = "G07";
+const { $, $$, won, num, numInput, pick, ACTIONS, bindActions, postHeight, esc } = Eltin;
+const C = EltinColor;
+let n = 2, dots = null, picked = [], drops = {};
+const maxDrop = () => C.data.bases[BASE][n === 2 ? "range2" : "range3"];
+
+C.load().then(() => {
+  dots = C.dots($("#dots"), { max: 2, value: ["YE", "BL"], onChange: v => { picked = v; render(); } });
+  picked = dots.value; drops = { YE: 2, BL: 1 };
+  render();
+}).catch(() => { $("#result").innerHTML = '<p class="empty">측정 자료를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p>'; postHeight(); });
+
+pick($$("#nSeg button"), b => {
+  n = Number(b.dataset.n);
+  if(dots){ dots.setMax(n); if(dots.value.length < n) dots.set(n === 3 ? ["YE", "BL", "RE"] : ["YE", "BL"]); picked = dots.value; }
+  render();
+});
+
+/* 고른 색마다 방울 칩 (1~최대) */
+function drawDrops(){
+  const m = maxDrop();
+  $("#drops").innerHTML = picked.map(ab => {
+    const v = Math.min(drops[ab] || 1, m); drops[ab] = v;
+    return `<div class="dr-row"><span>${esc(C.colorName(ab))}</span><div class="chips">${Array.from({ length: m }, (_, i) => `<button class="chip" type="button" data-ab="${ab}" data-v="${i + 1}" aria-pressed="${v === i + 1}">${i + 1}</button>`).join("")}</div></div>`;
+  }).join("") || '<p class="hint" style="text-align:left">색을 골라주세요</p>';
+  $$("#drops .chip").forEach(b => b.addEventListener("click", () => { drops[b.dataset.ab] = Number(b.dataset.v); render(); }));
+}
+
+function render(){
+  if(!dots) return;
+  $("#dotsLabel").textContent = `기본 8색 중 ${n}개`;
+  $("#drLabel").textContent = `섞는 비율 (방울 수 1~${maxDrop()})`;
+  drawDrops();
+  if(picked.length !== n){ $("#result").innerHTML = `<p class="empty">기본 8색 중 ${n}개를 골라주세요</p>`; postHeight(); return; }
+  const mix = Object.fromEntries(picked.map(ab => [ab, drops[ab]]));
+  const chip = C.lookup(BASE, mix);
+  if(!chip){ $("#result").innerHTML = '<p class="empty">이 배합은 측정 범위 밖이에요</p>'; postHeight(); return; }
+  const ok = Eltin.ready(MATCH_TAG);
+  $("#result").innerHTML = `
+    <p class="lead">${esc(C.ratioText(mix))} 비율로 섞은 색이에요</p>
+    ${C.swatch(chip.hex, C.ratioText(mix), "측정값")}
+    <div class="rows">
+      <div class="row"><span>섞는 비율</span><b>${esc(C.ratioText(mix))}</b></div>
+    </div>
+    <div class="links">${ok ? `<a class="btn btn-primary" href="${Eltin.keepMember(MATCH + "?hex=" + chip.hex.replace("#", "").toUpperCase())}" target="_self">이 색을 기준으로 배합 찾기 →</a>`
+      : '<span class="btn soon" aria-disabled="true">이 색을 기준으로 배합 찾기 · 준비 중</span>'}</div>
+    ${ACTIONS}`;
+  bindActions(`엘틴 조색 · 물 · ${C.ratioText(mix)} 비율 · 예상 색 ${chip.hex.toLowerCase()}`);
+  postHeight();
+}
+window.addEventListener("eltin:calcs", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${C.METHOD.water}`;
+
+Eltin.init();
+</script>
+</body>
+</html>
