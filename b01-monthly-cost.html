@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="B" data-no="01" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B01 월 원가 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.pct-wrap{width:140px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>월 원가 계산기</h1>
+      <p>한 달 원재료·자재(온라인은 상품·포장재) 구입비를 품목별로 넣거나 매출 대비 %로 넣으면 한 달 원가를 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="mfTabs"></div>
+    <div class="field">
+      <label for="sales">월 매출 <small>선택 · 원가율 계산용</small></label>
+      <div class="input-wrap"><input id="sales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="salesHint"></div>
+      <div id="salesFrom"></div>
+    </div>
+    <div class="seg" role="group" aria-label="넣는 방식" id="wSeg">
+      <button type="button" data-w="item" aria-pressed="true">품목별</button>
+      <button type="button" data-w="pct" aria-pressed="false">매출의 %</button>
+    </div>
+    <div data-w-box="item">
+      <div id="items"></div>
+    </div>
+    <div data-w-box="pct" hidden>
+      <div class="field" style="margin-top:0">
+        <label for="pct">원가율 <small>매출 대비</small></label>
+        <div class="input-wrap pct-wrap"><input id="pct" type="text" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="waste">폐기·손실 <small>참고 · 합계에 더하지 않아요</small></label>
+      <div class="input-wrap pct-wrap"><input id="waste" type="text" inputmode="decimal" autocomplete="off" value="3"><span class="unit">%</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/monthly-flow.js"></script>
+<script>
+/* ===== B01 월 원가 계산기 (비용 1/8) — 사양: docs/specs/B-monthly.md B01 =====
+   품목별: 한 달 구입액 합계 / 매출의 %: 매출 × 원가율. 원가율 = 원가 ÷ 매출.
+   폐기·손실(참고): 원가 × 폐기율 (이미 구입액에 들어 있어 합계에 더하지 않음). 다음 단계 B02로 sales·mat */
+const { $, $$, won, num, moneyInput, numInput, pick, rowList, ACTIONS, bindActions, postHeight, esc } = Eltin;
+const G = MF.got;
+/* 탭별 기본값 (매출은 B07 기본값과 같게, 품목 합계는 그 매출의 원가율 30%·40%) */
+const DEF = {
+  store:  { sales: 15000000, pct: 30, rows: [{ name: "원재료", amt: 3900000 }, { name: "자재 (컵·박스)", amt: 600000 }] },
+  online: { sales: 10000000, pct: 40, rows: [{ name: "상품 매입·제조", amt: 3600000 }, { name: "포장재", amt: 400000 }] }
+};
+let way = "item";
+const sales = moneyInput($("#sales"), $("#salesHint"), render);
+const pct = numInput($("#pct"), render), waste = numInput($("#waste"), render);
+const items = rowList($("#items"), {
+  fields: [{ key: "name", label: "품목", type: "text", ph: "품목 이름" }, { key: "amt", label: "한 달 구입액", type: "money", unit: "원" }],
+  rows: DEF[MF.mode].rows, addLabel: "품목 추가", blank: () => ({ name: "", amt: "" }), onChange: render
+});
+pick($$("#wSeg button"), b => { way = b.dataset.w; render(); });
+
+function setDefaults(m){
+  const sv = G.sales ?? DEF[m].sales;
+  $("#sales").value = sv ? won(sv) : ""; $("#salesFrom").innerHTML = G.sales != null ? MF.FROM : "";
+  $("#pct").value = String(DEF[m].pct);
+  items.set(DEF[m].rows);
+  $("#sales").dispatchEvent(new Event("input"));
+}
+MF.tabs($("#mfTabs"), setDefaults);
+setDefaults(MF.mode);
+
+function render(){
+  $$("[data-w-box]").forEach(b => b.hidden = b.dataset.wBox !== way);
+  const s = sales.value;
+  const rows = items.rows().filter(r => r.amt > 0);
+  const total = way === "item" ? rows.reduce((a, r) => a + r.amt, 0) : Math.round(s * pct.value / 100);
+  if(!total){ $("#result").innerHTML = `<p class="empty">${way === "item" ? "품목별 한 달 구입액을 넣으면" : "월 매출과 원가율을 넣으면"} 바로 계산돼요</p>`; MF.pass({ sales: s || null }); postHeight(); return; }
+  const rate = s ? total / s * 100 : null;
+  const lost = Math.round(total * waste.value / 100), onePt = Math.round(total * 0.01);
+  MF.pass({ sales: s || null, mat: total });
+  $("#result").innerHTML = `
+    <p class="lead">한 달 원가는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    ${way === "item" && rows.length > 1 ? '<div id="chart"></div>' : ""}
+    <div class="rows">
+      ${way === "item" ? rows.map((r, i) => `<div class="row"><span>${esc(r.name || `품목 ${i + 1}`)}</span><b>${won(r.amt)}원</b></div>`).join("")
+        : `<div class="row"><span>월 매출 × 원가율<small>${won(s)}원 × ${num(pct.value, 1)}%</small></span><b>${won(total)}원</b></div>`}
+      <div class="row total"><span>한 달 원가 합계</span><b>${won(total)}원</b></div>
+      ${rate != null ? `<div class="row"><span>원가율<small>원가 ÷ 매출</small></span><b>${num(rate, 1)}%</b></div>` : ""}
+    </div>
+    ${waste.value > 0 ? `<p class="tip">구입한 원료 중 약 <b>${won(lost)}원</b>어치가 버려지고 있어요. 폐기를 1%p 줄이면 한 달 약 <b>${won(onePt)}원</b>을 아껴요.</p>` : ""}
+    ${ACTIONS}`;
+  if(way === "item" && rows.length > 1) Eltin.donut($("#chart"), rows.map((r, i) => ({ label: r.name || `품목 ${i + 1}`, value: r.amt })), { big: `${Eltin.shortWon(total)}원`, small: "한 달 원가" }, { profitLast: false });
+  bindActions(`[월 원가] ${MF.mode === "store" ? "매장" : "온라인"} · ${way === "item" ? rows.map((r, i) => `${r.name || `품목 ${i + 1}`} ${won(r.amt)}원`).join(" + ") : `매출 ${won(s)}원 × ${num(pct.value, 1)}%`} = 한 달 원가 ${won(total)}원${rate != null ? ` (원가율 ${num(rate, 1)}%)` : ""}`);
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${MF.COMMON_NOTE}<br>
+  한 달 구입액 기준이에요. 재고가 크게 늘거나 줄지 않은 달로 넣어 주세요. 폐기·손실은 이미 구입액에 들어 있어서 합계에 더하지 않고 참고로만 보여줘요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>
