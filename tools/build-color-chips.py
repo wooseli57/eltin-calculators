@@ -31,6 +31,12 @@ BASIC8 = ["YE", "OR", "PI", "RE", "GR", "BL", "VI", "BK"]
 HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 # 인기 색 버튼 (G02·G05·G07 공통, G-color.md 3절) — 목표색일 뿐 엘틴 배합이 아님
+# 엑셀 표기 코드가 틀린 칩 바로잡기 (대표 확인). (바탕, 배합) → (맞는 HEX, 기록)
+# 엑셀을 고치면 같은 값이 되어 영향이 없음. 엑셀이 다른 값으로 바뀌면 경고를 냄
+CORRECTIONS = {
+    ("clay", (("BK", 4), ("RE", 4))): ("#805658", "표기 코드 #80865E는 오기(노랑4+보라4와 같은 코드), 사진 속 색 #805658이 맞음 — 대표 확인 2026-11-27"),
+}
+
 POPULAR = [
     ("pastel-pink", "파스텔 핑크", "#F8C8DC"), ("coral", "코랄", "#FF7F6E"), ("peach", "피치", "#FFCBA4"),
     ("lemon", "레몬", "#FFF176"), ("mint", "민트", "#A8E6CF"), ("sky", "하늘색", "#A7D8F0"),
@@ -140,14 +146,22 @@ def build():
             seen.add(key)
             h = hexok(r[1 + n_colors * 2], f"{sheet} {r[0]}")
             note = r[3 + n_colors * 2]
+            fix = CORRECTIONS.get((base, tuple(sorted(mix.items()))))
+            if fix:
+                if h and h.upper() not in ("#80865E", fix[0].upper()):
+                    print(f"경고: {sheet} {r[0]} 엑셀 코드가 {h}로 바뀌었어요 — 바로잡기({fix[0]})를 다시 확인하세요")
+                h, note = fix[0], fix[1]
+                applied.append(f"{sheet} {r[0]} {mix} → {fix[0]}")
             out.append([mix, h.upper() if h else h] + ([str(note).strip()] if note else []))   # 비고가 있으면 표기 코드를 쓰고 비고를 남김
         return out
 
+    applied = []
     clay = mixes("클레이 2색", 2, 5, 700, "clay") + mixes("클레이 3색", 3, 3, 1512, "clay")
     water = mixes("물 2색", 2, 9, 2268, "water") + mixes("물 3색", 3, 3, 1512, "water")
 
     return {
         "_about": "엘틴 컬러칩 측정 자료(자료/컬러칩 데이터/*.xlsx)를 tools/build-color-chips.py로 만든 파일이에요. 직접 고치지 마세요. 사양: docs/specs/G-color.md",
+        "_corrections": applied,
         "dropMl": DROP_ML, "density": DENSITY,
         "basic": BASIC8,
         "colors": colors,
