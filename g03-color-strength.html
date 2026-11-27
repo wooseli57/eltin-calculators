@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="G" data-no="03" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G03 생크림 농도 조절 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+#fSeg button{font-size:13px;padding:10px 2px;line-height:1.3}
+.cg-cmp .cg-chip{height:64px}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>생크림 농도 조절</h1>
+      <p>이미 만든 생크림 색을 더 연하게 하거나 진하게 할 때 얼마나 더 넣을지 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="field">
+      <label>지금 넣은 색소 <small>최대 3색</small></label>
+      <div id="items"></div>
+    </div>
+    <div class="field">
+      <label for="cream">지금 생크림 양</label>
+      <div class="input-wrap"><input id="cream" type="text" inputmode="decimal" autocomplete="off" value="300"><span class="unit">g</span></div>
+    </div>
+    <div class="field">
+      <label>바꾸고 싶은 정도</label>
+      <div class="seg" role="group" aria-label="바꾸고 싶은 정도" id="fSeg" style="margin-bottom:0">
+        <button type="button" data-f="0.5" aria-pressed="false">절반으로<br>연하게</button>
+        <button type="button" data-f="0.6667" aria-pressed="false">조금<br>연하게</button>
+        <button type="button" data-f="1.5" aria-pressed="true">조금<br>진하게</button>
+        <button type="button" data-f="2" aria-pressed="false">2배<br>진하게</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">측정 자료를 불러오는 중이에요</p></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/eltin-color.js"></script>
+<script>
+/* ===== G03 생크림 농도 조절 — 사양: docs/specs/G-color.md 4절 =====
+   농도 = 방울 ÷ 생크림 g. 진하게(배율 f>1): 색별 추가 방울 = 지금 방울 × (f − 1), 연하게(f<1): 추가 생크림 = 지금 생크림 × (1/f − 1)
+   미리보기: 1색이고 생크림 10g당 방울(반올림)이 1~10이면 측정 견본(creamSingle). 2~3색은 측정 자료가 없어 양만 */
+const { $, $$, won, num, numInput, pick, rowList, ACTIONS, bindActions, postHeight, esc } = Eltin;
+const C = EltinColor;
+const FACT = { 0.5: { f: 0.5, label: "절반으로 연하게" }, 0.6667: { f: 2 / 3, label: "조금 연하게 (2/3)" }, 1.5: { f: 1.5, label: "조금 진하게 (1.5배)" }, 2: { f: 2, label: "2배 진하게" } };
+let fKey = "1.5", items = null;
+const cream = numInput($("#cream"), render);
+pick($$("#fSeg button"), b => { fKey = b.dataset.f; render(); });
+
+C.load().then(D => {
+  const opts = Object.entries(D.colors).map(([ab, c]) => [ab, `${c.name} (${ab})`]);
+  items = rowList($("#items"), {
+    fields: [{ key: "ab", label: "색", type: "select", options: opts }, { key: "drops", label: "방울 수", type: "num", unit: "방울", ph: "0" }],
+    rows: [{ ab: "YE", drops: 30 }], addLabel: "색 추가", cols: "minmax(0,1.6fr) minmax(0,1fr)",
+    blank: () => ({ ab: "OR", drops: "" }), onChange: render
+  });
+  render();
+}).catch(() => { $("#result").innerHTML = '<p class="empty">측정 자료를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p>'; postHeight(); });
+
+/* 생크림 10g당 방울(반올림)로 측정 견본: 범위 밖이면 이유 */
+function preview(ab, per10){
+  const r = Math.round(per10);
+  if(per10 > 10 + 1e-9) return { out: "측정 범위(생크림 10g당 10방울)보다 진해요" };
+  if(per10 < 1 - 1e-9) return { out: "측정 범위(생크림 10g당 1방울)보다 연해요" };
+  return { chip: C.creamSingle(ab, r), r };
+}
+
+function render(){
+  if(!items) return;
+  const add = $("#items .add-row"); const rows = items.rows();
+  if(add) add.hidden = rows.length >= 3;                              // 최대 3색
+  const list = rows.filter(r => r.ab && r.drops > 0);
+  const g = cream.value, F = FACT[fKey].f;
+  if(!list.length || !g){ $("#result").innerHTML = '<p class="empty">넣은 색소의 방울 수와 생크림 양을 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  const dup = new Set(list.map(r => r.ab)).size !== list.length;
+  if(dup){ $("#result").innerHTML = '<p class="empty">같은 색이 두 번 들어 있어요. 한 줄로 합쳐 주세요</p>'; postHeight(); return; }
+
+  const darker = F > 1;
+  const addDrops = darker ? list.map(r => ({ ...r, name: C.colorName(r.ab), plus: Math.round(r.drops * (F - 1)) })) : [];
+  const addCream = darker ? 0 : g * (1 / F - 1);
+  const g2 = g + addCream;
+  const lead = darker
+    ? `${addDrops.map(x => `${esc(x.name)} ${won(x.plus)}방울`).join(", ")}을 더 넣으세요`
+    : `생크림 ${num(addCream, addCream < 100 ? 1 : 0)}g을 더 섞으세요`;
+  const big = darker ? `${won(addDrops.reduce((s, x) => s + x.plus, 0))}<small>방울 더</small>` : `${num(addCream, addCream < 100 ? 1 : 0)}<small>g 더</small>`;
+
+  /* 미리보기 (1색만) */
+  let pv = "";
+  if(list.length === 1){
+    const ab = list[0].ab, now10 = list[0].drops / g * 10, new10 = (list[0].drops + (darker ? addDrops[0].plus : 0)) / g2 * 10;
+    const a = preview(ab, now10), b = preview(ab, new10);
+    if(a.chip && b.chip) pv = `<div class="cg-cmp"><div><div class="cg-chip" style="background:${a.chip.hex}"></div><span>지금 · 10g당 약 ${a.r}방울</span></div><div><div class="cg-chip" style="background:${b.chip.hex}"></div><span>바꾼 뒤 · 10g당 약 ${b.r}방울</span></div></div>`
+      + `<p class="tip">견본은 생크림 10g당 방울을 반올림한 측정값${a.chip.measured && b.chip.measured ? "" : "(3·5·7·9방울은 측정 사이 중간값)"}이에요.</p>`;
+    else pv = `<p class="tip">${a.out || b.out}. 미리보기 없이 양만 알려줘요.</p>`;
+  } else pv = `<p class="tip">섞은 색은 측정 자료가 없어 미리보기 없이 양만 알려줘요.</p>`;
+
+  $("#result").innerHTML = `
+    <p class="lead">${lead}</p>
+    <p class="big">${big}</p>
+    ${pv}
+    <div class="rows">
+      <div class="row"><span>바꾸는 정도</span><b>${FACT[fKey].label}</b></div>
+      ${list.map((r, i) => `<div class="row"><span>${esc(C.colorName(r.ab))}<small>지금 ${won(r.drops)}방울${darker ? ` + ${won(addDrops[i].plus)}방울 (${num(C.dropsToG(addDrops[i].plus), 2)}g)` : ""}</small></span><b>${won(r.drops + (darker ? addDrops[i].plus : 0))}방울</b></div>`).join("")}
+      <div class="row"><span>생크림<small>지금 ${num(g, 1)}g${darker ? "" : ` + ${num(addCream, 1)}g`}</small></span><b>${num(g2, 1)}g</b></div>
+      <div class="row"><span>생크림 10g당 방울 (농도)</span><b>${list.map(r => num(r.drops / g * 10, 2)).join(" · ")} → ${list.map((r, i) => num((r.drops + (darker ? addDrops[i].plus : 0)) / g2 * 10, 2)).join(" · ")}</b></div>
+    </div>
+    ${ACTIONS}`;
+  bindActions(`엘틴 조색 · 생크림 농도 ${FACT[fKey].label} · 지금 생크림 ${num(g, 1)}g, ${list.map(r => `${C.colorName(r.ab)} ${won(r.drops)}방울`).join(" + ")} → ${darker ? addDrops.map(x => `${x.name} ${won(x.plus)}방울(${num(C.dropsToG(x.plus), 2)}g)`).join(" + ") + " 더 넣기" : `생크림 ${num(addCream, 1)}g 더 섞기`}`);
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${C.METHOD.cream}`;
+
+Eltin.init();
+</script>
+</body>
+</html>
