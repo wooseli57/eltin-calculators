@@ -1,12 +1,55 @@
 {
-  "_about": "인기 색 버튼 (G02·G05·R02 공용). 사양: docs/specs/color-flavor-links.md 3절 — 구 G05 '인기 색 레시피'를 G02·G05의 버튼으로 통합",
-  "_status": "형식만 있는 빈 틀 — 색 목록과 엘틴 배합은 자료를 받으면 채워요.",
-  "_fields": {
-    "id": "인기 색 id (주소 파라미터 c·color에 씀, 예: pastel-pink)",
-    "name": "색 이름 (예: 파스텔 핑크)",
-    "hex": "표시 색 코드 (#RRGGBB)",
-    "base": "바탕 id: whipped-cream(생크림, G02) 또는 clay(클레이, G05)",
-    "mix": "엘틴 배합(있으면): [{ \"product\": 제품 id (data/eltin-colors.json), \"grams\": 바탕 100g당 g }]"
-  },
-  "presets": []
+  "_about": "인기 색 버튼 (G02·G05·G07 공통). 사양: docs/specs/G-color.md 3절. 목표색일 뿐 엘틴 배합이 아니에요 — 배합은 계산기가 측정 칩에서 가장 가까운 것을 찾아요",
+  "presets": [
+    {
+      "id": "pastel-pink",
+      "name": "파스텔 핑크",
+      "hex": "#F8C8DC"
+    },
+    {
+      "id": "coral",
+      "name": "코랄",
+      "hex": "#FF7F6E"
+    },
+    {
+      "id": "peach",
+      "name": "피치",
+      "hex": "#FFCBA4"
+    },
+    {
+      "id": "lemon",
+      "name": "레몬",
+      "hex": "#FFF176"
+    },
+    {
+      "id": "mint",
+      "name": "민트",
+      "hex": "#A8E6CF"
+    },
+    {
+      "id": "sky",
+      "name": "하늘색",
+      "hex": "#A7D8F0"
+    },
+    {
+      "id": "lavender",
+      "name": "라벤더",
+      "hex": "#C3B1E1"
+    },
+    {
+      "id": "navy",
+      "name": "네이비",
+      "hex": "#1F2A5A"
+    },
+    {
+      "id": "chocolate",
+      "name": "초콜릿 브라운",
+      "hex": "#6B3E26"
+    },
+    {
+      "id": "red-velvet",
+      "name": "레드벨벳",
+      "hex": "#A4161A"
+    }
+  ]
 }
