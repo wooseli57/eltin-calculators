@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="B" data-no="02" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B02 월 판매비 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.pct-wrap{width:140px}
+.grp{font-size:13px;font-weight:700;color:var(--brand-dark);margin:16px 0 -4px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);cursor:pointer;margin-top:10px}
+.check input{width:18px;height:18px;accent-color:var(--brand-dark);flex:none}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>월 판매비 계산기</h1>
+      <p>카드·배달앱 수수료와 배달비(온라인은 마켓 수수료와 택배비)를 모아 한 달 판매비를 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="mfTabs"></div>
+    <div class="field">
+      <label for="sales">월 매출</label>
+      <div class="input-wrap"><input id="sales" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+      <div class="hint" id="salesHint"></div>
+      <div id="salesFrom"></div>
+    </div>
+    <div class="seg" role="group" aria-label="넣는 방식" id="wSeg">
+      <button type="button" data-w="item" aria-pressed="true">항목별</button>
+      <button type="button" data-w="pct" aria-pressed="false">매출의 %</button>
+    </div>
+
+    <div data-w-box="item">
+      <div data-m-box="store">
+        <p class="grp">카드</p>
+        <div class="field-row">
+          <div class="field"><label for="cardShare">카드 매출 비율</label>
+            <div class="input-wrap sm"><input id="cardShare" type="text" inputmode="decimal" autocomplete="off" value="90"><span class="unit">%</span></div></div>
+          <div class="field"><div class="mf-head"><label for="cardFee">수수료율</label><span class="mf-link"><a id="o02Link" href="o02-card-fee.html" target="_self">내 수수료율 확인 →</a></span></div>
+            <div class="input-wrap sm"><input id="cardFee" type="text" inputmode="decimal" autocomplete="off" value="1"><span class="unit">%</span></div></div>
+        </div>
+        <p class="grp">배달앱</p>
+        <div class="field-row">
+          <div class="field"><label for="dShare">배달 매출 비율</label>
+            <div class="input-wrap sm"><input id="dShare" type="text" inputmode="decimal" autocomplete="off" value="0"><span class="unit">%</span></div></div>
+          <div class="field"><label for="dFee">중개 + 결제 수수료율</label>
+            <div class="input-wrap sm"><input id="dFee" type="text" inputmode="decimal" autocomplete="off" value="10.8"><span class="unit">%</span></div></div>
+        </div>
+        <label class="check"><input type="checkbox" id="feeVat" checked> 배달 수수료에 부가세(10%) 포함</label>
+        <div class="field-row">
+          <div class="field"><label for="dCount">한 달 배달 건수</label>
+            <div class="input-wrap sm"><input id="dCount" type="text" inputmode="numeric" autocomplete="off" value="0"><span class="unit">건</span></div></div>
+          <div class="field"><label for="dEach">건당 배달비 <small>사장님 부담</small></label>
+            <div class="input-wrap sm"><input id="dEach" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div></div>
+        </div>
+      </div>
+      <div data-m-box="online" hidden>
+        <div class="field">
+          <label for="mFee">마켓 수수료율</label>
+          <div class="input-wrap pct-wrap"><input id="mFee" type="text" inputmode="decimal" autocomplete="off" value="10.8"><span class="unit">%</span></div>
+          <div class="chips" id="mChips"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="ship">한 달 발송 건수</label>
+            <div class="input-wrap sm"><input id="ship" type="text" inputmode="numeric" autocomplete="off" value="140"><span class="unit">건</span></div></div>
+          <div class="field"><label for="shipEach">건당 택배·물류비</label>
+            <div class="input-wrap sm"><input id="shipEach" type="text" inputmode="numeric" autocomplete="off" value="3,000"><span class="unit">원</span></div></div>
+        </div>
+        <div class="field">
+          <label for="payFee">결제수수료율 <small>선택 · 마켓 수수료에 없을 때</small></label>
+          <div class="input-wrap pct-wrap"><input id="payFee" type="text" inputmode="decimal" autocomplete="off" value="0"><span class="unit">%</span></div>
+        </div>
+      </div>
+    </div>
+    <div data-w-box="pct" hidden>
+      <div class="field" style="margin-top:0">
+        <label for="pct">판매비 <small>매출 대비</small></label>
+        <div class="input-wrap pct-wrap"><input id="pct" type="text" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/monthly-flow.js"></script>
+<script src="assets/margin-engine.js"></script>
+<script>
+/* ===== B02 월 판매비 계산기 (비용 2/8) — 사양: docs/specs/B-monthly.md B02 =====
+   매장: 카드수수료 = 매출 × 카드 비율 × 수수료율, 배달앱 수수료 = 매출 × 배달 비율 × (중개+결제)% (× 1.1 부가세 포함 시, S02·S03과 같은 기준),
+         배달비 = 배달 건수 × 건당 배달비
+   온라인: 마켓 수수료 = 매출 × 수수료율, 택배·물류비 = 발송 건수 × 건당 비용, 결제수수료 = 매출 × 결제수수료율
+   항목마다 원 단위 반올림. 다음 단계 B03으로 sell 추가 */
+const CONFIG = { feeVat: 1.1, pct: { store: 5, online: 15 }, sales: { store: 15000000, online: 10000000 } };
+const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight, esc, keepMember } = Eltin;
+const G = MF.got;
+let way = "item";
+const sales = moneyInput($("#sales"), $("#salesHint"), render);
+const N = id => numInput($("#" + id), render);
+const cardShare = N("cardShare"), cardFee = N("cardFee"), dShare = N("dShare"), dFee = N("dFee"), dCount = N("dCount");
+const mFee = N("mFee"), ship = N("ship"), payFee = N("payFee"), pct = N("pct");
+const dEach = moneyInput($("#dEach"), null, render), shipEach = moneyInput($("#shipEach"), null, render);
+$("#feeVat").addEventListener("change", render);
+$("#o02Link").href = keepMember("o02-card-fee.html");
+pick($$("#wSeg button"), b => { way = b.dataset.w; render(); });
+
+/* 온라인 마켓 예시 칩: E01 사양 0절 판매처 수수료 예시 (assets/margin-engine.js) */
+const presets = (() => { const r = MarginEngine.MARGIN_DATA.rates; const y = Object.keys(r).sort().pop(); return r[y].marketPresets.filter(p => p.type === "online" && p.fee != null); })();
+const CHIPS = ["스마트스토어 · 네이버 유입 · 영세(3억 이하)", "쿠팡 윙 · 식품", "11번가 · 최대(13%)", "자사몰"].map(n => presets.find(p => p.name === n)).filter(Boolean);
+$("#mChips").innerHTML = CHIPS.map(p => `<button class="chip" type="button" data-v="${p.fee}">${esc(p.name.split(" · ")[0])} ${num(p.fee, 2)}%</button>`).join("");
+$$("#mChips .chip").forEach(b => b.addEventListener("click", () => mFee.set(b.dataset.v)));
+
+function setDefaults(m){
+  const sv = G.sales ?? CONFIG.sales[m];
+  $("#sales").value = sv ? won(sv) : ""; $("#salesFrom").innerHTML = G.sales != null ? MF.FROM : "";
+  $("#pct").value = String(CONFIG.pct[m]);
+  $$("[data-m-box]").forEach(b => b.hidden = b.dataset.mBox !== m);
+  $("#sales").dispatchEvent(new Event("input"));
+}
+MF.tabs($("#mfTabs"), setDefaults);
+setDefaults(MF.mode);
+
+function items(s){
+  if(MF.mode === "store"){
+    const v = $("#feeVat").checked ? CONFIG.feeVat : 1;
+    return [
+      { label: "카드수수료", note: `매출의 ${num(cardShare.value, 1)}% × ${num(cardFee.value, 2)}%`, value: Math.round(s * cardShare.value / 100 * cardFee.value / 100) },
+      { label: "배달앱 수수료", note: `매출의 ${num(dShare.value, 1)}% × ${num(dFee.value, 2)}%${v > 1 ? " × 1.1" : ""}`, value: Math.round(s * dShare.value / 100 * dFee.value / 100 * v) },
+      { label: "배달비", note: `${won(dCount.value)}건 × ${won(dEach.value)}원`, value: Math.round(dCount.value * dEach.value) }
+    ];
+  }
+  return [
+    { label: "마켓 수수료", note: `매출 × ${num(mFee.value, 2)}%`, value: Math.round(s * mFee.value / 100) },
+    { label: "택배·물류비", note: `${won(ship.value)}건 × ${won(shipEach.value)}원`, value: Math.round(ship.value * shipEach.value) },
+    { label: "결제수수료", note: `매출 × ${num(payFee.value, 2)}%`, value: Math.round(s * payFee.value / 100) }
+  ];
+}
+
+function render(){
+  $$("[data-w-box]").forEach(b => b.hidden = b.dataset.wBox !== way);
+  $$("#mChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === mFee.value));
+  const s = sales.value;
+  const list = way === "item" ? items(s) : [{ label: "판매비", note: `매출 × ${num(pct.value, 1)}%`, value: Math.round(s * pct.value / 100) }];
+  const total = list.reduce((a, x) => a + x.value, 0);
+  if(!total){ $("#result").innerHTML = `<p class="empty">월 매출과 수수료를 넣으면 바로 계산돼요</p>`; MF.pass({ sales: s || null }); postHeight(); return; }
+  MF.pass({ sales: s || null, sell: total });
+  const shown = list.filter(x => x.value > 0);
+  $("#result").innerHTML = `
+    <p class="lead">한 달 판매비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    ${way === "item" && shown.length > 1 ? '<div id="chart"></div>' : ""}
+    <div class="rows">
+      ${list.map(x => `<div class="row"><span>${x.label}<small>${x.note}</small></span><b>${won(x.value)}원</b></div>`).join("")}
+      <div class="row total"><span>한 달 판매비 합계</span><b>${won(total)}원</b></div>
+      ${s ? `<div class="row"><span>매출 대비</span><b>${num(total / s * 100, 1)}%</b></div>` : ""}
+    </div>
+    ${ACTIONS}`;
+  if(way === "item" && shown.length > 1) Eltin.donut($("#chart"), shown.map(x => ({ label: x.label, value: x.value })), { big: `${Eltin.shortWon(total)}원`, small: "한 달 판매비" }, { profitLast: false });
+  bindActions(`[월 판매비] ${MF.mode === "store" ? "매장" : "온라인"} · ${list.filter(x => x.value).map(x => `${x.label} ${won(x.value)}원`).join(" + ")} = ${won(total)}원${s ? ` (매출의 ${num(total / s * 100, 1)}%)` : ""}`);
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${MF.COMMON_NOTE}<br>
+  기본값은 예시예요. 카드수수료율은 매출 규모(우대수수료 구간)에 따라, 배달앱·마켓 수수료와 배달·택배비는 앱·마켓·계약과 정책에 따라 달라요. 참고용으로 사용하시고, 정확한 금액은 카드사·여신금융협회, 각 앱·마켓의 정산서를 확인하세요.`;
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>

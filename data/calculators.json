@@ -211,7 +211,7 @@
       "file": "b02-monthly-selling.html",
       "name": "월 판매비 계산기",
       "desc": "카드·배달앱 수수료와 배달비(온라인은 마켓 수수료와 택배비)를 모아 한 달 판매비를 알려줘요",
-      "status": "사양 확정",
+      "status": "완료",
       "category": "월 마진",
       "sub": "",
       "step": "비용 2/8",
