@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="G" data-no="01" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G01 생크림 혼색 예측 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.sel-wrap select{flex:1;border:0;outline:0;font:inherit;font-size:16px;font-weight:700;padding:12px 0;background:transparent;color:var(--ink);min-width:0}
+.links .btn{display:block;width:100%;margin-top:10px;padding:11px;text-align:center;text-decoration:none}
+.btn.soon{background:var(--line);color:var(--ink-3);cursor:not-allowed}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>생크림 혼색 예측</h1>
+      <p>흰 생크림에 색소를 얼마씩 섞으면 어떤 색이 나오는지 미리 보여줘요. 노란 버터크림·초콜릿에서는 색이 달라진다는 안내 포함</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div class="seg" role="group" aria-label="섞는 색 개수" id="nSeg">
+      <button type="button" data-n="1" aria-pressed="true">1색</button>
+      <button type="button" data-n="2" aria-pressed="false">2색</button>
+      <button type="button" data-n="3" aria-pressed="false">3색</button>
+    </div>
+    <div data-box="1">
+      <div class="field">
+        <label for="color">색</label>
+        <div class="input-wrap sel-wrap"><select id="color"></select></div>
+      </div>
+      <div class="field">
+        <label>생크림 10g당 방울 수</label>
+        <div class="chips" id="dropChips" style="margin-top:0"></div>
+      </div>
+    </div>
+    <div data-box="23" hidden>
+      <div class="field">
+        <label id="dotsLabel">기본 8색 중 2개</label>
+        <div id="dots"></div>
+      </div>
+      <div class="field" id="ratioBox">
+        <label>비율 (생크림 10g당 방울)</label>
+        <div class="chips" id="ratioChips" style="margin-top:0"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="amount">내 생크림 양</label>
+      <div class="input-wrap"><input id="amount" type="text" inputmode="decimal" autocomplete="off" value="300"><span class="unit">g</span></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"><p class="empty">측정 자료를 불러오는 중이에요</p></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/eltin-color.js"></script>
+<script>
+/* ===== G01 생크림 혼색 예측 — 사양: docs/specs/G-color.md 4절 =====
+   측정된 컬러칩만 보여줌 (1색: 48색 × 1·2·4·6·8·10방울, 3·5·7·9는 양옆 측정값의 중간값 / 2색: 기본 8색 2개 × 5가지 비율 / 3색: 각 1방울).
+   내 양 = 생크림 10g당 방울 × (내 생크림 g ÷ 10), 방울은 정수 반올림, g = 방울 × 0.04ml × 1.05 */
+const { $, $$, won, num, numInput, pick, ACTIONS, bindActions, postHeight, esc } = Eltin;
+const C = EltinColor;
+const RATIOS = [[1, 1], [1, 3], [3, 1], [1, 9], [9, 1]];
+let n = 1, drops = 2, ratio = [1, 1], picked = [], dots = null;
+const amount = numInput($("#amount"), render);
+
+C.load().then(D => {
+  /* 1색: 48색을 그룹별로 */
+  const groups = {};
+  Object.entries(D.colors).forEach(([ab, c]) => (groups[c.group] = groups[c.group] || []).push([ab, c.name]));
+  $("#color").innerHTML = Object.entries(groups).map(([g, list]) => `<optgroup label="${esc(g)}">${list.map(([ab, nm]) => `<option value="${ab}">${esc(nm)} (${ab})</option>`).join("")}</optgroup>`).join("");
+  $("#color").addEventListener("change", render);
+  $("#dropChips").innerHTML = Array.from({ length: 10 }, (_, i) => `<button class="chip" type="button" data-v="${i + 1}">${i + 1}</button>`).join("");
+  $$("#dropChips .chip").forEach(b => b.addEventListener("click", () => { drops = Number(b.dataset.v); render(); }));
+  dots = C.dots($("#dots"), { max: 2, value: ["YE", "OR"], onChange: v => { picked = v; render(); } });
+  picked = dots.value;
+  render();
+}).catch(() => { $("#result").innerHTML = '<p class="empty">측정 자료를 불러오지 못했어요. 잠시 뒤 다시 열어주세요.</p>'; postHeight(); });
+
+pick($$("#nSeg button"), b => {
+  n = Number(b.dataset.n);
+  $('[data-box="1"]').hidden = n !== 1; $('[data-box="23"]').hidden = n === 1;
+  if(dots){ dots.setMax(n === 1 ? 2 : n); if(n === 3 && dots.value.length < 3) dots.set(["YE", "OR", "PI"]); else if(n === 2 && dots.value.length < 2) dots.set(["YE", "OR"]); picked = dots.value; }
+  render();
+});
+
+/* 지금 고른 배합 (생크림 10g당) */
+function currentMix(){
+  if(n === 1) return { [$("#color").value]: drops };
+  if(picked.length !== n) return null;
+  if(n === 2) return { [picked[0]]: ratio[0], [picked[1]]: ratio[1] };
+  return Object.fromEntries(picked.map(ab => [ab, 1]));
+}
+
+function render(){
+  if(!C.data) return;
+  $$("#dropChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === drops));
+  $("#dotsLabel").textContent = `기본 8색 중 ${n}개`;
+  $("#ratioBox").hidden = n !== 2;
+  if(n === 2){
+    /* 비율 칩: 고른 두 색 이름으로, 측정된 것만 누를 수 있게 */
+    $("#ratioChips").innerHTML = picked.length === 2 ? RATIOS.map(([a, b]) => {
+      const ok = !!C.lookup("cream", { [picked[0]]: a, [picked[1]]: b });
+      return `<button class="chip" type="button" data-r="${a}:${b}" ${ok ? "" : "disabled"} aria-pressed="${ratio[0] === a && ratio[1] === b}">${esc(C.colorName(picked[0]))} ${a} : ${esc(C.colorName(picked[1]))} ${b}</button>`;
+    }).join("") : '<span class="hint">색을 2개 골라주세요</span>';
+    $$("#ratioChips .chip").forEach(b => b.addEventListener("click", () => { ratio = b.dataset.r.split(":").map(Number); render(); }));
+  }
+  const mix = currentMix(), g = amount.value;
+  if(!mix){ $("#result").innerHTML = `<p class="empty">기본 8색 중 ${n}개를 골라주세요</p>`; postHeight(); return; }
+  const chip = n === 1 ? C.creamSingle(Object.keys(mix)[0], drops) : C.lookup("cream", mix);
+  if(!chip){ $("#result").innerHTML = '<p class="empty">이 배합은 측정 범위 밖이에요. 다른 비율을 골라주세요</p>'; postHeight(); return; }
+  const mine = g > 0 ? C.scale("cream", mix, g) : [];
+  const label = chip.name ? `${chip.name}${chip.code ? ` (${chip.code})` : ""}` : "";
+  const ok = Eltin.ready("G02");
+  $("#result").innerHTML = `
+    <p class="lead">이 배합이면 이런 색이 나와요</p>
+    ${C.swatch(chip.hex, label, chip.measured ? (chip.no ? `엘틴 컬러칩 ${chip.no}` : "측정값") : "측정 사이 중간값 (양옆 측정 방울의 중간)")}
+    <div class="rows">
+      <div class="row"><span>생크림 10g당 배합</span><b>${esc(C.mixText(mix))}</b></div>
+      ${mine.map(m => `<div class="row"><span>${esc(m.name)}<small>내 생크림 ${num(g, 1)}g</small></span><b>${won(m.drops)}방울 <small>(${num(m.g, 2)}g)</small></b></div>`).join("")}
+    </div>
+    <div class="links">${ok ? `<a class="btn btn-primary" href="${Eltin.keepMember("g02-color-match.html?hex=" + chip.hex.replace("#", "").toUpperCase() + (g ? "&g=" + g : ""))}" target="_self">이 색을 기준으로 배합 찾기 →</a>`
+      : '<span class="btn soon" aria-disabled="true">이 색을 기준으로 배합 찾기 · 준비 중</span>'}</div>
+    ${ACTIONS}`;
+  bindActions(`엘틴 조색 · 생크림 ${num(g, 1)}g · ${mine.map(m => `${m.name} ${won(m.drops)}방울(${num(m.g, 2)}g)`).join(" + ")} · 예상 색 ${chip.hex.toLowerCase()}`);
+  postHeight();
+}
+window.addEventListener("eltin:calcs", render);
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${C.METHOD.cream}`;
+
+Eltin.init();
+</script>
+</body>
+</html>
