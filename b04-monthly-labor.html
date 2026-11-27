@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko" data-cat="B" data-no="04" data-access="member">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B04 월 인건비 계산기 | 엘틴 소상공인 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/eltin-calc.css">
+<style>
+.check{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);cursor:pointer;margin-top:16px}
+.check input{width:18px;height:18px;accent-color:var(--brand-dark);flex:none}
+.help{font-size:12px;color:var(--ink-3);margin:4px 0 0 26px}
+.mini-seg{margin:6px 0 0}
+.mini-seg button{font-size:13px;padding:8px 2px}
+.item-grid label[hidden]{display:none}
+</style>
+</head>
+<body>
+<main class="calc">
+  <header class="calc-head">
+    <div>
+      <span class="tag"></span>
+      <h1>월 인건비 계산기</h1>
+      <p>직원별로 시급·근무시간이나 월급을 넣거나 전체 인건비를 한 번에 넣으면 4대보험까지 포함한 한 달 인건비를 알려줘요</p>
+    </div>
+    <div class="head-side"></div>
+  </header>
+
+  <section class="card" aria-label="입력">
+    <div id="mfTabs"></div>
+    <div class="seg" role="group" aria-label="넣는 방식" id="wSeg">
+      <button type="button" data-w="staff" aria-pressed="true">직원별</button>
+      <button type="button" data-w="total" aria-pressed="false">전체 금액</button>
+    </div>
+    <div data-w-box="staff">
+      <div class="field" style="margin-top:0">
+        <label>사업장 규모 <small>연장·휴일 가산수당</small></label>
+        <div class="seg mini-seg" role="group" aria-label="사업장 규모" id="sizeSeg">
+          <button type="button" data-v="1" aria-pressed="true">5인 이상</button>
+          <button type="button" data-v="0" aria-pressed="false">5인 미만</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>고용 형태 <small>모든 직원에 적용 · 줄마다 바꿀 수 있어요</small></label>
+        <div class="seg mini-seg" role="group" aria-label="고용 형태" id="insSeg">
+          <button type="button" data-v="ins" aria-pressed="true">4대보험 가입</button>
+          <button type="button" data-v="free" aria-pressed="false">3.3% 프리랜서</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>직원</label>
+        <div id="items"></div>
+      </div>
+    </div>
+    <div data-w-box="total" hidden>
+      <div class="field" style="margin-top:0">
+        <label for="total">한 달 인건비 총액 <small>4대보험 포함</small></label>
+        <div class="input-wrap"><input id="total" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="unit">원</span></div>
+        <div class="hint" id="totalHint"></div>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="ownerOn"> 사장님 본인 급여도 넣을까요?</label>
+    <p class="help">넣으면 남는 돈이 순수한 가게 이익, 안 넣으면 남는 돈이 사장님 몫이에요.</p>
+    <div class="field" id="ownerBox" hidden>
+      <label for="owner">사장님 급여 <small>한 달</small></label>
+      <div class="input-wrap"><input id="owner" type="text" inputmode="numeric" autocomplete="off" value="3,000,000"><span class="unit">원</span></div>
+      <div class="hint" id="ownerHint"></div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite" id="result"></section>
+  <p class="note" id="note"></p>
+  <nav class="cta" id="cta"></nav>
+  <p class="brand-foot">엘틴 소상공인 무료 계산기</p>
+  <div class="dev" id="dev" hidden></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/eltin-calc.js"></script>
+<script src="assets/monthly-flow.js"></script>
+<script src="assets/labor-rates.js"></script>
+<script>
+/* ===== B04 월 인건비 계산기 (비용 4/8) — 사양: docs/specs/B-monthly.md B04 =====
+   직원별: 시급이면 L01과 같은 계산(assets/labor-rates.js: 주휴수당, 5인 이상 연장·휴일 가산), 월급이면 그 금액.
+   4대보험 가입이면 + 사업주 부담분(산재는 평균 요율), 3.3%는 원천징수만 하고 사장님 부담 추가 없음.
+   "월 총부담"(L01에서 ?add=로 받은 값)은 이미 보험 포함. 월 인건비 = 급여 + 사장님 부담 4대보험 (+ 사장님 급여). 다음 단계 B05로 labor */
+const LR = LaborRates, V = LR.V, R = LR.R;
+const { $, $$, won, num, moneyInput, pick, rowList, ACTIONS, bindActions, postHeight, esc, param } = Eltin;
+const G = MF.got;
+const ACC = +(V.accidentAvg * 100).toFixed(3);                       // 산재보험: 평균 요율 (L01 기본값과 같음)
+const DEF = {
+  store:  { total: 4000000, rows: [{ name: "직원 1", type: "hourly", amt: V.minWage, d: 8, days: 5, ins: "ins" }, { name: "직원 2", type: "hourly", amt: V.minWage, d: 5, days: 5, ins: "ins" }] },
+  online: { total: 0, rows: [{ name: "", type: "hourly", amt: V.minWage, d: "", days: "", ins: "ins" }] }
+};
+let way = "staff", big5 = true, insDefault = "ins";
+const totalIn = moneyInput($("#total"), $("#totalHint"), render), owner = moneyInput($("#owner"), $("#ownerHint"), render);
+$("#ownerOn").addEventListener("change", () => { $("#ownerBox").hidden = !$("#ownerOn").checked; render(); });
+pick($$("#wSeg button"), b => { way = b.dataset.w; render(); });
+pick($$("#sizeSeg button"), b => { big5 = b.dataset.v === "1"; render(); });
+
+const items = rowList($("#items"), {
+  fields: [
+    { key: "name", label: "이름", type: "text", ph: "이름 (예: 평일 알바)" },
+    { key: "type", label: "방식", type: "select", options: [["hourly", "시급"], ["monthly", "월급 (세전)"], ["burden", "월 총부담 (보험 포함)"]] },
+    { key: "amt", label: "금액", type: "money", unit: "원" },
+    { key: "d", label: "하루 시간", type: "num", unit: "시간" },
+    { key: "days", label: "주 일수", type: "num", unit: "일" },
+    { key: "ins", label: "고용 형태", type: "select", options: [["ins", "4대보험"], ["free", "3.3%"]] }
+  ],
+  cols: "repeat(2,minmax(0,1fr))",
+  rows: DEF[MF.mode].rows, addLabel: "직원 추가",
+  blank: () => ({ name: "", type: "hourly", amt: V.minWage, d: 8, days: 5, ins: insDefault }), onChange: render
+});
+/* 고용 형태 공통 버튼: 모든 줄에 적용 */
+pick($$("#insSeg button"), b => {
+  insDefault = b.dataset.v;
+  $$("#items select[data-k=ins]").forEach(s => { s.value = insDefault; });
+  render();
+});
+
+/* L01 "월 인건비에 넣기"(?add=월 총부담)로 왔으면 한 줄 추가 */
+const ADD = param("add");
+function setDefaults(m){
+  totalIn.set(DEF[m].total);
+  items.set(DEF[m].rows.concat(ADD ? [{ name: "인건비 계산기(L01)에서 가져온 직원", type: "burden", amt: ADD, ins: "ins" }] : []));
+}
+MF.tabs($("#mfTabs"), setDefaults);
+setDefaults(MF.mode);
+
+/* 줄마다 방식에 맞는 칸만 보이기 */
+function syncFields(){
+  $$("#items .item").forEach(el => {
+    const t = el.querySelector("select[data-k=type]").value;
+    const show = { d: t === "hourly", days: t === "hourly", ins: t !== "burden" };
+    ["d", "days", "ins"].forEach(k => { el.querySelector(`[data-k=${k}]`).closest("label").hidden = !show[k]; });
+    const lab = el.querySelector("[data-k=amt]").closest("label").querySelector("span");
+    lab.textContent = t === "hourly" ? "시급" : t === "monthly" ? "월급 (세전)" : "월 총부담";
+  });
+}
+
+function staffLine(r, i){
+  const name = r.name || `직원 ${i + 1}`;
+  if(r.type === "burden") return { name, burden: r.amt, pay: null, sub: "월 총부담 (보험 포함)" };
+  let pay, sub;
+  if(r.type === "hourly"){
+    if(!(r.d > 0 && r.days > 0)) return null;
+    const days = Math.min(Math.round(r.days), 7);
+    const h = LR.hourly({ wage: r.amt, hoursPerDay: r.d, days, big5 });
+    pay = h.pay;
+    sub = `시급 ${won(r.amt)}원 · 하루 ${num(r.d, 1)}시간 × 주 ${days}일${h.holiday ? " · 주휴 포함" : ""}${h.ot + h.holWork ? " · 가산 포함" : ""}`;
+  } else { pay = r.amt; sub = "월급 (세전)"; }
+  const isIns = r.ins !== "free";
+  const insSum = isIns ? LR.insurance(pay, ACC).insSum : 0;
+  return { name, pay, insSum, burden: pay + insSum, sub: `${sub} · ${isIns ? `급여 ${won(pay)}원 + 4대보험 ${won(insSum)}원` : "3.3% (사장님 부담 추가 없음)"}`, low: r.type === "hourly" && r.amt < V.minWage };
+}
+
+function render(){
+  $$("[data-w-box]").forEach(b => b.hidden = b.dataset.wBox !== way);
+  syncFields();
+  const ownerPay = $("#ownerOn").checked ? owner.value : 0;
+  let lines = [];
+  if(way === "staff") lines = items.rows().filter(r => r.amt > 0).map(staffLine).filter(Boolean);
+  else if(totalIn.value) lines = [{ name: "전체 인건비", burden: totalIn.value, sub: "4대보험 포함 총액" }];
+  if(ownerPay) lines.push({ name: "사장님 급여", burden: ownerPay, sub: "사장님 본인" });
+  const total = lines.reduce((a, l) => a + l.burden, 0);
+  const pays = lines.reduce((a, l) => a + (l.pay ?? 0), 0), ins = lines.reduce((a, l) => a + (l.insSum || 0), 0);
+  MF.pass({ labor: total });
+  if(!total){ $("#result").innerHTML = '<p class="empty">직원 급여나 인건비 총액을 넣으면 바로 계산돼요 (직원이 없으면 0원으로 다음 단계에 넘어가요)</p>'; postHeight(); return; }
+  const low = lines.some(l => l.low);
+  $("#result").innerHTML = `${low ? `<p class="tip warn" style="margin:0 0 10px">${R.useYear}년 최저임금(${won(V.minWage)}원)보다 낮은 시급이 있어요.</p>` : ""}
+    <p class="lead">한 달 인건비는</p>
+    <p class="big">${won(total)}<small>원</small></p>
+    ${lines.length > 1 ? '<div id="chart"></div>' : ""}
+    <div class="rows">
+      ${lines.map(l => `<div class="row"><span>${esc(l.name)}<small>${esc(l.sub)}</small></span><b>${won(l.burden)}원</b></div>`).join("")}
+      ${way === "staff" && ins ? `<div class="row"><span>그중 급여 / 사장님 부담 4대보험</span><b>${won(pays)}원 / ${won(ins)}원</b></div>` : ""}
+      <div class="row total"><span>한 달 인건비 합계</span><b>${won(total)}원</b></div>
+      ${G.sales ? `<div class="row"><span>매출 대비<small>월 매출 ${won(G.sales)}원 (앞 단계)</small></span><b>${num(total / G.sales * 100, 1)}%</b></div>` : ""}
+    </div>
+    ${!ownerPay ? '<p class="tip">사장님 본인 급여를 넣지 않았어요. 월 손익에서 남는 돈이 곧 사장님 몫이에요.</p>' : ""}
+    ${ACTIONS}`;
+  if(lines.length > 1) Eltin.donut($("#chart"), lines.map(l => ({ label: l.name, value: l.burden })), { big: `${Eltin.shortWon(total)}원`, small: "한 달 인건비" }, { profitLast: false });
+  bindActions(`[월 인건비] ${lines.map(l => `${l.name} ${won(l.burden)}원`).join(" + ")} = 한 달 ${won(total)}원 (${R.useYear}년 기준)`);
+  postHeight();
+}
+
+$("#note").innerHTML = `<b>계산 기준</b> · ${MF.COMMON_NOTE}<br>
+  시급 직원은 인건비 계산기(L01)와 같은 방식이에요: ${R.useYear}년 최저임금·4대보험 요율, 한 달 평균 ${num(LR.CONFIG.weeksPerMonth, 3)}주, 주 15시간 이상이면 주휴수당, 5인 이상이면 주 40시간 넘는 근무 50%·7일째 휴일근로 가산. 보험료는 항목마다 원 미만 버림.<br>
+  산재보험은 평균 요율 ${num(ACC, 2)}%로 계산해요 (업종마다 달라요). 국민연금·건강보험의 월 소득 상·하한은 반영하지 않았어요.`;
+Eltin.yearNotice(R, "labor", { minWage: "최저임금", pensionEmployer: "국민연금", healthEmployer: "건강보험", ltcRatio: "장기요양", empEmployer: "고용보험", accidentAvg: "산재" });
+
+Eltin.init();
+render();
+</script>
+</body>
+</html>

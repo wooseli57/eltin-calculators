@@ -19,6 +19,7 @@
 .row.fold.open span::after{content:" ▴"}
 .row.sub{font-size:13px;padding:7px 0 7px 12px}
 .row.sub span:first-child{color:var(--ink-3)}
+.b04-btn{display:block;width:100%;margin-top:8px;text-align:center;text-decoration:none}
 </style>
 </head>
 <body>
@@ -83,34 +84,12 @@
 <div class="toast" id="toast"></div>
 
 <script src="assets/eltin-calc.js"></script>
+<script src="assets/labor-rates.js"></script>
 <script>
 /* ===== L01 인건비 계산기 (사양: docs/specs/L01.md) ===== */
-const CONFIG = {
-  weeksPerMonth: 365 / 7 / 12,
-  freelanceRate: 0.033,        // 사업소득세 3% + 지방소득세 0.3%
-  rates: {
-    2026: {
-      minWage: 10320,          // 고용노동부 고시 2026년 적용 최저임금 (확인 2026-11-23)
-      pensionEmployer: 0.0475, // 국민연금 9.5%의 1/2 (국민연금법 부칙, 확인 2026-11-23)
-      pensionEmployee: 0.0475,
-      healthEmployer: 0.03595, // 건강보험 7.19%의 1/2 (확인 2026-11-23)
-      healthEmployee: 0.03595,
-      ltcRatio: 0.1314,        // 장기요양 = 건강보험료 × 13.14% (확인 2026-11-23)
-      empEmployer: 0.0115,     // 실업급여 0.9% + 고용안정·직능개발 0.25%(150인 미만) (고용노동부, 확인 2026-11-23)
-      empEmployee: 0.009,
-      accidentAvg: 0.0147      // 2026년 평균 산재보험료율 (고용노동부 발표, 확인 2026-11-23)
-    },
-    2027: {
-      minWage: 10700,          // 고용노동부 2027년 적용 최저임금 고시 2026-08-05 (확인 2026-11-23)
-      pensionEmployer: 0.05,   // 국민연금 10% (매년 0.5%p 인상 일정, 1월 시행 시 재확인)
-      pensionEmployee: 0.05,
-      healthEmployer: 0.03595, // 2027년 건강보험료율 7.19% 동결 (보건복지부 2026-09-08)
-      healthEmployee: 0.03595
-      // ltcRatio, empEmployer, empEmployee, accidentAvg: 2027년 고시 확인 전 → 2026년 값 사용
-    }
-  }
-};
-const R = Eltin.yearRates(CONFIG.rates), V = R.values;
+/* 연도별 요율·계산식은 assets/labor-rates.js (B04 월 인건비와 공용) */
+const CONFIG = LaborRates.CONFIG;
+const R = LaborRates.R, V = LaborRates.V;
 const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
 
 let type = "ins", days = 5, big5 = true, open = false;
@@ -123,29 +102,8 @@ const hours = numInput($("#hours"), render), acc = numInput($("#acc"), render);
    5인 이상만 가산: 연장 = 주 40시간 넘는 hW × 50%, 휴일 = 8시간 이내 50% + 넘는 시간 100% (근로기준법 제56조).
    휴일근로 시간은 연장 가산과 겹쳐 계산하지 않고, 주휴 계산에도 넣지 않음 */
 function calc(){
-  const w = wage.value, d = hours.value, W = CONFIG.weeksPerMonth;
-  const hW = d * Math.min(days, 6), hH = days === 7 ? d : 0, h = hW + hH;
-  const otH = big5 ? Math.max(hW - 40, 0) : 0;                        // 연장 가산 시간(주)
-  const hol8 = big5 ? Math.min(hH, 8) : 0, holOver = big5 ? Math.max(hH - 8, 0) : 0;
-  const base = Math.round(w * h * W);                                  // 모든 근무시간 × 시급
-  const ot = Math.round(w * 0.5 * otH * W);
-  const holWork = Math.round((w * 0.5 * hol8 + w * holOver) * W);
-  const holidayH = hW >= 15 ? Math.min(hW, 40) / 40 * 8 : 0;          // 주휴시간
-  const holiday = Math.round(w * holidayH * W);
-  const pay = base + ot + holWork + holiday;                           // 월급 합계(세전)
-  const f = Math.floor;
-  const ins = {
-    pension: f(pay * V.pensionEmployer),
-    health:  f(pay * V.healthEmployer),
-    emp:     f(pay * V.empEmployer),
-    acc:     f(pay * acc.value / 100)
-  };
-  ins.ltc = f(ins.health * V.ltcRatio);
-  const insSum = ins.pension + ins.health + ins.ltc + ins.emp + ins.acc;
-  const healthE = f(pay * V.healthEmployee);
-  const workerDed = f(pay * V.pensionEmployee) + healthE + f(healthE * V.ltcRatio) + f(pay * V.empEmployee);
-  const withhold = f(pay * CONFIG.freelanceRate);
-  return { w, h, hW, hH, otH, hol8, holOver, base, ot, holWork, holiday, holidayH, pay, ins, insSum, workerDed, withhold };
+  const h = LaborRates.hourly({ wage: wage.value, hoursPerDay: hours.value, days, big5 });
+  return { ...h, ...LaborRates.insurance(h.pay, acc.value) };
 }
 
 function render(){
@@ -192,6 +150,9 @@ function render(){
     <div id="chart"></div>
     <div class="rows">${rows}</div>
     ${tips}
+    ${(() => { /* 월 인건비(B04, 회원 전용)에 이 직원 한 달 총부담을 한 줄로 넣기 (docs/specs/B-monthly.md B04) */
+      const ln = Eltin.calcLink({ tag: "B04", file: "b04-monthly-labor.html", access: "member" }, "add=" + Math.round(total));
+      return Eltin.ready("B04") ? `<a class="btn btn-ghost b04-btn" href="${ln.href}" target="${ln.target}">월 인건비(B04)에 넣기 →${ln.lock ? " " + Eltin.LOCK : ""}</a>` : ""; })()}
     ${ACTIONS}`;
   const fold = $("#fold");
   if(fold){ const t = () => { open = !open; render(); }; fold.onclick = t; fold.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); t(); } }; }
@@ -216,6 +177,7 @@ $("#note").innerHTML = `<b>계산 기준</b> · ${R.useYear}년 최저임금·4�
   산재보험은 업종마다 요율이 달라요 (기본값은 전체 평균).`;
 Eltin.yearNotice(R, "labor", { minWage: "최저임금", pensionEmployer: "국민연금", healthEmployer: "건강보험", ltcRatio: "장기요양", empEmployer: "고용보험", accidentAvg: "산재" });
 
+window.addEventListener("eltin:calcs", render);
 Eltin.init();
 render();
 </script>
