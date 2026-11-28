@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="G" data-no="04" data-access="member">
+<html lang="ko" data-cat="K" data-no="01" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>G04 클레이 혼색 예측 | 엘틴 소상공인 계산기</title>
+<title>K01 클레이 혼색 예측 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -57,10 +57,10 @@
 <script src="assets/eltin-calc.js"></script>
 <script src="assets/eltin-color.js"></script>
 <script>
-/* ===== G04 클레이 혼색 예측 — 사양: docs/specs/G-color.md 4절 =====
+/* ===== K01 (옛 G04) 클레이 혼색 예측 — 사양: docs/specs/G-color.md 4절 =====
    측정된 클레이 칩(기본 8색 2색 각 1~5방울, 3색 각 1~3방울, 클레이 5g 기준)만 보여줌. 1색은 측정 자료가 없어 선택지에 없음.
    내 양 = 클레이 5g당 방울 × (내 g ÷ 5), 방울 정수 반올림, g = 방울 × 0.04 × 1.05 */
-const BASE = "clay", MATCH = "g05-clay-match.html", MATCH_TAG = "G05";
+const BASE = "clay", MATCH = "k02-clay-match.html", MATCH_TAG = "K02";
 const { $, $$, won, num, numInput, pick, ACTIONS, bindActions, postHeight, esc } = Eltin;
 const C = EltinColor;
 let n = 2, dots = null, picked = [], drops = {};

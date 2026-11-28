@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="G" data-no="05" data-access="member">
+<html lang="ko" data-cat="K" data-no="02" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>G05 클레이 색 배합 | 엘틴 소상공인 계산기</title>
+<title>K02 클레이 색 배합 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -20,7 +20,7 @@
     <div>
       <span class="tag"></span>
       <h1>클레이 색 배합</h1>
-      <p>원하는 색이나 인기 색을 고르면 흰 클레이에 넣을 엘틴 색소 조합과 양을 알려줘요</p>
+      <p>원하는 색이나 인기 색(파스텔 핑크·민트·라벤더 등)을 고르면 흰 클레이에 넣을 엘틴 색소 조합과 양을 알려줘요</p>
     </div>
     <div class="head-side"></div>
   </header>
@@ -51,7 +51,7 @@
 <script src="assets/eltin-calc.js"></script>
 <script src="assets/eltin-color.js"></script>
 <script>
-/* ===== G05 클레이 색 배합 — 사양: docs/specs/G-color.md 4절 (G02와 같은 구조) =====
+/* ===== K02 (옛 G05) 클레이 색 배합 — 사양: docs/specs/G-color.md 4절 (G02와 같은 구조) =====
    측정된 클레이 칩(기본 8색 2색 각 1~5방울, 3색 각 1~3방울, 클레이 5g 기준) 중 원하는 색과 색차(CIEDE2000)가 작은 3개.
    가진 색소로만 된 배합만. 내 양 = 클레이 5g당 방울 × (내 g ÷ 5), 방울 정수 반올림, g = 방울 × 0.04 × 1.05 */
 const BASE = "clay";

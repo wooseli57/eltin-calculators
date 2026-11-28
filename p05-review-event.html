@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="A" data-no="05">
+<html lang="ko" data-cat="P" data-no="05">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A05 리뷰·쿠폰 이벤트 계산기 | 엘틴 소상공인 계산기</title>
+<title>P05 리뷰·쿠폰 이벤트 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -81,7 +81,7 @@
 
 <script src="assets/eltin-calc.js"></script>
 <script>
-/* ===== A05 리뷰·쿠폰 이벤트 계산기 ===== */
+/* ===== P05 (옛 A05) 리뷰·쿠폰 이벤트 계산기 ===== */
 const CONFIG = { rates: { 2026: { vatRate: 0.10 } } };   // 부가가치세율 10% (부가가치세법 제30조), 연도별로 나눠 둠
 const R = Eltin.yearRates(CONFIG.rates), VAT = R.values.vatRate;
 const { $, $$, won, num, moneyInput, numInput, pick, ACTIONS, bindActions, postHeight } = Eltin;

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="A" data-no="01">
+<html lang="ko" data-cat="E" data-no="04" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A01 최대광고비 계산기 | 엘틴 소상공인 계산기</title>
+<title>E04 최대광고비 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -34,17 +34,21 @@
 <script src="assets/margin-engine.js"></script>
 <script src="assets/margin-ui.js"></script>
 <script>
-/* ===== A01 최대광고비 계산기 — 사양: docs/specs/A01.md =====
+/* ===== E04 (옛 A01) 최대광고비 계산기 — 사양: docs/specs/A01.md =====
    최대광고비 = 세후 순이익 + 현재 광고비 (공통 엔진), 비율은 판매가 기준 대표 */
 const { $, won, num, ACTIONS, bindActions, postHeight } = Eltin;
 const pct = v => `${v < 0 ? "−" : ""}${num(Math.abs(v), 1)}%`;
 
 const form = MarginUI.form($("#form"), { mode: "both", onChange: render });
+/* 연결 단계 (docs/restructure-2026-11-28.md 4절): E01·E02가 넘긴 입력값으로 칸을 채우고,
+   다음 단계(E05)에는 지금 입력 기준으로 다시 계산한 값을 넘김 → 여기서 광고비율을 고치면 E03까지 반영 */
+const got = MarginUI.received(); if(got) form.set(got);
 
 function render(){
   const x = form.values(), rocket = x.type === "rocket";
-  if(!x.price || !x.buy){ $("#result").innerHTML = '<p class="empty">판매가와 매입가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
+  if(!x.price || !x.buy){ $("#result").innerHTML = '<p class="empty">판매가와 매입가를 넣으면 바로 계산돼요</p>'; Eltin.setFlow({ query: "" }); postHeight(); return; }
   const m = MarginEngine.calcMargin(x);
+  Eltin.setFlow({ query: MarginUI.flowQuery(form, m) });
 
   if(m.maxAd <= 0){
     $("#result").innerHTML = `

@@ -3,11 +3,12 @@
 ## 결정
 - 아임웹에는 계산기마다 페이지를 만들지 않고 **목록 iframe 하나로 모음**.
 - 회원 전용(access.md) 잠금은 아임웹 페이지 권한이 하므로 페이지는 2개:
-  - `https://eltin.imweb.me/calculators` — 누구나. 64개 목록. 누구나 34개는 이 iframe 안에서 바로 열림
-  - `https://eltin.imweb.me/calculators-member` — 로그인한 회원만. 회원 전용 30개가 열리는 곳 (메뉴에서는 숨겨도 됨)
+  - `https://eltin.imweb.me/calculators` — 누구나. 66개 목록. 누구나 31개는 이 iframe 안에서 바로 열림
+  - `https://eltin.imweb.me/calculators-member` — 로그인한 회원만. 회원 전용 35개가 열리는 곳 (메뉴에서는 숨겨도 됨)
+  - (2026-11-28 대분류 개편으로 34/30 → 31/35. 옛 번호 `#A01`·`#S08`·`#G06`·`#A`는 목록 페이지가 새 번호로 바꿔 엶)
   - 주소는 사용자가 아임웹에서 확정하면 바꿈
 - 두 페이지 모두 iframe은 `index.html`을 열고, 회원 페이지는 `&member=1`을 붙임
-- 페이지 주소 뒤 `#M05`(계산기 태그) 또는 `#S`(분류)를 아임웹 코드가 `&open=M05` / `&open=S`로 넘김
+- 페이지 주소 뒤 `#M05`(계산기 태그) 또는 `#S`(분류)를 아임웹 코드가 `&open=M05` / `&open=S`로 넘김. `#1`·`#2`·`#3`(대분류)도 됨
 
 ## 왜 member=1이 필요한가
 iframe 안에서는 부모가 eltin.imweb.me라는 것(origin)만 알 수 있고 어느 페이지인지(경로)는 모름.

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="A" data-no="02">
+<html lang="ko" data-cat="E" data-no="06" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A02 셀러관점 광고수익률 계산기 | 엘틴 소상공인 계산기</title>
+<title>E06 셀러관점 광고수익률 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -50,13 +50,19 @@
 <div class="toast" id="toast"></div>
 
 <script src="assets/eltin-calc.js"></script>
+<script src="assets/margin-engine.js"></script>
+<script src="assets/margin-ui.js"></script>
 <script>
-/* ===== A02 셀러관점 광고수익률 계산기 ===== */
+/* ===== E06 (옛 A02) 셀러관점 광고수익률 계산기 ===== */
 /* 기존 "최대비용 마진계산기" 공식: 셀러관점 광고수익률 = 마켓 광고수익률 × (1 − 마켓수수료율) */
 const { $, $$, won, num, moneyInput, numInput, ACTIONS, bindActions, postHeight } = Eltin;
 
 const roas = numInput($("#roas"), render), fee = numInput($("#fee"), render);
 const spend = moneyInput($("#spend"), $("#spendHint"), render);
+/* 연결 단계 (docs/restructure-2026-11-28.md 4절): 앞 단계의 마켓수수료율(feer)을 채우고(광고수익률은 마켓 화면을 보고 직접 입력),
+   받은 값은 그대로 다음 단계(E03 상품 손익)로 넘김 */
+const got = MarginUI.received(); if(got && got.fee != null) fee.set(got.fee);
+Eltin.setFlow({ query: MarginUI.passThrough() });
 
 function render(){
   $$("#roasChips .chip").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === roas.value));

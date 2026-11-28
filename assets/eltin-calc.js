@@ -41,14 +41,19 @@
      "eltin:calcs" 이벤트가 오니 버튼이 있는 계산기는 그때 다시 그림 */
   const ready = tags => !!CALCS && [].concat(tags).every(t => CALCS.calculators.some(c => c.tag === t && c.status === "완료"));
 
-  /* 분류 이름·색 (JSON을 못 읽을 때 머리말에 쓰는 기본값. 원본은 docs/calculators.md, 색은 eltin-calc.css와 같게) */
+  /* 분류 이름·색 (이름은 JSON을 못 읽을 때만 쓰는 기본값 — 원본은 docs/calculators.md, 색은 eltin-calc.css와 같게)
+     2026-11-28 개편: A 삭제(옛 A01~A03 → E04~E06, A04~A06 → P04~P06), P 홍보·K 색소놀이 조색 가이드 추가 */
   const CATEGORIES = {
+    T:{name:"기본 도구",color:"#5F6B7A"},       L:{name:"인건비 계산기",color:"#4B5BD4"},
+    O:{name:"운영비 계산기",color:"#E2A800"},   S:{name:"판매 계산기",color:"#2A9758"},
+    P:{name:"홍보 계산기",color:"#D2416F"},
     M:{name:"메뉴 마진",color:"#E0682B"},       E:{name:"온라인 상품 마진",color:"#0B7285"},
-    B:{name:"월 마진",color:"#1F84D0"},         L:{name:"인건비 계산기",color:"#4B5BD4"},
-    O:{name:"운영비 계산기",color:"#E2A800"},   S:{name:"판매 응용 계산기",color:"#2A9758"},
-    A:{name:"광고 계산기",color:"#D2416F"},     R:{name:"레시피 계산기",color:"#A9680F"},
-    G:{name:"조색 가이드",color:"#8E44C9"},     T:{name:"기본 도구",color:"#5F6B7A"}
+    B:{name:"월 마진",color:"#1F84D0"},
+    R:{name:"레시피 계산기",color:"#A9680F"},   G:{name:"홈베이킹 조색 가이드",color:"#8E44C9"},
+    K:{name:"색소놀이 조색 가이드",color:"#C2409A"}
   };
+  /* 분류 이름: 목록 JSON 값이 있으면 그것, 없으면 기본값 */
+  const catName = k => (CALCS && (CALCS.categories || []).find(g => g.cat === k) || {}).name || (CATEGORIES[k] || {}).name || k;
 
   /* ---------- 도구 ---------- */
   const $ = s => document.querySelector(s);
@@ -507,8 +512,8 @@
       tag.replaceWith(a); tag = a;
     }
     tag.href = inImweb ? keepMember("index.html") + "#" + cat : SITE.listPage + "#" + cat;
-    tag.title = `${CATEGORIES[cat].name} 계산기 목록 보기`;
-    tag.textContent = `${cat}${no} · ${CATEGORIES[cat].name}`;
+    tag.title = `${catName(cat)} 목록 보기`;
+    tag.textContent = `${cat}${no} · ${catName(cat)}`;
   }
 
   /* 머리말을 목록 값으로: 태그·이름(h1)·설명(p)·<title> */

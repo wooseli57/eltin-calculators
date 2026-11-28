@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="assets/eltin-calc.css">
 <style>
 .ad-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ad-links .ad-group{flex-basis:100%;font-size:11px;font-weight:700;color:var(--ink-2);margin-top:4px}
 .ad-links a{font-size:12px;font-weight:700;color:var(--brand-dark);text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px}
 </style>
 </head>
@@ -79,11 +80,19 @@ function setDefaults(m){
 MF.tabs($("#mfTabs"), setDefaults);
 setDefaults(MF.mode);
 
-/* 1회성 광고 계산기 (A01~A06) 링크 — 완료된 것만 */
+/* 광고 하나하나 따져 보는 계산기 링크 — 완료된 것만 (2026-11-28 개편: 온라인 광고 E04~E06 🔒, 매장 홍보 P04~P06)
+   지금 탭(매장/온라인)에 맞는 묶음을 먼저 보여줌. 회원 전용은 calcLink가 회원 모드 밖에서 🔒·회원 페이지로 */
+const AD_GROUPS = { online: ["온라인 광고", ["E04", "E05", "E06"]], store: ["매장 홍보", ["P04", "P05", "P06"]] };
 function adLinks(){
   const d = window.__eltinCalcs; if(!d) return "";
-  const list = d.calculators.filter(c => c.cat === "A" && c.status === "완료");
-  return list.length ? `<p class="tip">광고 하나하나가 남는지 따져 보려면<span class="ad-links">${list.map(c => `<a href="${keepMember(c.file)}" target="_self">${c.tag} ${esc(c.name.replace(/ 계산기$/, ""))}</a>`).join("")}</span></p>` : "";
+  const order = MF.mode === "online" ? ["online", "store"] : ["store", "online"];
+  const parts = order.map(k => {
+    const [label, tags] = AD_GROUPS[k];
+    const list = tags.map(t => d.calculators.find(c => c.tag === t && c.status === "완료")).filter(Boolean);
+    return list.length ? `<span class="ad-group">${label}</span>${list.map(c => { const ln = Eltin.calcLink(c);
+      return `<a href="${esc(ln.href)}" target="${ln.target}">${c.tag} ${esc(c.name.replace(/ 계산기$/, ""))}${ln.lock ? " " + Eltin.LOCK : ""}</a>`; }).join("")}` : "";
+  }).join("");
+  return parts ? `<p class="tip">광고 하나하나가 남는지 따져 보려면<span class="ad-links">${parts}</span></p>` : "";
 }
 
 function render(){

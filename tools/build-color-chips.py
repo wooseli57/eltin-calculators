@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-엘틴 컬러칩 측정 엑셀 → 조색 가이드(G01~G07)용 JSON 변환기 + 검사
+엘틴 컬러칩 측정 엑셀 → 조색 가이드(G01~G03·K01~K04)용 JSON 변환기 + 검사
 
   python tools/build-color-chips.py     # 자료/컬러칩 데이터/*.xlsx → data/color-chips.json, data/color-presets.json
 
@@ -34,7 +34,7 @@ HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 # 표기 코드가 다른 칩의 코드를 잘못 옮겨 적은 경우가 확인됨 (예: 클레이 빨강4+검정4 표기 #80865E → 사진 #805658)
 PHOTO_RE = re.compile(r"이미지 속 물방울 색은\s*(#[0-9A-Fa-f]{6})")
 
-# 인기 색 버튼 (G02·G05·G07 공통, G-color.md 3절) — 목표색일 뿐 엘틴 배합이 아님
+# 인기 색 버튼 (G02·K02·K04 공통, G-color.md 3절) — 목표색일 뿐 엘틴 배합이 아님
 POPULAR = [
     ("pastel-pink", "파스텔 핑크", "#F8C8DC"), ("coral", "코랄", "#FF7F6E"), ("peach", "피치", "#FFCBA4"),
     ("lemon", "레몬", "#FFF176"), ("mint", "민트", "#A8E6CF"), ("sky", "하늘색", "#A7D8F0"),
@@ -177,7 +177,7 @@ def main():
     except Exception:
         pass
     presets = {
-        "_about": "인기 색 버튼 (G02·G05·G07 공통). 사양: docs/specs/G-color.md 3절. 목표색일 뿐 엘틴 배합이 아니에요 — 배합은 계산기가 측정 칩에서 가장 가까운 것을 찾아요",
+        "_about": "인기 색 버튼 (G02·K02·K04 공통). 사양: docs/specs/G-color.md 3절. 목표색일 뿐 엘틴 배합이 아니에요 — 배합은 계산기가 측정 칩에서 가장 가까운 것을 찾아요",
         "presets": [{"id": i, "name": n, "hex": h} for i, n, h in POPULAR],
     }
     PRESETS.write_text(json.dumps(presets, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-cat="A" data-no="03">
+<html lang="ko" data-cat="E" data-no="05" data-access="member">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A03 최저 목표 광고수익률 계산기 | 엘틴 소상공인 계산기</title>
+<title>E05 최저 목표 광고수익률 계산기 | 엘틴 소상공인 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/eltin-calc.css">
@@ -59,7 +59,7 @@
 <script src="assets/margin-engine.js"></script>
 <script src="assets/margin-ui.js"></script>
 <script>
-/* ===== A03 최저 목표 광고수익률 계산기 — 사양: docs/specs/A03.md =====
+/* ===== E05 (옛 A03) 최저 목표 광고수익률 계산기 — 사양: docs/specs/A03.md =====
    최저 목표 광고수익률 = 판매가 ÷ 최대광고비 × 100 (판매가 기준). 마진 정보 방식은 공통 엔진의 minRoas·minRoasTax */
 const CONFIG = { compareSteps: [0.8, 1, 1.2] };   // 간단 계산 비교: 최대광고비 −20% / 그대로 / +20%
 const { $, $$, won, num, moneyInput, pick, ACTIONS, bindActions, postHeight } = Eltin;
@@ -69,9 +69,13 @@ let mode = "simple";
 const price = moneyInput($("#price"), $("#priceHint"), render);
 const maxAd = moneyInput($("#maxAd"), $("#maxAdHint"), render);
 const form = MarginUI.form($("#marginBox"), { mode: "both", onChange: render });
+/* 연결 단계 (docs/restructure-2026-11-28.md 4절): 앞 단계 입력값이 넘어오면 "마진 정보" 방식으로 칸을 채움.
+   다음 단계(E06)에는 마진 정보 방식이면 지금 입력 기준으로 다시 계산한 값, 간단 계산이면 받은 값을 그대로 넘김 */
+const got = MarginUI.received(), passed = MarginUI.passThrough();
 
 function render(){
   let P, A, A2 = null, rocket = false;
+  Eltin.setFlow({ query: mode === "simple" ? passed : "" });
   if(mode === "simple"){
     P = price.value; A = maxAd.value;
     if(!P || !A){ $("#result").innerHTML = '<p class="empty">판매가와 최대광고비를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
@@ -80,6 +84,7 @@ function render(){
     if(!x.price || !x.buy){ $("#result").innerHTML = '<p class="empty">판매가와 매입가를 넣으면 바로 계산돼요</p>'; postHeight(); return; }
     const m = MarginEngine.calcMargin(x);
     P = x.price; A = m.maxAd; A2 = m.minRoasTax;
+    Eltin.setFlow({ query: MarginUI.flowQuery(form, m) });
   }
   if(A <= 0){
     $("#result").innerHTML = `<p class="lead">최저 목표 광고수익률은</p><p class="big">설정 불가</p>
@@ -112,6 +117,11 @@ pick($$("#modeSeg button"), b => {
   $("#simpleBox").hidden = mode !== "simple"; $("#marginBox").hidden = mode === "simple";
   render();
 });
+
+if(got){                                                   // 받은 값이 있으면 "마진 정보" 방식으로 열기
+  const mb = [...$$("#modeSeg button")].find(b => b.dataset.mode !== "simple");
+  form.set(got); if(mb) mb.click();
+}
 
 $("#note").innerHTML = `<b>계산 기준</b> · 광고수익률(ROAS) = 매출 ÷ 광고비 × 100, 판매가 기준이에요. 최저 목표 광고수익률 = 판매가 ÷ 최대광고비 × 100.<br>
   이 값으로 광고하면 광고비 = 판매가 ÷ (광고수익률 ÷ 100) = 최대광고비가 돼요.`;

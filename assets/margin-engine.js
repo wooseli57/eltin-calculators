@@ -1,5 +1,5 @@
 /* =========================================================
-   공통 마진 엔진 (E01·E02·A01·A03 공용) — 사양: docs/specs/E01.md 0절
+   공통 마진 엔진 (E01·E02·E04·E05 공용) — 사양: docs/specs/E01.md 0절
    기존 "최대비용 마진계산기" PWA 앱(wooseli57/margin-calculator, index.html)의
    calcMargin·solve·progressiveTax를 그대로 옮김. 화면 코드는 넣지 않음.
    로켓배송은 마켓수수료가 납품가에 이미 반영되어 있으므로 비용에 다시 넣지 않음.

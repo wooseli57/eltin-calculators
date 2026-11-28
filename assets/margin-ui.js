@@ -1,7 +1,7 @@
 /* =========================================================
-   마진 계산기 공통 입력 화면 (E01·E02·A01·A03 공용)
+   마진 계산기 공통 입력 화면 (E01·E02·E04·E05 공용)
    계산은 assets/margin-engine.js(MarginEngine), 화면 도구는 assets/eltin-calc.js(Eltin)를 씀.
-   사양: docs/specs/E01.md 1~3절, E02.md, A01.md, A03.md
+   사양: docs/specs/E01.md 1~3절, E02.md, A01.md(E04), A03.md(E05)
    ========================================================= */
 (function(){
   const { won, num, koreanUnit, moneyInput, numInput, yearRates, taxTables } = Eltin;
@@ -171,6 +171,23 @@
       get type(){ return type; },
       values: () => ({ type, price: price.value, buy: buy.value, fee: fee.value, pack: pack.value, ad: ad.value, etc: etc.value, tax: tax.value }),
       market: () => current().name,
+      marketIndex: () => Number(r("market").value) || 0,
+      /* 값 채우기 (다음 단계로 넘어온 입력값). v: { type, market, price, buy, fee, pack, ad, etc, tax } — 없는 값은 그대로 둠 */
+      set(v){
+        if(both && (v.type === "online" || v.type === "rocket") && v.type !== type){
+          type = v.type; box.querySelectorAll('[data-r="typeSeg"] button').forEach(x => x.setAttribute("aria-pressed", x.dataset.type === type));
+          applyType();
+        }
+        if(v.market != null && presets()[v.market]) r("market").value = v.market;
+        if(v.price != null) price.set(v.price);
+        if(v.buy != null) buy.set(v.buy);
+        if(v.fee != null) fee.set(v.fee);
+        if(v.pack != null) pack.set(v.pack);
+        if(v.ad != null) ad.set(v.ad);
+        if(v.etc != null) etc.set(v.etc);
+        if(v.tax != null) tax.set(v.tax);
+        syncEdited(); syncBase(); changed();
+      },
       reset(){ price.set(0); buy.set(0); $id("pack").value = won(DEFAULTS[type].pack); $id("etc").value = DEFAULTS[type].etc; $id("tax").value = DEFAULTS[type].tax;
         r("market").value = 0; applyType(); changed(); }
     };
@@ -206,5 +223,31 @@
   /* 계산 기준 + 주의 문구 넣기 (올해 판매처 데이터가 없으면 결과 위 경고) */
   function notice(rocket){ Eltin.yearNotice(R, "", {}, caution(rocket)); }
 
-  window.MarginUI = { form, target, notice, R };
+  /* ---------- 온라인 상품 마진 연결 단계 값 넘기기 (docs/restructure-2026-11-28.md 4절) ----------
+     E01·E02 → E04 → E05 → E06 → E03. E03이 받는 값(type·price·base·ebt·buy·fee·pack·ad·etc·vat, 금액)에
+     입력 칸 값(market 판매처 번호, feer·adr·etcr·taxr 비율 %)을 더해 넘김. price·buy·pack은 금액 그대로 입력 칸 값이기도 함 */
+  const IN_KEYS = ["market", "feer", "adr", "etcr", "taxr"];
+  const SKIP_KEYS = ["member", "open", "embed"];          // 공통 JS가 다시 붙이는 값
+  function flowQuery(f, m){
+    const x = f.values(), rocket = x.type === "rocket", R0 = Math.round;
+    return new URLSearchParams({ type: rocket ? "rocket" : "direct", price: R0(x.price), base: R0(m.base), ebt: R0(m.ebt),
+      buy: R0(x.buy), fee: rocket ? 0 : R0(m.feeAmt), pack: R0(x.pack), ad: R0(m.adAmt), etc: R0(m.etcAmt), vat: R0(m.vat),
+      market: f.marketIndex(), feer: x.fee, adr: x.ad, etcr: x.etc, taxr: x.tax }).toString();
+  }
+  /* 주소에 넘어온 입력값 → form.set()에 넣을 값 (입력값이 없으면 null) */
+  function received(){
+    const q = new URLSearchParams(location.search);
+    if(!IN_KEYS.some(k => q.has(k))) return null;
+    const n = k => { const v = Number(q.get(k)); return q.has(k) && q.get(k) !== "" && isFinite(v) && v >= 0 ? v : null; };
+    return { type: q.get("type") === "rocket" ? "rocket" : "online", market: n("market"), price: n("price"), buy: n("buy"),
+      fee: n("feer"), pack: n("pack"), ad: n("adr"), etc: n("etcr"), tax: n("taxr") };
+  }
+  /* 받은 주소값 그대로 (E05 간단 계산·E06처럼 마진 입력으로 다시 계산하지 않는 단계) */
+  function passThrough(){
+    const q = new URLSearchParams(location.search), out = new URLSearchParams();
+    q.forEach((v, k) => { if(!SKIP_KEYS.includes(k)) out.append(k, v); });
+    return out.toString();
+  }
+
+  window.MarginUI = { form, target, notice, R, flowQuery, received, passThrough };
 })();
