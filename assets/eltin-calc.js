@@ -45,11 +45,11 @@
      2026-11-28 개편: A 삭제(옛 A01~A03 → E04~E06, A04~A06 → P04~P06), P 홍보·K 색소놀이 조색 가이드 추가 */
   const CATEGORIES = {
     T:{name:"기본 도구",color:"#5F6B7A"},       L:{name:"인건비 계산기",color:"#4B5BD4"},
-    O:{name:"운영비 계산기",color:"#E2A800"},   S:{name:"판매 계산기",color:"#2A9758"},
-    P:{name:"홍보 계산기",color:"#D2416F"},
-    M:{name:"메뉴 마진",color:"#E0682B"},       E:{name:"온라인 상품 마진",color:"#0B7285"},
-    B:{name:"월 마진",color:"#1F84D0"},
-    R:{name:"레시피 계산기",color:"#A9680F"},   G:{name:"홈베이킹 조색 가이드",color:"#8E44C9"},
+    O:{name:"운영비 계산기",color:"#1F84D0"},   S:{name:"판매 계산기",color:"#2A9758"},
+    P:{name:"홍보 계산기",color:"#0B7285"},
+    M:{name:"메뉴 마진",color:"#E0682B"},       E:{name:"온라인 상품 마진",color:"#E2A800"},
+    B:{name:"월 마진",color:"#A9680F"},
+    R:{name:"레시피 계산기",color:"#D2416F"},   G:{name:"홈베이킹 조색 가이드",color:"#8E44C9"},
     K:{name:"색소놀이 조색 가이드",color:"#C2409A"}
   };
   /* 분류 이름: 목록 JSON 값이 있으면 그것, 없으면 기본값 */

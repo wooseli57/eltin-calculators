@@ -22,17 +22,19 @@
   --brand-soft:color-mix(in srgb,var(--brand) 11%,#fff);
   --brand-faint:color-mix(in srgb,var(--brand) 6%,#fff);
 }
-[data-cat="M"]{--brand:#E0682B}                     /* 메뉴 마진(연결): 오렌지 (옛 C 색) */
-[data-cat="E"]{--brand:#0B7285}                     /* 온라인 상품 마진(연결): 청록 (광고 하단 민트 #0E9692보다 푸르고 진함) */
-[data-cat="B"]{--brand:#1F84D0}                     /* 월 마진(연결): 하늘색 (옛 M 색) */
-[data-cat="L"]{--brand:#4B5BD4}                     /* 인건비: 인디고 */
-[data-cat="O"]{--brand:#E2A800;--brand-dark:#8A6500}/* 운영비: 노랑 (밝아서 진한 색 따로 지정) */
-[data-cat="S"]{--brand:#2A9758}                     /* 판매: 초록 */
-[data-cat="P"]{--brand:#D2416F;--shop:#0E9692}      /* 홍보: 로즈 (하단 박스는 민트) — 옛 A 색 */
-[data-cat="R"]{--brand:#A9680F}                     /* 레시피: 캐러멜 */
-[data-cat="G"]{--brand:#8E44C9}                     /* 홈베이킹 조색: 보라 */
-[data-cat="K"]{--brand:#C2409A;--brand-dark:#96317A}/* 색소놀이 조색: 마젠타 (2026-11-28 대표 확정). 진한 색 위 흰 글자 대비 약 7:1 */
-[data-cat="T"]{--brand:#5F6B7A}                     /* 기본 도구: 슬레이트 */
+/* 대분류별 색 계열 (2026-11-28 대표 결정, docs/restructure-2026-11-28.md 3절):
+   사장님 = 흑백 + 초록·파랑 / 마진 = 노랑 계열 / 홈베이킹 = 빨강·보라 */
+[data-cat="T"]{--brand:#5F6B7A}                     /* 사장님 · 기본 도구: 슬레이트 */
+[data-cat="L"]{--brand:#4B5BD4}                     /* 사장님 · 인건비: 인디고 */
+[data-cat="O"]{--brand:#1F84D0}                     /* 사장님 · 운영비: 하늘색 (옛 월 마진 색) */
+[data-cat="S"]{--brand:#2A9758}                     /* 사장님 · 판매: 초록 */
+[data-cat="P"]{--brand:#0B7285}                     /* 사장님 · 홍보: 청록 (옛 온라인 상품 마진 색) */
+[data-cat="M"]{--brand:#E0682B}                     /* 마진 · 메뉴 마진(연결): 오렌지 */
+[data-cat="E"]{--brand:#E2A800;--brand-dark:#8A6500}/* 마진 · 온라인 상품 마진(연결): 노랑 (밝아서 진한 색 따로 지정, 흰 글자 대비 약 5.3:1) */
+[data-cat="B"]{--brand:#A9680F}                     /* 마진 · 월 마진(연결): 캐러멜 (옛 레시피 색) */
+[data-cat="R"]{--brand:#D2416F;--shop:#0E9692}      /* 홈베이킹 · 레시피: 로즈 (하단 박스는 민트 — 분홍 박스와 겹치지 않게) */
+[data-cat="G"]{--brand:#8E44C9}                     /* 홈베이킹 · 홈베이킹 조색: 보라 */
+[data-cat="K"]{--brand:#C2409A;--brand-dark:#96317A}/* 홈베이킹 · 색소놀이 조색: 마젠타. 진한 색 위 흰 글자 대비 약 7:1 */
 
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg)}
