@@ -11,9 +11,15 @@
 /* 분류 버튼: 맨 앞 "전체", 그다음 대분류별 줄 (사장님 / 마진 / 홈베이킹 계산기). 대분류 이름표를 누르면 그 대분류만. 글자는 분류 이름 그대로, 좁으면 두 줄로 */
 .jump{display:flex;flex-direction:column;gap:8px;padding:2px 2px 4px}
 .jump-row{display:grid;gap:6px}
-.jump .jump-label{all:unset;box-sizing:border-box;font-size:11px;font-weight:700;color:var(--ink-3);margin:2px 0 -3px 4px;cursor:pointer;align-self:flex-start;border-radius:6px;padding:1px 4px}
-.jump .jump-label:hover,.jump .jump-label:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
-.jump .jump-label.on{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+/* 대분류 이름표: 평소엔 구분 제목(이름 + 오른쪽 옅은 선), 눌린 상태엔 이름만 '전체' 버튼처럼 짙은 배경 + 흰 글자 (2026-11-28 대표 요청)
+   선택자에 button을 넣어 아래 `.jump button.on`보다 우선하게 하고, 배경은 이름(span)에만 칠함 */
+.jump button.jump-label{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;font-size:12px;font-weight:700;letter-spacing:-.2px;color:var(--ink-2);margin:6px 0 -2px;padding:0;cursor:pointer}
+.jump button.jump-label::after{content:"";flex:1;height:1px;background:var(--line)}
+.jump button.jump-label span{border-radius:999px;padding:3px 10px;margin-left:-2px}
+.jump button.jump-label:hover span{color:var(--ink);background:#E6E9ED}
+.jump button.jump-label:focus-visible span{outline:2px solid #A9B1BE;outline-offset:1px}
+.jump button.jump-label.on{background:none;color:var(--ink-2)}
+.jump button.jump-label.on span{color:#fff;background:#4A5562}
 .jump button{min-width:0;text-align:center;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700;letter-spacing:-.3px;line-height:1.25;color:var(--brand-dark);background:var(--brand-soft);
   border-radius:16px;padding:7px 4px;word-break:keep-all}
 .jump button.on{color:#fff;background:var(--brand-dark)}
@@ -111,7 +117,7 @@ function draw(d){
   const rowsOf = cats => { if(cats.length <= MAX_ROW) return [cats]; const h = Math.ceil(cats.length / 2); return [cats.slice(0, h), cats.slice(h)]; };
   GROUPS = groups;
   $("#jump").innerHTML = `<button type="button" class="all on" data-f="">전체 (${d.calculators.length})</button>`
-    + groups.map(g => `${g.name ? `<button type="button" class="jump-label" data-g="${g.no}">${esc(gLabel(g))}</button>` : ""}${
+    + groups.map(g => `${g.name ? `<button type="button" class="jump-label" data-g="${g.no}"><span>${esc(gLabel(g))}</span></button>` : ""}${
       rowsOf(g.cats).map(cats => `<div class="jump-row" style="grid-template-columns:repeat(${cats.length},minmax(0,1fr))">${
         cats.map(k => `<button type="button" data-cat="${k}" data-f="${k}">${esc(byCat[k].name)} (${cnt(k)})</button>`).join("")}</div>`).join("")}`).join("");
 
