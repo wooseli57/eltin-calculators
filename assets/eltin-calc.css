@@ -31,7 +31,7 @@
 [data-cat="P"]{--brand:#D2416F;--shop:#0E9692}      /* 홍보: 로즈 (하단 박스는 민트) — 옛 A 색 */
 [data-cat="R"]{--brand:#A9680F}                     /* 레시피: 캐러멜 */
 [data-cat="G"]{--brand:#8E44C9}                     /* 홈베이킹 조색: 보라 */
-[data-cat="K"]{--brand:#C2409A;--brand-dark:#96317A}/* 색소놀이 조색: 마젠타 (임시, 대표 확인). 진한 색 위 흰 글자 대비 약 7:1 */
+[data-cat="K"]{--brand:#C2409A;--brand-dark:#96317A}/* 색소놀이 조색: 마젠타 (2026-11-28 대표 확정). 진한 색 위 흰 글자 대비 약 7:1 */
 [data-cat="T"]{--brand:#5F6B7A}                     /* 기본 도구: 슬레이트 */
 
 *{box-sizing:border-box;margin:0;padding:0}
