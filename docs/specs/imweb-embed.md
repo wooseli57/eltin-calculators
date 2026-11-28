@@ -1,5 +1,7 @@
 # 아임웹 넣기: 목록 1페이지 + 회원 전용 1페이지 (2026-11-26 확정)
 
+> **2026-11-28 변경 — 무료계산기 메뉴를 대분류 3개 페이지로** (아래 "대분류 3페이지" 절이 최신. 그 아래 내용은 처음 정한 기록)
+
 ## 결정
 - 아임웹에는 계산기마다 페이지를 만들지 않고 **목록 iframe 하나로 모음**.
 - 회원 전용(access.md) 잠금은 아임웹 페이지 권한이 하므로 페이지는 2개:
@@ -91,3 +93,54 @@ iframe 안에서는 부모가 eltin.imweb.me라는 것(origin)만 알 수 있고
 - `assets/eltin-calc.js`: `inImweb`(iframe 안 + 부모가 아임웹) 자동 판단, `imwebFrameOK`, 회원 모드 = `inImweb` + `member=1`, `keepEmbed` → `keepMember`, 로고는 아임웹 안에서 `_top`
 - `assets/eltin-calc.css`: 아임웹 모드에서 머리말 숨김 제거 (하단 작은 문구 숨김·투명 배경·여백은 유지)
 - R01의 R02·R03·R04 이동 버튼이 `_top`이라 아임웹 밖 GitHub 주소로 나가던 것을 같은 iframe 안 이동으로 (회원 모드 유지)
+
+
+## 대분류 3페이지 (2026-11-28 대표 결정, 채팅 탭이 아임웹에서 직접 바꿈·게시)
+
+| 메뉴 | 주소 | 접근 권한 | 위젯 MEMBER · GROUP | 비고 |
+|---|---|---|---|---|
+| 무료계산기 > 사장님계산기(31) | `/calculators` | 누구나 | false · "1" | 옛 "일반무료계산기(34)" 페이지 이름만 바꿈 |
+| 무료계산기 > 마진계산기(20) | `/calculators-margin` | 로그인 사용자(로그인창 자동 표시) | true · "2" | 회원 페이지를 복제해 만듦 |
+| 무료계산기 > 홈베이킹계산기(15) | `/calculators-home` | 로그인 사용자(로그인창 자동 표시) | true · "3" | 위와 같음 |
+| (메뉴 숨김) 회원계산기전체(35) | `/calculators-member` | 로그인 사용자 | true · (옛 코드, 전체) | 블로그 링크 `#M05`와 공통 JS `SITE.memberPage`가 쓰는 곳이라 지우지 않고 메뉴에서만 숨김 |
+
+- 주소 끝 `#S01`(계산기)·`#S`(분류)·`#1`~`#3`(대분류)이 있으면 그것을 먼저 열고, 없으면 그 페이지의 GROUP 대분류만 보여줌
+- 메뉴 이름의 숫자는 직접 적은 글자(자동 연동 아님). 계산기 수가 바뀌면 디자인 모드에서 고침
+- 아임웹 디자인 모드에서 코드 위젯 편집: 위젯 오른쪽 위 (i) → 코드 설정 → 코드 에디터 열기
+
+### 새 아임웹 코드 (세 페이지 공통, MEMBER·GROUP만 다름)
+```html
+<iframe id="eltin-calc" title="엘틴 무료 계산기" allow="clipboard-write"
+  style="width:100%;border:0;min-height:720px"></iframe>
+<script>
+(function(){
+  var MEMBER = true;   // 회원 전용 페이지: true / 일반 페이지: false
+  var GROUP = "2";     // 처음 보여줄 대분류: "1" 사장님 · "2" 마진 · "3" 홈베이킹 · "" 전체
+  var BASE = "https://wooseli57.github.io/eltin-calculators/";
+  var f = document.getElementById("eltin-calc");
+  function load(){
+    var h = (location.hash || "").replace("#", "").toUpperCase();
+    if(!/^([A-Z](\d{2})?|[1-3])$/.test(h)) h = GROUP;
+    f.src = BASE + "index.html?" + (MEMBER ? "member=1" : "") + (h ? "&open=" + h : "");
+  }
+  var first = true;
+  f.addEventListener("load", function(){
+    if(!first) window.scrollTo({ top: f.getBoundingClientRect().top + window.scrollY - 80 });
+    first = false;
+  });
+  window.addEventListener("message", function(e){
+    if(e.origin !== "https://wooseli57.github.io") return;
+    if(e.data && e.data.type === "eltin-calc-height") f.style.height = e.data.height + "px";
+  });
+  window.addEventListener("hashchange", load);
+  load();
+})();
+</script>
+```
+
+### 블로그 링크 (블로그 작업 때 반영)
+- 사장님 계산기(T·L·O·S·P): `https://eltin.imweb.me/calculators#S01` (그대로)
+- 마진 계산기(M·E·B): `https://eltin.imweb.me/calculators-margin#M05` 로 바꿀 수 있음 (옛 `calculators-member#M05`도 계속 열림)
+- 홈베이킹 계산기(R·G·K): `https://eltin.imweb.me/calculators-home#R01` 로 바꿀 수 있음
+- 대분류 목록: `/calculators` · `/calculators-margin` · `/calculators-home`
+- 참고: 공통 JS의 `SITE.memberPage`(아임웹 밖에서 회원 계산기를 누를 때 가는 곳)는 지금 `calculators-member#{tag}`. 대분류 페이지로 보내고 싶으면 코드 탭에서 분류별로 바꿀 수 있음 (선택)
