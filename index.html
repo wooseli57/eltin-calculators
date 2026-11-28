@@ -107,10 +107,10 @@ function draw(d){
   const cnt = k => d.calculators.filter(c => c.cat === k).length;     // 분류별 계산기 수 (준비 중 포함, 함께 보이기는 세지 않음)
   const groups = (d.groups && d.groups.length ? d.groups : [{ no: "", name: "", cats: d.categories.map(g => g.cat) }])
     .map(g => ({ ...g, cats: g.cats.filter(k => byCat[k]) }));
-  /* 대분류 이름표: 이름 · 누구나|회원 · (모두 연결 계산이면) 연결 계산 */
+  /* 대분류 이름표: 이름 · 누구나|회원무료 · (모두 연결 계산이면) 연결 계산 */
   const gLabel = g => {
     const list = d.calculators.filter(c => g.cats.includes(c.cat));
-    const acc = list.every(c => c.access === "free") ? "누구나" : list.every(c => c.access === "member") ? "회원" : "";
+    const acc = list.every(c => c.access === "free") ? "누구나" : list.every(c => c.access === "member") ? "회원무료" : "";
     const linked = g.cats.every(k => byCat[k].group === "연결");
     return [g.name, acc, linked ? "연결 계산" : ""].filter(Boolean).join(" · ");
   };
@@ -161,7 +161,7 @@ function draw(d){
 
 Eltin.init();
 /* 회원 모드(회원 전용 아임웹 페이지 안)에서는 안내 문구를 바꿈 */
-if(Eltin.memberMode()) $(".member-note").textContent = "🔒 표시는 엘틴 쇼핑몰 회원 전용이에요. 회원 전용 계산기를 모두 쓸 수 있어요.";
+if(Eltin.memberMode()) $(".member-note").textContent = "🔒 표시는 엘틴 쇼핑몰 회원 전용이에요. 회원 전용 계산기를 무료로 쓸 수 있어요.";
 
 /* ?open=M05 (계산기 태그): 완료된 계산기면 그 계산기로 바로 이동 (embed·member 유지).
    회원 전용인데 회원 모드가 아니면 같은 iframe에서 그 계산기를 열어 안내 카드를 보여줌 (iframe에서 바깥 페이지로는 보낼 수 없음) */
